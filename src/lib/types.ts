@@ -35,6 +35,9 @@ export type Genero = 'Masculino' | 'Femenino' | 'Otro';
 export interface Empresa {
   id: string;
   name: string;
+  rif: string;
+  telefono: string;
+  direccion: string;
 }
 
 export interface Beneficiario {

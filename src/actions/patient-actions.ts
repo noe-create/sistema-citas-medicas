@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular } from '@/lib/types';
+import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular, Empresa } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const generateId = () => `t${Date.now()}`;
@@ -43,7 +43,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
 
 export async function getEmpresas() {
     const db = await getDb();
-    return db.all('SELECT * FROM empresas');
+    return db.all('SELECT * FROM empresas ORDER BY name');
 }
 
 export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios'>) {
@@ -284,4 +284,72 @@ export async function getTitularTypeById(titularId: string): Promise<TitularType
     const db = await getDb();
     const row = await db.get('SELECT tipo FROM titulares WHERE id = ?', titularId);
     return row?.tipo || null;
+}
+
+// --- Company Actions ---
+
+const generateCompanyId = () => `emp${Date.now()}`;
+
+export async function createEmpresa(data: Omit<Empresa, 'id'>): Promise<Empresa> {
+    const db = await getDb();
+    const newEmpresaData = {
+        ...data,
+        id: generateCompanyId(),
+    };
+
+    await db.run(
+        'INSERT INTO empresas (id, name, rif, telefono, direccion) VALUES (?, ?, ?, ?, ?)',
+        newEmpresaData.id,
+        newEmpresaData.name,
+        newEmpresaData.rif,
+        newEmpresaData.telefono,
+        newEmpresaData.direccion
+    );
+
+    revalidatePath('/dashboard/empresas');
+    revalidatePath('/dashboard/pacientes'); // In case a new titular is being created
+
+    return newEmpresaData;
+}
+
+export async function updateEmpresa(data: Empresa): Promise<Empresa> {
+    const db = await getDb();
+    const result = await db.run(
+        'UPDATE empresas SET name = ?, rif = ?, telefono = ?, direccion = ? WHERE id = ?',
+        data.name,
+        data.rif,
+        data.telefono,
+        data.direccion,
+        data.id
+    );
+
+    if (result.changes === 0) {
+        throw new Error('Empresa no encontrada');
+    }
+
+    revalidatePath('/dashboard/empresas');
+    revalidatePath('/dashboard/pacientes');
+
+    return data;
+}
+
+export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
+    const db = await getDb();
+
+    // Check if any titular is associated with this company
+    const countResult = await db.get('SELECT COUNT(*) as count FROM titulares WHERE empresaId = ?', id);
+    if (countResult.count > 0) {
+        throw new Error('No se puede eliminar la empresa porque tiene titulares asociados.');
+    }
+
+    const result = await db.run('DELETE FROM empresas WHERE id = ?', id);
+
+    if (result.changes === 0) {
+        throw new Error('Empresa no encontrada para eliminar');
+    }
+
+    revalidatePath('/dashboard/empresas');
+    revalidatePath('/dashboard/pacientes');
+
+    return { success: true };
 }

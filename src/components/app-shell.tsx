@@ -16,7 +16,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, LogOut, Stethoscope, Users, User } from 'lucide-react';
+import { LayoutGrid, LogOut, Stethoscope, Users, User, Building } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -73,6 +73,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link href="/dashboard/beneficiarios">
                     <User />
                     <span>Beneficiarios</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith('/dashboard/empresas')}
+                  tooltip="Empresas"
+                >
+                  <Link href="/dashboard/empresas">
+                    <Building />
+                    <span>Empresas</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -26,7 +26,10 @@ async function initializeDb(): Promise<Database> {
     await newDb.exec(`
         CREATE TABLE IF NOT EXISTS empresas (
             id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
+            name TEXT NOT NULL,
+            rif TEXT NOT NULL UNIQUE,
+            telefono TEXT NOT NULL,
+            direccion TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS titulares (
             id TEXT PRIMARY KEY,
@@ -55,13 +58,13 @@ async function initializeDb(): Promise<Database> {
     const empresaCount = await newDb.get('SELECT COUNT(*) as count FROM empresas');
     if (empresaCount.count === 0) {
         const empresas: Empresa[] = [
-            { id: "emp1", name: "Innovatech Solutions" },
-            { id: "emp2", name: "Nexus Group" },
-            { id: "emp3", name: "Quantum Industries" },
+            { id: "emp1", name: "Innovatech Solutions", rif: "J-12345678-9", telefono: "0212-555-1111", direccion: "Av. Principal, Caracas" },
+            { id: "emp2", name: "Nexus Group", rif: "J-23456789-0", telefono: "0212-555-2222", direccion: "Calle Secundaria, Valencia" },
+            { id: "emp3", name: "Quantum Industries", rif: "J-34567890-1", telefono: "0212-555-3333", direccion: "Torre Empresarial, Maracaibo" },
         ];
-        const stmt = await newDb.prepare('INSERT INTO empresas (id, name) VALUES (?, ?)');
+        const stmt = await newDb.prepare('INSERT INTO empresas (id, name, rif, telefono, direccion) VALUES (?, ?, ?, ?, ?)');
         for (const empresa of empresas) {
-            await stmt.run(empresa.id, empresa.name);
+            await stmt.run(empresa.id, empresa.name, empresa.rif, empresa.telefono, empresa.direccion);
         }
         await stmt.finalize();
     }
