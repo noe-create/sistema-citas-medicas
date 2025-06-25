@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Beneficiario, Titular } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -116,12 +116,14 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleOpenForm(beneficiario)}>
-                              Editar
+                              <Pencil className="mr-2 h-4 w-4" />
+                              <span>Editar</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                              <AlertDialogTrigger asChild>
                                 <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                    Eliminar
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Eliminar</span>
                                 </DropdownMenuItem>
                             </AlertDialogTrigger>
                           </DropdownMenuContent>

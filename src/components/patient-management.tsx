@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Titular, Empresa } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -168,15 +168,18 @@ export function PatientManagement() {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
-                                Editar
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  <span>Editar</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
-                                  Gestionar Beneficiarios
+                                  <Users className="mr-2 h-4 w-4" />
+                                  <span>Gestionar Beneficiarios</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                        Eliminar
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <span>Eliminar</span>
                                     </DropdownMenuItem>
                                 </AlertDialogTrigger>
                             </DropdownMenuContent>

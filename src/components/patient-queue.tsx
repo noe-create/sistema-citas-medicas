@@ -15,6 +15,7 @@ import {
   Baby,
   Briefcase,
   Building2,
+  FilePenLine,
   HeartPulse,
   MoreHorizontal,
   Stethoscope,
@@ -130,7 +131,8 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
-                            Gestionar Paciente
+                            <FilePenLine className="mr-2 h-4 w-4" />
+                            <span>Gestionar Paciente</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
