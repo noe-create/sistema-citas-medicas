@@ -380,21 +380,41 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 control={form.control}
                 name="tipo"
                 render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Tipo de Titular</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <FormItem className="space-y-3">
+                        <FormLabel>Tipo de Titular</FormLabel>
                         <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un tipo" />
-                        </SelectTrigger>
+                             <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-1"
+                            >
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="private" id="private" />
+                                    </FormControl>
+                                    <Label htmlFor="private" className="font-normal">
+                                        Privado
+                                    </Label>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="internal_employee" id="internal_employee" />
+                                    </FormControl>
+                                    <Label htmlFor="internal_employee" className="font-normal">
+                                        Empleado Interno
+                                    </Label>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value="corporate_affiliate" id="corporate_affiliate" />
+                                    </FormControl>
+                                    <Label htmlFor="corporate_affiliate" className="font-normal">
+                                        Afiliado Corporativo
+                                    </Label>
+                                </FormItem>
+                            </RadioGroup>
                         </FormControl>
-                        <SelectContent>
-                            <SelectItem value="private">Privado</SelectItem>
-                            <SelectItem value="internal_employee">Empleado Interno</SelectItem>
-                            <SelectItem value="corporate_affiliate">Afiliado Corporativo</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
+                        <FormMessage />
                     </FormItem>
                 )}
             />
