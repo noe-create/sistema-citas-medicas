@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import type { Empresa, Titular } from '@/lib/types';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
 
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -127,7 +129,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
               control={form.control}
               name="nombreCompleto"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2">
                   <FormLabel>Nombre Completo</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej. Juan Pérez" {...field} />
@@ -137,29 +139,38 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
               )}
             />
             
-            <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start">
-              <FormField
-                  control={form.control}
-                  name="nacionalidad"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Nac.</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue="V">
-                          <FormControl>
-                          <SelectTrigger>
-                              <SelectValue />
-                          </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                          <SelectItem value="V">V - Venezolano</SelectItem>
-                          <SelectItem value="E">E - Extranjero</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-              />
-              <FormField
+            <FormField
+                control={form.control}
+                name="nacionalidad"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel>Nacionalidad</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                defaultValue="V"
+                                className="flex items-center space-x-4 pt-1"
+                            >
+                                <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                        <RadioGroupItem value="V" id="v" />
+                                    </FormControl>
+                                    <Label htmlFor="v" className="font-normal">Venezolano</Label>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2">
+                                    <FormControl>
+                                        <RadioGroupItem value="E" id="e" />
+                                    </FormControl>
+                                    <Label htmlFor="e" className="font-normal">Extranjero</Label>
+                                </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                         <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
                   control={form.control}
                   name="cedula"
                   render={({ field }) => (
@@ -174,7 +185,6 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                       </FormItem>
                   )}
               />
-            </div>
 
             <FormField
                 control={form.control}
@@ -378,3 +388,5 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
     </Form>
   );
 }
+
+    
