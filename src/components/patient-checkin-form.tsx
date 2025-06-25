@@ -27,6 +27,7 @@ import { searchCombinedPatients, getTitularTypeById } from '@/actions/patient-ac
 import type { Patient, SearchResult, ServiceType, TitularType, AccountType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   serviceType: z.enum(['Medicina General', 'Pediatría', 'Enfermería'], {
@@ -232,12 +233,3 @@ function PatientSearch({ onPatientSelect }: { onPatientSelect: (patient: SearchR
         </div>
     );
 }
-
-// Minimal Command components to avoid installing a new dependency
-const Label = React.forwardRef<
-  React.ElementRef<"label">,
-  React.ComponentPropsWithoutRef<"label">
->(({ className, ...props }, ref) => (
-  <label ref={ref} className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)} {...props} />
-));
-Label.displayName = "Label";
