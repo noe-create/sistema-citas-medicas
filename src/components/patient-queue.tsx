@@ -31,41 +31,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const mockPatients: Patient[] = [
-  {
-    id: '1',
-    name: 'Alice Johnson',
-    serviceType: 'Medicina General',
-    accountType: 'Privado',
-    status: 'Esperando',
-    checkInTime: new Date(new Date().getTime() - 10 * 60000),
-  },
-  {
-    id: '2',
-    name: 'Bob Williams',
-    serviceType: 'Pediatría',
-    accountType: 'Empleado',
-    status: 'Esperando',
-    checkInTime: new Date(new Date().getTime() - 15 * 60000),
-  },
-  {
-    id: '3',
-    name: 'Charlie Brown',
-    serviceType: 'Enfermería',
-    accountType: 'Afiliado Corporativo',
-    status: 'En Consulta',
-    checkInTime: new Date(new Date().getTime() - 30 * 60000),
-  },
-  {
-    id: '4',
-    name: 'Diana Miller',
-    serviceType: 'Medicina General',
-    accountType: 'Privado',
-    status: 'Completado',
-    checkInTime: new Date(new Date().getTime() - 60 * 60000),
-  },
-];
-
 const serviceIcons: Record<ServiceType, React.ReactNode> = {
   'Medicina General': <HeartPulse className="h-5 w-5 text-red-500" />,
   'Pediatría': <Baby className="h-5 w-5 text-blue-500" />,
@@ -79,9 +44,47 @@ const accountIcons: Record<AccountType, React.ReactNode> = {
 };
 
 export function PatientQueue() {
-  const [patients, setPatients] = React.useState<Patient[]>(mockPatients);
+  const [patients, setPatients] = React.useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const mockPatients: Patient[] = [
+      {
+        id: '1',
+        name: 'Alice Johnson',
+        serviceType: 'Medicina General',
+        accountType: 'Privado',
+        status: 'Esperando',
+        checkInTime: new Date(new Date().getTime() - 10 * 60000),
+      },
+      {
+        id: '2',
+        name: 'Bob Williams',
+        serviceType: 'Pediatría',
+        accountType: 'Empleado',
+        status: 'Esperando',
+        checkInTime: new Date(new Date().getTime() - 15 * 60000),
+      },
+      {
+        id: '3',
+        name: 'Charlie Brown',
+        serviceType: 'Enfermería',
+        accountType: 'Afiliado Corporativo',
+        status: 'En Consulta',
+        checkInTime: new Date(new Date().getTime() - 30 * 60000),
+      },
+      {
+        id: '4',
+        name: 'Diana Miller',
+        serviceType: 'Medicina General',
+        accountType: 'Privado',
+        status: 'Completado',
+        checkInTime: new Date(new Date().getTime() - 60 * 60000),
+      },
+    ];
+    setPatients(mockPatients);
+  }, []);
 
   const handleManagePatient = (patient: Patient) => {
     setSelectedPatient(patient);
@@ -137,7 +140,7 @@ export function PatientQueue() {
                       {patient.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{patient.checkInTime.toLocaleTimeString()}</TableCell>
+                  <TableCell>{new Date(patient.checkInTime).toLocaleTimeString()}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
