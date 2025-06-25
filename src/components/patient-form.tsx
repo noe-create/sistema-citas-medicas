@@ -465,7 +465,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                                                         value={empresa.name}
                                                         key={empresa.id}
                                                         onSelect={(currentValue) => {
-                                                            form.setValue("empresaId", empresa.id, { shouldValidate: true });
+                                                            const selectedEmpresa = empresas.find(e => e.name.toLowerCase() === currentValue.toLowerCase());
+                                                            if (selectedEmpresa) {
+                                                                form.setValue("empresaId", selectedEmpresa.id, { shouldValidate: true });
+                                                            }
                                                             setEmpresaPopoverOpen(false);
                                                         }}
                                                     >
