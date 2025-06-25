@@ -21,6 +21,8 @@ import type { Empresa, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 
+const phoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
+
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
   nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
@@ -31,8 +33,11 @@ const patientSchema = z.object({
   genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
     required_error: 'El género es requerido.',
   }),
-  telefono: z.string().min(10, { message: 'El teléfono es requerido.' }),
-  email: z.string().email({ message: 'Email inválido.' }),
+  codigoTelefono: z.enum(phoneCodes, {
+    required_error: 'El código es requerido.',
+  }),
+  numeroTelefono: z.string().length(7, { message: 'El número debe tener 7 dígitos.' }).regex(/^[0-9]+$/, 'El número solo debe contener dígitos.'),
+  email: z.string().email({ message: 'Email inválido.' }).min(1, 'El email es requerido.'),
   tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], {
     required_error: 'El tipo de titular es requerido.',
   }),
@@ -65,7 +70,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
         nombreCompleto: '',
         nacionalidad: 'V',
         cedula: '',
-        telefono: '',
+        numeroTelefono: '',
         email: '',
     },
   });
@@ -82,14 +87,25 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
         return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
     }
     
+    const parseTelefono = (telefonoStr?: string): { codigoTelefono?: typeof phoneCodes[number], numeroTelefono?: string } => {
+        if (!telefonoStr || !telefonoStr.includes('-')) return { codigoTelefono: undefined, numeroTelefono: ''};
+        const [codigo, numero] = telefonoStr.split('-');
+        if ((phoneCodes as readonly string[]).includes(codigo) && numero) {
+            return { codigoTelefono: codigo as typeof phoneCodes[number], numeroTelefono: numero };
+        }
+        return { codigoTelefono: undefined, numeroTelefono: '' };
+    }
+
     if (titular) {
         const { nacionalidad, cedula } = parseCedula(titular.cedula);
+        const { codigoTelefono, numeroTelefono } = parseTelefono(titular.telefono);
         form.reset({
           nombreCompleto: titular.nombreCompleto || '',
           cedula: cedula,
           fechaNacimiento: titular.fechaNacimiento ? new Date(titular.fechaNacimiento) : undefined,
           genero: titular.genero || undefined,
-          telefono: titular.telefono || '',
+          codigoTelefono: codigoTelefono,
+          numeroTelefono: numeroTelefono,
           email: titular.email || '',
           tipo: titular.tipo || undefined,
           empresaId: titular.empresaId || undefined,
@@ -101,22 +117,27 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
             cedula: '',
             fechaNacimiento: undefined,
             genero: undefined,
-            telefono: '',
+            codigoTelefono: undefined,
+            numeroTelefono: '',
             email: '',
             tipo: undefined,
             empresaId: undefined,
             nacionalidad: 'V',
         });
     }
-  }, [titular, form.reset]);
+  }, [titular, form]);
 
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
     const submissionData = {
         ...values,
         cedula: `${values.nacionalidad}-${values.cedula}`,
+        telefono: `${values.codigoTelefono}-${values.numeroTelefono}`,
     };
     delete (submissionData as any).nacionalidad;
+    delete (submissionData as any).codigoTelefono;
+    delete (submissionData as any).numeroTelefono;
+
     await onSubmitted(submissionData);
     setIsSubmitting(false);
   }
@@ -288,7 +309,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Género</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccione un género" />
@@ -304,27 +325,52 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     </FormItem>
                 )}
             />
-            <FormField
-              control={form.control}
-              name="telefono"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0414-1234567" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+                <FormLabel>Teléfono Celular</FormLabel>
+                <div className="grid grid-cols-3 gap-2">
+                    <FormField
+                    control={form.control}
+                    name="codigoTelefono"
+                    render={({ field }) => (
+                        <FormItem className="col-span-1">
+                            <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Código" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {phoneCodes.map(code => <SelectItem key={code} value={code}>{code}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="numeroTelefono"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                        <FormControl>
+                            <Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => {
+                                field.onChange(e.target.value.replace(/\D/g, ''));
+                            }}/>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+            </div>
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2">
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="juan.perez@email.com" {...field} />
+                    <Input placeholder="juan.perez@email.com" {...field} type="email" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -336,7 +382,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Tipo de Titular</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccione un tipo" />
@@ -359,7 +405,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Empresa</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Seleccione una empresa" />
@@ -388,5 +434,3 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
     </Form>
   );
 }
-
-    
