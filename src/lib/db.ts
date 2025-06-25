@@ -23,11 +23,6 @@ async function initializeDb(): Promise<Database> {
         driver: sqlite3.Database
     });
 
-    // Drop tables to ensure schema is always up-to-date in development
-    await newDb.exec('DROP TABLE IF EXISTS beneficiarios;');
-    await newDb.exec('DROP TABLE IF EXISTS titulares;');
-    await newDb.exec('DROP TABLE IF EXISTS empresas;');
-
     await newDb.exec(`
         CREATE TABLE IF NOT EXISTS empresas (
             id TEXT PRIMARY KEY,
