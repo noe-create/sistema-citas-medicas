@@ -24,16 +24,16 @@ export function ManagePatientSheet({ patient, isOpen, onOpenChange }: ManagePati
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-xl w-full">
         <SheetHeader>
-          <SheetTitle>Manage: {patient.name}</SheetTitle>
+          <SheetTitle>Gestionar: {patient.name}</SheetTitle>
           <SheetDescription>
-            {patient.serviceType} &bull; {patient.accountType} Account
+            {patient.serviceType} &bull; Cuenta {patient.accountType}
           </SheetDescription>
         </SheetHeader>
         <div className="py-4">
           <Tabs defaultValue="consent">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="consent">Consent Forms</TabsTrigger>
-              <TabsTrigger value="consultation">Consultation Notes</TabsTrigger>
+              <TabsTrigger value="consent">Consentimientos</TabsTrigger>
+              <TabsTrigger value="consultation">Notas de Consulta</TabsTrigger>
             </TabsList>
             <TabsContent value="consent" className="mt-4">
               <ConsentFormSuggester serviceType={patient.serviceType} />

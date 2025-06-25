@@ -25,9 +25,9 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
-  serviceType: z.enum(['General Medicine', 'Pediatrics', 'Nursing']),
-  accountType: z.enum(['Employee', 'Corporate Affiliate', 'Private']),
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
+  serviceType: z.enum(['Medicina General', 'Pediatría', 'Enfermería']),
+  accountType: z.enum(['Empleado', 'Afiliado Corporativo', 'Privado']),
 });
 
 interface PatientCheckinFormProps {
@@ -52,8 +52,8 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
     // Simulate API call
     setTimeout(() => {
       toast({
-        title: 'Patient Registered!',
-        description: `${values.name} has been added to the queue.`,
+        title: '¡Paciente Registrado!',
+        description: `${values.name} ha sido añadido a la cola.`,
       });
       setIsSubmitting(false);
       form.reset();
@@ -70,9 +70,9 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Nombre Completo</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. John Doe" {...field} />
+                  <Input placeholder="Ej. Juan Pérez" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -83,17 +83,17 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
             name="serviceType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Service Type</FormLabel>
+                <FormLabel>Tipo de Servicio</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a service" />
+                      <SelectValue placeholder="Seleccione un servicio" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="General Medicine">General Medicine</SelectItem>
-                    <SelectItem value="Pediatrics">Pediatrics</SelectItem>
-                    <SelectItem value="Nursing">Nursing</SelectItem>
+                    <SelectItem value="Medicina General">Medicina General</SelectItem>
+                    <SelectItem value="Pediatría">Pediatría</SelectItem>
+                    <SelectItem value="Enfermería">Enfermería</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -105,17 +105,17 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
             name="accountType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Account Type</FormLabel>
+                <FormLabel>Tipo de Cuenta</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an account type" />
+                      <SelectValue placeholder="Seleccione un tipo de cuenta" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Employee">Employee</SelectItem>
-                    <SelectItem value="Corporate Affiliate">Corporate Affiliate</SelectItem>
-                    <SelectItem value="Private">Private</SelectItem>
+                    <SelectItem value="Empleado">Empleado</SelectItem>
+                    <SelectItem value="Afiliado Corporativo">Afiliado Corporativo</SelectItem>
+                    <SelectItem value="Privado">Privado</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -125,7 +125,7 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
         </div>
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Register Patient
+          Registrar Paciente
         </Button>
       </form>
     </Form>

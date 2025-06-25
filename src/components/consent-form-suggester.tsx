@@ -25,7 +25,7 @@ export function ConsentFormSuggester({ serviceType }: ConsentFormSuggesterProps)
       const result = await suggestConsentForm({ serviceType });
       setSuggestion(result);
     } catch (e) {
-      setError('Failed to get suggestion. Please try again.');
+      setError('No se pudo obtener la sugerencia. Por favor, inténtelo de nuevo.');
       console.error(e);
     } finally {
       setIsLoading(false);
@@ -35,9 +35,9 @@ export function ConsentFormSuggester({ serviceType }: ConsentFormSuggesterProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Consent Helper</CardTitle>
+        <CardTitle>Asistente de Consentimiento con IA</CardTitle>
         <CardDescription>
-          Let AI suggest the appropriate consent form based on the service type.
+          Deje que la IA sugiera el formulario de consentimiento apropiado según el tipo de servicio.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -47,7 +47,7 @@ export function ConsentFormSuggester({ serviceType }: ConsentFormSuggesterProps)
           ) : (
             <Wand2 className="mr-2 h-4 w-4" />
           )}
-          Suggest Form
+          Sugerir Formulario
         </Button>
         {error && (
           <Alert variant="destructive">

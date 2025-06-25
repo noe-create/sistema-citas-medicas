@@ -25,19 +25,19 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="font-headline text-3xl font-bold tracking-tight">Patient Dashboard</h2>
+        <h2 className="font-headline text-3xl font-bold tracking-tight">Panel de Pacientes</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Register Patient
+              Registrar Paciente
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Register New Patient</DialogTitle>
+              <DialogTitle>Registrar Nuevo Paciente</DialogTitle>
               <DialogDescription>
-                Fill in the details below to add a new patient to the queue.
+                Complete los siguientes datos para añadir un nuevo paciente a la cola.
               </DialogDescription>
             </DialogHeader>
             <PatientCheckinForm onSubmitted={handleFormSubmitted} />

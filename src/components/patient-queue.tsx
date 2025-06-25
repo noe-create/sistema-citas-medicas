@@ -35,47 +35,47 @@ const mockPatients: Patient[] = [
   {
     id: '1',
     name: 'Alice Johnson',
-    serviceType: 'General Medicine',
-    accountType: 'Private',
-    status: 'Waiting',
+    serviceType: 'Medicina General',
+    accountType: 'Privado',
+    status: 'Esperando',
     checkInTime: new Date(new Date().getTime() - 10 * 60000),
   },
   {
     id: '2',
     name: 'Bob Williams',
-    serviceType: 'Pediatrics',
-    accountType: 'Employee',
-    status: 'Waiting',
+    serviceType: 'Pediatría',
+    accountType: 'Empleado',
+    status: 'Esperando',
     checkInTime: new Date(new Date().getTime() - 15 * 60000),
   },
   {
     id: '3',
     name: 'Charlie Brown',
-    serviceType: 'Nursing',
-    accountType: 'Corporate Affiliate',
-    status: 'In Consultation',
+    serviceType: 'Enfermería',
+    accountType: 'Afiliado Corporativo',
+    status: 'En Consulta',
     checkInTime: new Date(new Date().getTime() - 30 * 60000),
   },
   {
     id: '4',
     name: 'Diana Miller',
-    serviceType: 'General Medicine',
-    accountType: 'Private',
-    status: 'Completed',
+    serviceType: 'Medicina General',
+    accountType: 'Privado',
+    status: 'Completado',
     checkInTime: new Date(new Date().getTime() - 60 * 60000),
   },
 ];
 
 const serviceIcons: Record<ServiceType, React.ReactNode> = {
-  'General Medicine': <HeartPulse className="h-5 w-5 text-red-500" />,
-  Pediatrics: <Baby className="h-5 w-5 text-blue-500" />,
-  Nursing: <Stethoscope className="h-5 w-5 text-green-500" />,
+  'Medicina General': <HeartPulse className="h-5 w-5 text-red-500" />,
+  'Pediatría': <Baby className="h-5 w-5 text-blue-500" />,
+  'Enfermería': <Stethoscope className="h-5 w-5 text-green-500" />,
 };
 
 const accountIcons: Record<AccountType, React.ReactNode> = {
-  Employee: <Briefcase className="h-5 w-5 text-indigo-500" />,
-  'Corporate Affiliate': <Building2 className="h-5 w-5 text-purple-500" />,
-  Private: <User className="h-5 w-5 text-gray-500" />,
+  'Empleado': <Briefcase className="h-5 w-5 text-indigo-500" />,
+  'Afiliado Corporativo': <Building2 className="h-5 w-5 text-purple-500" />,
+  'Privado': <User className="h-5 w-5 text-gray-500" />,
 };
 
 export function PatientQueue() {
@@ -99,19 +99,19 @@ export function PatientQueue() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Current Queue</CardTitle>
-          <CardDescription>Patients are ordered by check-in time.</CardDescription>
+          <CardTitle>Cola de Pacientes</CardTitle>
+          <CardDescription>Los pacientes se ordenan por hora de llegada.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Checked In</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Paciente</TableHead>
+                <TableHead>Servicio</TableHead>
+                <TableHead>Tipo de Cuenta</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Hora de Llegada</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -131,8 +131,8 @@ export function PatientQueue() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={patient.status === 'Completed' ? 'secondary' : patient.status === 'In Consultation' ? 'default' : 'outline'}
-                      className={patient.status === 'In Consultation' ? 'bg-accent text-accent-foreground' : ''}
+                    <Badge variant={patient.status === 'Completado' ? 'secondary' : patient.status === 'En Consulta' ? 'default' : 'outline'}
+                      className={patient.status === 'En Consulta' ? 'bg-accent text-accent-foreground' : ''}
                     >
                       {patient.status}
                     </Badge>
@@ -142,14 +142,14 @@ export function PatientQueue() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
+                          <span className="sr-only">Abrir menú</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
-                          Manage Patient
+                          Gestionar Paciente
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

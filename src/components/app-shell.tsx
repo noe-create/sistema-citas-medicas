@@ -44,11 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === '/dashboard'}
-                  tooltip="Dashboard"
+                  tooltip="Panel"
                 >
                   <Link href="/dashboard">
                     <LayoutGrid />
-                    <span>Dashboard</span>
+                    <span>Panel</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </Avatar>
                         <div className="flex flex-col items-start">
                           <span className="text-sm font-medium">Dr. Smith</span>
-                          <span className="text-xs text-muted-foreground">Clinician</span>
+                          <span className="text-xs text-muted-foreground">Médico</span>
                         </div>
                       </div>
                     </div>
@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
+                      <span>Cerrar Sesión</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

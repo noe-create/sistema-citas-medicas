@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 
 const notesSchema = z.object({
   symptoms: z.string().optional(),
-  diagnosis: z.string().min(1, 'Diagnosis is required.'),
+  diagnosis: z.string().min(1, 'El diagnóstico es obligatorio.'),
   prescription: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -35,12 +35,12 @@ export function ConsultationNotes() {
 
     function onSubmit(values: z.infer<typeof notesSchema>) {
         setIsSubmitting(true);
-        console.log("Consultation Notes:", values);
+        console.log("Notas de consulta:", values);
 
         setTimeout(() => {
             toast({
-                title: 'Consultation Complete',
-                description: 'Notes have been saved successfully.',
+                title: 'Consulta Completada',
+                description: 'Las notas se han guardado correctamente.',
             });
             setIsSubmitting(false);
             form.reset();
@@ -50,9 +50,9 @@ export function ConsultationNotes() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Consultation Notes</CardTitle>
+        <CardTitle>Notas de Consulta</CardTitle>
         <CardDescription>
-          Record the details of the patient consultation.
+          Registre los detalles de la consulta del paciente.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -63,9 +63,9 @@ export function ConsultationNotes() {
                     name="symptoms"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Symptoms</FormLabel>
+                        <FormLabel>Síntomas</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Fever, cough" {...field} />
+                            <Input placeholder="Ej. Fiebre, tos" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -76,9 +76,9 @@ export function ConsultationNotes() {
                     name="diagnosis"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Diagnosis</FormLabel>
+                        <FormLabel>Diagnóstico</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Common cold" {...field} />
+                            <Input placeholder="Ej. Resfriado común" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -89,9 +89,9 @@ export function ConsultationNotes() {
                     name="prescription"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Prescription</FormLabel>
+                        <FormLabel>Prescripción</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Paracetamol 500mg" {...field} />
+                            <Input placeholder="Ej. Paracetamol 500mg" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -102,9 +102,9 @@ export function ConsultationNotes() {
                     name="notes"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Additional Notes</FormLabel>
+                        <FormLabel>Notas Adicionales</FormLabel>
                         <FormControl>
-                            <Textarea placeholder="Any other relevant details..." {...field} />
+                            <Textarea placeholder="Cualquier otro detalle relevante..." {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -114,7 +114,7 @@ export function ConsultationNotes() {
             <CardFooter>
                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Complete Consultation
+                    Completar Consulta
                  </Button>
             </CardFooter>
         </form>
