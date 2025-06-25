@@ -15,12 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2 } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Loader2 } from 'lucide-react';
 import type { Beneficiario } from '@/lib/types';
 
 const beneficiarySchema = z.object({
@@ -100,50 +95,102 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                 </FormItem>
               )}
             />
-            <FormField
+             <FormField
                 control={form.control}
                 name="fechaNacimiento"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Fecha de Nacimiento</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP", { locale: es })
-                            ) : (
-                                <span>Seleccione una fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            captionLayout="dropdown-buttons"
-                            fromYear={1920}
-                            toYear={new Date().getFullYear()}
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+                render={({ field }) => {
+                    const selectedYear = field.value ? field.value.getUTCFullYear() : undefined;
+                    const selectedMonth = field.value ? field.value.getUTCMonth() + 1 : undefined;
+                    const selectedDay = field.value ? field.value.getUTCDate() : undefined;
+
+                    const handleDateChange = (part: 'year' | 'month' | 'day', value: string) => {
+                        let year = selectedYear || new Date().getFullYear();
+                        let month = selectedMonth ? selectedMonth - 1 : new Date().getMonth();
+                        let day = selectedDay || 1;
+
+                        if (part === 'year') {
+                            year = parseInt(value, 10);
+                        } else if (part === 'month') {
+                            month = parseInt(value, 10) - 1;
+                        } else if (part === 'day') {
+                            day = parseInt(value, 10);
+                        }
+                        
+                        const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+                        if (day > daysInMonth) {
+                            day = daysInMonth;
+                        }
+
+                        const newDate = new Date(Date.UTC(year, month, day));
+                        field.onChange(newDate);
+                    };
+                    
+                    const years = Array.from({ length: 120 }, (_, i) => new Date().getFullYear() - i);
+                    const months = Array.from({ length: 12 }, (_, i) => ({
+                        value: i + 1,
+                        label: new Date(0, i).toLocaleString('es', { month: 'long' }),
+                    }));
+                    const daysInSelectedMonth = selectedYear && selectedMonth ? new Date(Date.UTC(selectedYear, selectedMonth, 0)).getUTCDate() : 31;
+                    const days = Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1);
+
+                    return (
+                        <FormItem className="md:col-span-2">
+                            <FormLabel>Fecha de Nacimiento</FormLabel>
+                            <div className="grid grid-cols-3 gap-2">
+                                <Select
+                                    onValueChange={(value) => handleDateChange('day', value)}
+                                    value={selectedDay ? String(selectedDay) : ''}
+                                    disabled={!selectedYear || !selectedMonth}
+                                >
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Día" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {days.map((d) => (
+                                        <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    onValueChange={(value) => handleDateChange('month', value)}
+                                    value={selectedMonth ? String(selectedMonth) : ''}
+                                >
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Mes" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {months.map((m) => (
+                                        <SelectItem key={m.value} value={String(m.value)}>
+                                        <span className="capitalize">{m.label}</span>
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    onValueChange={(value) => handleDateChange('year', value)}
+                                    value={selectedYear ? String(selectedYear) : ''}
+                                >
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Año" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {years.map((y) => (
+                                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    );
+                }}
+            />
             <FormField
                 control={form.control}
                 name="genero"
