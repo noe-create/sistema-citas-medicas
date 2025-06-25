@@ -289,22 +289,26 @@ export async function deleteBeneficiario(id: string): Promise<{ success: boolean
 // --- Patient Check-in Actions ---
 
 export async function searchCombinedPatients(query: string): Promise<SearchResult[]> {
-    if (!query || query.trim().length < 2) return [];
     const db = await getDb();
-    const searchQuery = `%${query}%`;
+    const searchQuery = `%${query.trim()}%`;
+    const hasQuery = query && query.trim().length > 0;
 
-    const titulares = await db.all(
-        "SELECT id, nombreCompleto, cedula FROM titulares WHERE nombreCompleto LIKE ? OR cedula LIKE ?",
-        searchQuery, searchQuery
-    );
+    const titularesQuery = `
+        SELECT id, nombreCompleto, cedula 
+        FROM titulares 
+        ${hasQuery ? 'WHERE nombreCompleto LIKE ? OR cedula LIKE ?' : ''}
+    `;
+    const titularesParams = hasQuery ? [searchQuery, searchQuery] : [];
+    const titulares = await db.all(titularesQuery, ...titularesParams);
 
-    const beneficiarios = await db.all(
-        `SELECT b.id, b.nombreCompleto, b.cedula, t.id as titularId, t.nombreCompleto as titularNombre
+    const beneficiariosQuery = `
+        SELECT b.id, b.nombreCompleto, b.cedula, t.id as titularId, t.nombreCompleto as titularNombre
         FROM beneficiarios b
         JOIN titulares t ON b.titularId = t.id
-        WHERE b.nombreCompleto LIKE ? OR b.cedula LIKE ?`,
-        searchQuery, searchQuery
-    );
+        ${hasQuery ? 'WHERE b.nombreCompleto LIKE ? OR b.cedula LIKE ?' : ''}
+    `;
+    const beneficiariosParams = hasQuery ? [searchQuery, searchQuery] : [];
+    const beneficiarios = await db.all(beneficiariosQuery, ...beneficiariosParams);
     
     const results: SearchResult[] = [
         ...titulares.map(t => ({ ...t, kind: 'titular' as const })),
@@ -319,6 +323,8 @@ export async function searchCombinedPatients(query: string): Promise<SearchResul
             }
         }))
     ];
+    
+    results.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
     
     return results;
 }

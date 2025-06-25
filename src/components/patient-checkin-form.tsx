@@ -135,19 +135,15 @@ function PatientSearch({ selectedPatient, onPatientSelect }: { selectedPatient: 
 
     React.useEffect(() => {
         const timer = setTimeout(async () => {
-            if (query.length > 1) {
-                setIsLoading(true);
-                try {
-                    const data = await searchCombinedPatients(query);
-                    setResults(data);
-                } catch (e) {
-                    console.error("Error searching patients:", e);
-                    setResults([]);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
+            setIsLoading(true);
+            try {
+                const data = await searchCombinedPatients(query);
+                setResults(data);
+            } catch (e) {
+                console.error("Error searching patients:", e);
                 setResults([]);
+            } finally {
+                setIsLoading(false);
             }
         }, 300);
 
