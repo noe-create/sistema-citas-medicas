@@ -16,10 +16,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import type { Empresa, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { cn } from '@/lib/utils';
 
 const phoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
 
@@ -63,6 +66,7 @@ interface PatientFormProps {
 
 export function PatientForm({ titular, empresas, onSubmitted, onCancel }: PatientFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
   
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
@@ -384,7 +388,12 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                         <FormLabel>Tipo de Titular</FormLabel>
                         <FormControl>
                              <RadioGroup
-                                onValueChange={field.onChange}
+                                onValueChange={(value) => {
+                                    field.onChange(value);
+                                    if (value !== 'corporate_affiliate') {
+                                        form.setValue('empresaId', undefined);
+                                    }
+                                }}
                                 value={field.value}
                                 className="flex flex-col space-y-1"
                             >
@@ -423,21 +432,60 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     control={form.control}
                     name="empresaId"
                     render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Empresa</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccione una empresa" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {empresas.map(empresa => (
-                                <SelectItem key={empresa.id} value={empresa.id}>{empresa.name}</SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Empresa</FormLabel>
+                            <Popover open={empresaPopoverOpen} onOpenChange={setEmpresaPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                                "w-full justify-between font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value
+                                                ? empresas.find(
+                                                    (empresa) => empresa.id === field.value
+                                                  )?.name
+                                                : "Seleccione una empresa"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar empresa..." />
+                                        <CommandList>
+                                            <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                                            <CommandGroup>
+                                                {empresas.map((empresa) => (
+                                                    <CommandItem
+                                                        value={empresa.name}
+                                                        key={empresa.id}
+                                                        onSelect={() => {
+                                                            form.setValue("empresaId", empresa.id, { shouldValidate: true });
+                                                            setEmpresaPopoverOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                empresa.id === field.value
+                                                                    ? "opacity-100"
+                                                                    : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {empresa.name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />
