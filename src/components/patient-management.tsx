@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { getTitulares, getEmpresas, createTitular, updateTitular, deleteTitular } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { useRouter } from 'next/navigation';
 
 const titularTypeMap: Record<string, string> = {
   internal_employee: 'Empleado Interno',
@@ -30,6 +31,7 @@ const titularTypeMap: Record<string, string> = {
 
 export function PatientManagement() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [titulares, setTitulares] = React.useState<Titular[]>([]);
@@ -42,7 +44,7 @@ export function PatientManagement() {
       try {
         setIsLoading(true);
         const [titularesData, empresasData] = await Promise.all([getTitulares(), getEmpresas()]);
-        setTitulares(titularesData);
+        setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
         setEmpresas(empresasData);
       } catch (error) {
         console.error("Error al cargar los datos:", error);
@@ -73,14 +75,17 @@ export function PatientManagement() {
     try {
       if (selectedTitular) {
         const updated = await updateTitular({ ...values, id: selectedTitular.id });
-        setTitulares(titulares.map((t) => (t.id === updated.id ? updated : t)));
+        setTitulares(titulares.map((t) => (t.id === updated.id ? {...updated, fechaNacimiento: new Date(updated.fechaNacimiento)} : t)));
         toast({ title: '¡Titular Actualizado!', description: `${updated.nombreCompleto} ha sido guardado.` });
       } else {
         const created = await createTitular(values);
-        setTitulares([...titulares, created]);
+        setTitulares([...titulares, {...created, fechaNacimiento: new Date(created.fechaNacimiento)}]);
         toast({ title: '¡Titular Creado!', description: `${created.nombreCompleto} ha sido añadido.` });
       }
       handleCloseDialog();
+      // Refetch data to get updated beneficiary counts
+      const titularesData = await getTitulares();
+      setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
     } catch (error) {
       console.error("Error al guardar titular:", error);
       toast({ title: 'Error', description: 'No se pudo guardar el titular.', variant: 'destructive' });
@@ -150,7 +155,7 @@ export function PatientManagement() {
                     <TableCell>
                         <Badge variant="secondary">{titularTypeMap[titular.tipo]}</Badge>
                     </TableCell>
-                    <TableCell>{titular.beneficiarios.length}</TableCell>
+                    <TableCell>{(titular.beneficiarios as any).length}</TableCell>
                     <TableCell className="text-right">
                         <AlertDialog>
                             <DropdownMenu>
@@ -165,7 +170,9 @@ export function PatientManagement() {
                                 <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
                                 Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Gestionar Beneficiarios</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
+                                  Gestionar Beneficiarios
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">

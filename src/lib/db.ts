@@ -80,6 +80,19 @@ async function initializeDb(): Promise<Database> {
         }
         await stmt.finalize();
     }
+    
+    const beneficiarioCount = await newDb.get('SELECT COUNT(*) as count FROM beneficiarios');
+    if (beneficiarioCount.count === 0) {
+        const beneficiarios = [
+             { id: "t1-b1", titularId: "t1", nombreCompleto: "Hijo de Carlos", cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Masculino" },
+             { id: "t1-b2", titularId: "t1", nombreCompleto: "Hija de Carlos", cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Femenino" },
+        ];
+        const stmt = await newDb.prepare('INSERT INTO beneficiarios (id, titularId, nombreCompleto, cedula, fechaNacimiento, genero) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const b of beneficiarios) {
+            await stmt.run(b.id, b.titularId, b.nombreCompleto, b.cedula, b.fechaNacimiento, b.genero);
+        }
+        await stmt.finalize();
+    }
 
     return newDb;
 }
