@@ -283,7 +283,6 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                                 <Select
                                     onValueChange={(value) => handleDateChange('day', value)}
                                     value={selectedDay ? String(selectedDay) : ''}
-                                    disabled={!selectedYear || !selectedMonth}
                                 >
                                     <FormControl>
                                     <SelectTrigger>

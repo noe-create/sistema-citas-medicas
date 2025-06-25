@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -140,7 +141,6 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                                 <Select
                                     onValueChange={(value) => handleDateChange('day', value)}
                                     value={selectedDay ? String(selectedDay) : ''}
-                                    disabled={!selectedYear || !selectedMonth}
                                 >
                                     <FormControl>
                                     <SelectTrigger>
