@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2 } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2, Phone } from 'lucide-react';
 import type { Empresa, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
@@ -29,7 +29,6 @@ import { createEmpresa } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 
 
-const phoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
 const allAreaCodes = [
     '0212', '0234', '0235', '0238', '0239', '0241', '0243', '0244', '0245', '0246', '0247',
     '0251', '0253', '0255', '0256', '0258', '0261', '0264', '0265', '0268', '0269', '0271',
@@ -38,6 +37,7 @@ const allAreaCodes = [
     '0412', '0414', '0416', '0424', '0426'
 ].sort();
 
+const mobilePhoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
 
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -51,6 +51,8 @@ const patientSchema = z.object({
   }),
   codigoTelefono: z.string({ required_error: 'El código es requerido.' }),
   numeroTelefono: z.string().length(7, { message: 'El número debe tener 7 dígitos.' }).regex(/^[0-9]+$/, 'El número solo debe contener dígitos.'),
+  codigoCelular: z.string().optional(),
+  numeroCelular: z.string().optional(),
   email: z.string().email({ message: 'Email inválido.' }).min(1, 'El email es requerido.'),
   tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], {
     required_error: 'El tipo de titular es requerido.',
@@ -64,6 +66,21 @@ const patientSchema = z.object({
 }, {
     message: "La empresa es requerida para afiliados corporativos.",
     path: ["empresaId"],
+}).superRefine((data, ctx) => {
+    if (data.codigoCelular && !data.numeroCelular) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número celular requerido.", path: ["numeroCelular"] });
+    }
+    if (!data.codigoCelular && data.numeroCelular) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Código de área requerido.", path: ["codigoCelular"] });
+    }
+    if (data.codigoCelular && data.numeroCelular) {
+        if (data.numeroCelular.length !== 7) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El número debe tener 7 dígitos.", path: ["numeroCelular"] });
+        }
+        if (!/^[0-9]+$/.test(data.numeroCelular)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Solo se permiten números.", path: ["numeroCelular"] });
+        }
+    }
 });
 
 type PatientFormValues = z.infer<typeof patientSchema>;
@@ -80,6 +97,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
   const [areaCodePopoverOpen, setAreaCodePopoverOpen] = React.useState(false);
+  const [areaCodeCelularPopoverOpen, setAreaCodeCelularPopoverOpen] = React.useState(false);
   
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = React.useState(false);
   const [localEmpresas, setLocalEmpresas] = React.useState<Empresa[]>(empresas);
@@ -95,6 +113,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
         nacionalidad: 'V',
         cedula: '',
         numeroTelefono: '',
+        numeroCelular: '',
         email: '',
     },
   });
@@ -111,18 +130,17 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
         return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
     }
     
-    const parseTelefono = (telefonoStr?: string): { codigoTelefono?: string, numeroTelefono?: string } => {
-        if (!telefonoStr || !telefonoStr.includes('-')) return { codigoTelefono: undefined, numeroTelefono: ''};
-        const [codigo, numero] = telefonoStr.split('-');
-        if (allAreaCodes.includes(codigo) && numero) {
-            return { codigoTelefono: codigo, numeroTelefono: numero };
-        }
-        return { codigoTelefono: undefined, numeroTelefono: '' };
+    const parseTelefono = (telefonoStr?: string): { codigo?: string, numero?: string } => {
+        if (!telefonoStr || !telefonoStr.includes('-')) return { codigo: undefined, numero: ''};
+        const [codigo, ...numeroParts] = telefonoStr.split('-');
+        const numero = numeroParts.join('');
+        return { codigo: codigo, numero: numero };
     }
 
     if (titular) {
         const { nacionalidad, cedula } = parseCedula(titular.cedula);
-        const { codigoTelefono, numeroTelefono } = parseTelefono(titular.telefono);
+        const { codigo: codigoTelefono, numero: numeroTelefono } = parseTelefono(titular.telefono);
+        const { codigo: codigoCelular, numero: numeroCelular } = parseTelefono(titular.telefonoCelular);
         form.reset({
           nombreCompleto: titular.nombreCompleto || '',
           cedula: cedula,
@@ -130,6 +148,8 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
           genero: titular.genero || undefined,
           codigoTelefono: codigoTelefono,
           numeroTelefono: numeroTelefono,
+          codigoCelular: codigoCelular,
+          numeroCelular: numeroCelular,
           email: titular.email || '',
           tipo: titular.tipo || undefined,
           empresaId: titular.empresaId || undefined,
@@ -143,6 +163,8 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
             genero: undefined,
             codigoTelefono: undefined,
             numeroTelefono: '',
+            codigoCelular: undefined,
+            numeroCelular: '',
             email: '',
             tipo: undefined,
             empresaId: undefined,
@@ -153,14 +175,17 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
 
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
-    const submissionData = {
+    const submissionData: any = {
         ...values,
         cedula: `${values.nacionalidad}-${values.cedula}`,
         telefono: `${values.codigoTelefono}-${values.numeroTelefono}`,
+        telefonoCelular: (values.codigoCelular && values.numeroCelular) ? `${values.codigoCelular}-${values.numeroCelular}` : undefined,
     };
-    delete (submissionData as any).nacionalidad;
-    delete (submissionData as any).codigoTelefono;
-    delete (submissionData as any).numeroTelefono;
+    delete submissionData.nacionalidad;
+    delete submissionData.codigoTelefono;
+    delete submissionData.numeroTelefono;
+    delete submissionData.codigoCelular;
+    delete submissionData.numeroCelular;
 
     await onSubmitted(submissionData);
     setIsSubmitting(false);
@@ -379,8 +404,8 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
             />
             <div className="space-y-2">
                 <FormLabel className="flex items-center gap-2">
-                    <Smartphone className="h-4 w-4 text-muted-foreground" />
-                    Teléfono Celular
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    Teléfono
                 </FormLabel>
                 <div className="grid grid-cols-3 gap-2">
                      <FormField
@@ -457,6 +482,88 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     />
                 </div>
             </div>
+
+            <div className="space-y-2">
+                <FormLabel className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-muted-foreground" />
+                    Teléfono Celular
+                </FormLabel>
+                <div className="grid grid-cols-3 gap-2">
+                     <FormField
+                        control={form.control}
+                        name="codigoCelular"
+                        render={({ field }) => (
+                            <FormItem className="col-span-1">
+                                <Popover open={areaCodeCelularPopoverOpen} onOpenChange={setAreaCodeCelularPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between px-3 font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value
+                                                    ? mobilePhoneCodes.find((code) => code === field.value)
+                                                    : "Código"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar código..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró código.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {mobilePhoneCodes.map((code) => (
+                                                        <CommandItem
+                                                            value={code}
+                                                            key={code}
+                                                            onSelect={(value) => {
+                                                                form.setValue("codigoCelular", value, { shouldValidate: true });
+                                                                setAreaCodeCelularPopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    code === field.value
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {code}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="numeroCelular"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                        <FormControl>
+                            <Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => {
+                                field.onChange(e.target.value.replace(/\D/g, ''));
+                            }}/>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+            </div>
+
             <FormField
               control={form.control}
               name="email"

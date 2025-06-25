@@ -82,13 +82,14 @@ export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios' |
     };
     
     await db.run(
-        'INSERT INTO titulares (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, email, tipo, empresaId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO titulares (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email, tipo, empresaId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         newTitularData.id,
         newTitularData.nombreCompleto,
         newTitularData.cedula,
         newTitularData.fechaNacimiento.toISOString(),
         newTitularData.genero,
         newTitularData.telefono,
+        newTitularData.telefonoCelular,
         newTitularData.email,
         newTitularData.tipo,
         newTitularData.tipo === 'corporate_affiliate' ? newTitularData.empresaId : null
@@ -106,13 +107,14 @@ export async function updateTitular(data: Omit<Titular, 'beneficiarios' | 'empre
 
     const result = await db.run(
         `UPDATE titulares 
-         SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, email = ?, tipo = ?, empresaId = ?
+         SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ?, tipo = ?, empresaId = ?
          WHERE id = ?`,
         data.nombreCompleto,
         data.cedula,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono,
+        data.telefonoCelular,
         data.email,
         data.tipo,
         data.tipo === 'corporate_affiliate' ? data.empresaId : null,

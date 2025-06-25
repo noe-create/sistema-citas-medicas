@@ -60,6 +60,7 @@ export interface Titular {
   fechaNacimiento: Date;
   genero: Genero;
   telefono: string;
+  telefonoCelular?: string;
   email: string;
   tipo: TitularType;
   empresaId?: string; // Optional, only if tipo is 'corporate_affiliate'
