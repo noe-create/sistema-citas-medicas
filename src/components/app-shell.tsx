@@ -16,7 +16,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Home, LayoutGrid, LogOut, Stethoscope } from 'lucide-react';
+import { LayoutGrid, LogOut, Stethoscope } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -49,18 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link href="/dashboard">
                     <LayoutGrid />
                     <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === '/'}
-                  tooltip="Patient Check-in"
-                >
-                  <Link href="/">
-                    <Home />
-                    <span>Patient Check-in</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
