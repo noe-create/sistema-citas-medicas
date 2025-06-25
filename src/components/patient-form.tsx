@@ -88,7 +88,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
       tipo: titular?.tipo || undefined,
       empresaId: titular?.empresaId || undefined,
     });
-  }, [titular, form]);
+  }, [titular, form.reset]);
 
   function onSubmit(values: z.infer<typeof patientSchema>) {
     setIsSubmitting(true);
