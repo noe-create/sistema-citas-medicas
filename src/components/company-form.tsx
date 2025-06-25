@@ -14,13 +14,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, Building2, FileText, Phone, MapPin } from 'lucide-react';
 import type { Empresa } from '@/lib/types';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { cn } from '@/lib/utils';
+import { Label } from './ui/label';
 
 const rifTypes = ['J', 'G', 'C'] as const;
 
@@ -140,7 +141,10 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
               name="name"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Nombre de la Empresa</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    Nombre de la Empresa
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Ej. Innovatech Solutions" {...field} />
                   </FormControl>
@@ -149,7 +153,10 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
               )}
             />
             <div className="space-y-2">
-                <FormLabel>RIF</FormLabel>
+                <Label className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  RIF
+                </Label>
                 <div className="grid grid-cols-4 gap-2">
                     <FormField
                         control={form.control}
@@ -186,7 +193,10 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
             </div>
             
             <div className="space-y-2">
-                <FormLabel>Teléfono</FormLabel>
+                <Label className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  Teléfono
+                </Label>
                 <div className="grid grid-cols-3 gap-2">
                     <FormField
                         control={form.control}
@@ -200,7 +210,7 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
                                                 variant="outline"
                                                 role="combobox"
                                                 className={cn(
-                                                    "w-full justify-between font-normal",
+                                                    "w-full justify-between px-3 font-normal",
                                                     !field.value && "text-muted-foreground"
                                                 )}
                                             >
@@ -221,8 +231,8 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
                                                         <CommandItem
                                                             value={code}
                                                             key={code}
-                                                            onSelect={(currentValue) => {
-                                                                form.setValue("areaCode", currentValue, { shouldValidate: true });
+                                                            onSelect={(value) => {
+                                                                form.setValue("areaCode", value, { shouldValidate: true });
                                                                 setAreaCodePopoverOpen(false);
                                                             }}
                                                         >
@@ -274,7 +284,10 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
                 name="direccion"
                 render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                    <FormLabel>Dirección</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        Dirección
+                    </FormLabel>
                     <FormControl>
                         <Textarea placeholder="Av. Principal, Edificio Central, Piso 4, Oficina 4B, Caracas" {...field} />
                     </FormControl>
