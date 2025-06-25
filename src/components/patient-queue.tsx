@@ -1,0 +1,172 @@
+'use client';
+
+import * as React from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Baby,
+  Briefcase,
+  Building2,
+  HeartPulse,
+  MoreHorizontal,
+  Stethoscope,
+  User,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import type { Patient, ServiceType, AccountType } from '@/lib/types';
+import { ManagePatientSheet } from './manage-patient-sheet';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+const mockPatients: Patient[] = [
+  {
+    id: '1',
+    name: 'Alice Johnson',
+    serviceType: 'General Medicine',
+    accountType: 'Private',
+    status: 'Waiting',
+    checkInTime: new Date(new Date().getTime() - 10 * 60000),
+  },
+  {
+    id: '2',
+    name: 'Bob Williams',
+    serviceType: 'Pediatrics',
+    accountType: 'Employee',
+    status: 'Waiting',
+    checkInTime: new Date(new Date().getTime() - 15 * 60000),
+  },
+  {
+    id: '3',
+    name: 'Charlie Brown',
+    serviceType: 'Nursing',
+    accountType: 'Corporate Affiliate',
+    status: 'In Consultation',
+    checkInTime: new Date(new Date().getTime() - 30 * 60000),
+  },
+  {
+    id: '4',
+    name: 'Diana Miller',
+    serviceType: 'General Medicine',
+    accountType: 'Private',
+    status: 'Completed',
+    checkInTime: new Date(new Date().getTime() - 60 * 60000),
+  },
+];
+
+const serviceIcons: Record<ServiceType, React.ReactNode> = {
+  'General Medicine': <HeartPulse className="h-5 w-5 text-red-500" />,
+  Pediatrics: <Baby className="h-5 w-5 text-blue-500" />,
+  Nursing: <Stethoscope className="h-5 w-5 text-green-500" />,
+};
+
+const accountIcons: Record<AccountType, React.ReactNode> = {
+  Employee: <Briefcase className="h-5 w-5 text-indigo-500" />,
+  'Corporate Affiliate': <Building2 className="h-5 w-5 text-purple-500" />,
+  Private: <User className="h-5 w-5 text-gray-500" />,
+};
+
+export function PatientQueue() {
+  const [patients, setPatients] = React.useState<Patient[]>(mockPatients);
+  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  const handleManagePatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setIsSheetOpen(true);
+  };
+  
+  const handleSheetOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setSelectedPatient(null);
+    }
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Queue</CardTitle>
+          <CardDescription>Patients are ordered by check-in time.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Patient</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Checked In</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {patients.map((patient) => (
+                <TableRow key={patient.id}>
+                  <TableCell className="font-medium">{patient.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {serviceIcons[patient.serviceType]}
+                      <span>{patient.serviceType}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {accountIcons[patient.accountType]}
+                      <span>{patient.accountType}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={patient.status === 'Completed' ? 'secondary' : patient.status === 'In Consultation' ? 'default' : 'outline'}
+                      className={patient.status === 'In Consultation' ? 'bg-accent text-accent-foreground' : ''}
+                    >
+                      {patient.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{patient.checkInTime.toLocaleTimeString()}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
+                          Manage Patient
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {selectedPatient && (
+        <ManagePatientSheet
+          patient={selectedPatient}
+          isOpen={isSheetOpen}
+          onOpenChange={handleSheetOpenChange}
+        />
+      )}
+    </>
+  );
+}
