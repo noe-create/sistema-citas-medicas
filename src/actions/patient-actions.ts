@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import type { Titular, Beneficiario, SearchResult, TitularType } from '@/lib/types';
+import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const generateId = () => `t${Date.now()}`;
@@ -144,6 +144,21 @@ export async function getBeneficiarios(titularId: string): Promise<Beneficiario[
     }));
 }
 
+export async function getAllBeneficiarios(): Promise<BeneficiarioConTitular[]> {
+    const db = await getDb();
+    const rows = await db.all(`
+        SELECT b.*, t.nombreCompleto as titularNombre
+        FROM beneficiarios b
+        JOIN titulares t ON b.titularId = t.id
+        ORDER BY b.nombreCompleto
+    `);
+    return rows.map(row => ({
+        ...row,
+        fechaNacimiento: new Date(row.fechaNacimiento),
+    }));
+}
+
+
 export async function createBeneficiario(data: Omit<Beneficiario, 'id' | 'titularId'>, titularId: string): Promise<Beneficiario> {
     const db = await getDb();
     const newBeneficiarioData = {
@@ -164,6 +179,7 @@ export async function createBeneficiario(data: Omit<Beneficiario, 'id' | 'titula
 
     revalidatePath(`/dashboard/pacientes/${titularId}/beneficiarios`);
     revalidatePath('/dashboard/pacientes'); // To update beneficiary count
+    revalidatePath('/dashboard/beneficiarios'); // To update the global beneficiary list
 
     return {
         ...newBeneficiarioData,
@@ -196,6 +212,7 @@ export async function updateBeneficiario(data: Omit<Beneficiario, 'titularId'>):
     }
     
     revalidatePath(`/dashboard/pacientes/${updatedRow.titularId}/beneficiarios`);
+    revalidatePath('/dashboard/beneficiarios'); // To update the global beneficiary list
 
     return {
         ...updatedRow,
@@ -220,6 +237,7 @@ export async function deleteBeneficiario(id: string): Promise<{ success: boolean
     
     revalidatePath(`/dashboard/pacientes/${beneficiario.titularId}/beneficiarios`);
     revalidatePath('/dashboard/pacientes'); // To update beneficiary count
+    revalidatePath('/dashboard/beneficiarios'); // To update the global beneficiary list
     
     return { success: true, titularId: beneficiario.titularId };
 }

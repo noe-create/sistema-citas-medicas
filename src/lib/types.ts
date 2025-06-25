@@ -46,6 +46,10 @@ export interface Beneficiario {
   genero: Genero;
 }
 
+export interface BeneficiarioConTitular extends Beneficiario {
+  titularNombre: string;
+}
+
 export interface Titular {
   id: string;
   nombreCompleto: string;
