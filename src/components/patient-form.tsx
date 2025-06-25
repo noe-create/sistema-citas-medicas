@@ -464,7 +464,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                                                     <CommandItem
                                                         value={empresa.name}
                                                         key={empresa.id}
-                                                        onSelect={() => {
+                                                        onSelect={(currentValue) => {
                                                             form.setValue("empresaId", empresa.id, { shouldValidate: true });
                                                             setEmpresaPopoverOpen(false);
                                                         }}
