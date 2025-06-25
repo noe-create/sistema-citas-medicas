@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Empresa, Titular } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -49,19 +48,19 @@ const patientSchema = z.object({
     path: ["empresaId"],
 });
 
+type PatientFormValues = z.infer<typeof patientSchema>;
 
 interface PatientFormProps {
   titular: Titular | null;
   empresas: Empresa[];
-  onSubmitted: (titular: Titular) => void;
+  onSubmitted: (values: PatientFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
 export function PatientForm({ titular, empresas, onSubmitted, onCancel }: PatientFormProps) {
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
-  const form = useForm<z.infer<typeof patientSchema>>({
+  const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
       nombreCompleto: titular?.nombreCompleto || '',
@@ -90,23 +89,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
     });
   }, [titular, form.reset]);
 
-  function onSubmit(values: z.infer<typeof patientSchema>) {
+  async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: titular ? '¡Titular Actualizado!' : '¡Titular Creado!',
-        description: `${values.nombreCompleto} ha sido guardado correctamente.`,
-      });
-
-      onSubmitted({
-        ...values,
-        id: titular?.id || '', // In a real app, ID would come from the backend
-        beneficiarios: titular?.beneficiarios || [],
-      });
-      setIsSubmitting(false);
-    }, 1000);
+    await onSubmitted(values);
+    setIsSubmitting(false);
   }
 
   return (
