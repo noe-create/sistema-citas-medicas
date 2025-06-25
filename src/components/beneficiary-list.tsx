@@ -8,28 +8,41 @@ import { Badge } from './ui/badge';
 import type { BeneficiarioConTitular } from '@/lib/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+import { getAllBeneficiarios } from '@/actions/patient-actions';
+import { Loader2 } from 'lucide-react';
 
-interface BeneficiaryListProps {
-  initialBeneficiarios: BeneficiarioConTitular[];
-}
-
-export function BeneficiaryList({ initialBeneficiarios }: BeneficiaryListProps) {
+export function BeneficiaryList() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
-  const [beneficiarios] = React.useState<BeneficiarioConTitular[]>(initialBeneficiarios);
+  const [beneficiarios, setBeneficiarios] = React.useState<BeneficiarioConTitular[]>([]);
 
-  const filteredBeneficiarios = beneficiarios.filter(
-    (beneficiario) =>
-      beneficiario.nombreCompleto.toLowerCase().includes(search.toLowerCase()) ||
-      beneficiario.cedula.toLowerCase().includes(search.toLowerCase()) ||
-      beneficiario.titularNombre.toLowerCase().includes(search.toLowerCase())
-  );
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const data = await getAllBeneficiarios(search);
+        // Date objects need to be reconstructed on the client
+        setBeneficiarios(data.map(b => ({...b, fechaNacimiento: new Date(b.fechaNacimiento)})));
+      } catch (error) {
+        console.error("Error al buscar beneficiarios:", error);
+        toast({ title: 'Error', description: 'No se pudieron cargar los beneficiarios.', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, toast]);
+
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Todos los Beneficiarios</CardTitle>
         <CardDescription>
-          Una lista de todos los beneficiarios registrados en el sistema.
+          Busque un beneficiario por nombre, cédula o por el nombre de su titular.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -41,38 +54,44 @@ export function BeneficiaryList({ initialBeneficiarios }: BeneficiaryListProps) 
             className="max-w-sm"
           />
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre Completo</TableHead>
-              <TableHead>Cédula</TableHead>
-              <TableHead>Fecha de Nacimiento</TableHead>
-              <TableHead>Género</TableHead>
-              <TableHead>Titular Asociado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredBeneficiarios.length > 0 ? (
-              filteredBeneficiarios.map((beneficiario) => (
-                <TableRow key={beneficiario.id}>
-                  <TableCell className="font-medium">{beneficiario.nombreCompleto}</TableCell>
-                  <TableCell>{beneficiario.cedula}</TableCell>
-                  <TableCell>{format(beneficiario.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
-                  <TableCell>{beneficiario.genero}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{beneficiario.titularNombre}</Badge>
-                  </TableCell>
+        {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        ) : (
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Nombre Completo</TableHead>
+                <TableHead>Cédula</TableHead>
+                <TableHead>Fecha de Nacimiento</TableHead>
+                <TableHead>Género</TableHead>
+                <TableHead>Titular Asociado</TableHead>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No se encontraron beneficiarios.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+                {beneficiarios.length > 0 ? (
+                beneficiarios.map((beneficiario) => (
+                    <TableRow key={beneficiario.id}>
+                    <TableCell className="font-medium">{beneficiario.nombreCompleto}</TableCell>
+                    <TableCell>{beneficiario.cedula}</TableCell>
+                    <TableCell>{format(beneficiario.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
+                    <TableCell>{beneficiario.genero}</TableCell>
+                    <TableCell>
+                        <Badge variant="secondary">{beneficiario.titularNombre}</Badge>
+                    </TableCell>
+                    </TableRow>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                    No se encontraron beneficiarios.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        )}
       </CardContent>
     </Card>
   );

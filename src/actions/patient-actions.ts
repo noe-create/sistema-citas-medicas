@@ -7,16 +7,32 @@ import { revalidatePath } from 'next/cache';
 const generateId = () => `t${Date.now()}`;
 const generateBeneficiaryId = () => `b${Date.now()}`;
 
-export async function getTitulares(): Promise<Titular[]> {
+export async function getTitulares(query?: string): Promise<Titular[]> {
     const db = await getDb();
-    // For now, beneficiaries are returned as an empty array.
-    // They can be fetched with a separate query when needed.
-    const rows = await db.all('SELECT * FROM titulares ORDER BY nombreCompleto');
+    let selectQuery = `
+        SELECT t.*, e.name as empresaName 
+        FROM titulares t
+        LEFT JOIN empresas e ON t.empresaId = e.id
+    `;
+    const params: any[] = [];
+
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += `
+            WHERE t.nombreCompleto LIKE ? 
+            OR t.cedula LIKE ? 
+            OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
+        `;
+        params.push(searchQuery, searchQuery, searchQuery);
+    }
     
-    // Also fetch beneficiary counts for each titular
+    selectQuery += ' ORDER BY t.nombreCompleto';
+
+    const rows = await db.all(selectQuery, ...params);
+    
     const titularesWithBeneficiaryCount = await Promise.all(rows.map(async (row) => {
         const countResult = await db.get('SELECT COUNT(*) as count FROM beneficiarios WHERE titularId = ?', row.id);
-        const titular = {
+        const titular: Titular = {
             ...row,
             fechaNacimiento: new Date(row.fechaNacimiento),
             beneficiarios: [], // Placeholder, not fetching full objects
@@ -28,6 +44,7 @@ export async function getTitulares(): Promise<Titular[]> {
 
     return titularesWithBeneficiaryCount;
 }
+
 
 export async function getTitularById(id: string): Promise<Titular | null> {
     const db = await getDb();
@@ -41,12 +58,23 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     };
 }
 
-export async function getEmpresas() {
+export async function getEmpresas(query?: string): Promise<Empresa[]> {
     const db = await getDb();
-    return db.all('SELECT * FROM empresas ORDER BY name');
+    let selectQuery = 'SELECT * FROM empresas';
+    const params: any[] = [];
+
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += ' WHERE name LIKE ? OR rif LIKE ?';
+        params.push(searchQuery, searchQuery);
+    }
+    
+    selectQuery += ' ORDER BY name';
+
+    return db.all(selectQuery, ...params);
 }
 
-export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios'>) {
+export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios' | 'empresaName'>) {
     const db = await getDb();
     const newTitularData = {
         ...data,
@@ -73,7 +101,7 @@ export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios'>)
     return newTitular;
 }
 
-export async function updateTitular(data: Omit<Titular, 'beneficiarios'>) {
+export async function updateTitular(data: Omit<Titular, 'beneficiarios' | 'empresaName'>) {
     const db = await getDb();
 
     const result = await db.run(
@@ -144,19 +172,34 @@ export async function getBeneficiarios(titularId: string): Promise<Beneficiario[
     }));
 }
 
-export async function getAllBeneficiarios(): Promise<BeneficiarioConTitular[]> {
+export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioConTitular[]> {
     const db = await getDb();
-    const rows = await db.all(`
+    let selectQuery = `
         SELECT b.*, t.nombreCompleto as titularNombre
         FROM beneficiarios b
         JOIN titulares t ON b.titularId = t.id
-        ORDER BY b.nombreCompleto
-    `);
+    `;
+    const params: any[] = [];
+    
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += `
+            WHERE b.nombreCompleto LIKE ? 
+            OR b.cedula LIKE ? 
+            OR t.nombreCompleto LIKE ?
+        `;
+        params.push(searchQuery, searchQuery, searchQuery);
+    }
+    
+    selectQuery += ' ORDER BY b.nombreCompleto';
+    
+    const rows = await db.all(selectQuery, ...params);
     return rows.map(row => ({
         ...row,
         fechaNacimiento: new Date(row.fechaNacimiento),
     }));
 }
+
 
 
 export async function createBeneficiario(data: Omit<Beneficiario, 'id' | 'titularId'>, titularId: string): Promise<Beneficiario> {

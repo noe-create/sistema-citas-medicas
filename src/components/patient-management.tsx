@@ -39,32 +39,46 @@ export function PatientManagement() {
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
+  // Fetch empresas once for the form dropdown
   React.useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const [titularesData, empresasData] = await Promise.all([getTitulares(), getEmpresas()]);
-        setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
-        setEmpresas(empresasData);
-      } catch (error) {
-        console.error("Error al cargar los datos:", error);
-        toast({
-            title: 'Error',
-            description: 'No se pudieron cargar los datos. Por favor, intente de nuevo.',
-            variant: 'destructive'
-        })
-      } finally {
-        setIsLoading(false);
-      }
+    async function fetchEmpresasData() {
+        try {
+            const empresasData = await getEmpresas();
+            setEmpresas(empresasData);
+        } catch (error) {
+            console.error("Error al cargar las empresas:", error);
+            toast({
+                title: 'Error',
+                description: 'No se pudieron cargar las empresas para el formulario.',
+                variant: 'destructive'
+            })
+        }
     }
-    fetchData();
+    fetchEmpresasData();
   }, [toast]);
+  
+  // Fetch titulares based on search query
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+        setIsLoading(true);
+        try {
+            const titularesData = await getTitulares(search);
+            setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
+        } catch (error) {
+            console.error("Error al buscar titulares:", error);
+            toast({
+                title: 'Error de Búsqueda',
+                description: 'No se pudieron buscar los titulares.',
+                variant: 'destructive'
+            })
+        } finally {
+            setIsLoading(false);
+        }
+    }, 300); // Debounce search
 
-  const filteredTitulares = titulares.filter(
-    (titular) =>
-      titular.nombreCompleto.toLowerCase().includes(search.toLowerCase()) ||
-      titular.cedula.toLowerCase().includes(search.toLowerCase())
-  );
+    return () => clearTimeout(timer);
+  }, [search, toast]);
+
 
   const handleOpenForm = (titular: Titular | null) => {
     setSelectedTitular(titular);
@@ -75,16 +89,14 @@ export function PatientManagement() {
     try {
       if (selectedTitular) {
         const updated = await updateTitular({ ...values, id: selectedTitular.id });
-        setTitulares(titulares.map((t) => (t.id === updated.id ? {...updated, fechaNacimiento: new Date(updated.fechaNacimiento)} : t)));
         toast({ title: '¡Titular Actualizado!', description: `${updated.nombreCompleto} ha sido guardado.` });
       } else {
         const created = await createTitular(values);
-        setTitulares([...titulares, {...created, fechaNacimiento: new Date(created.fechaNacimiento)}]);
         toast({ title: '¡Titular Creado!', description: `${created.nombreCompleto} ha sido añadido.` });
       }
       handleCloseDialog();
-      // Refetch data to get updated beneficiary counts
-      const titularesData = await getTitulares();
+      // Refetch data to get updated list
+      const titularesData = await getTitulares(search);
       setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
     } catch (error) {
       console.error("Error al guardar titular:", error);
@@ -95,8 +107,10 @@ export function PatientManagement() {
   const handleDeleteTitular = async (id: string) => {
     try {
         await deleteTitular(id);
-        setTitulares(titulares.filter(t => t.id !== id));
         toast({ title: '¡Titular Eliminado!', description: 'El titular ha sido eliminado correctamente.' });
+        // Refetch data after deletion
+        const titularesData = await getTitulares(search);
+        setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
     } catch (error) {
         console.error("Error al eliminar titular:", error);
         toast({ title: 'Error', description: 'No se pudo eliminar el titular.', variant: 'destructive' });
@@ -114,13 +128,13 @@ export function PatientManagement() {
         <CardHeader>
           <CardTitle>Titulares</CardTitle>
           <CardDescription>
-            Busque, añada y gestione los perfiles de los titulares.
+            Busque por nombre, cédula o empresa. Añada y gestione los perfiles.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-4">
             <Input
-              placeholder="Buscar por nombre o cédula..."
+              placeholder="Buscar por nombre, cédula o empresa..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
@@ -141,68 +155,79 @@ export function PatientManagement() {
                     <TableHead>Nombre Completo</TableHead>
                     <TableHead>Cédula</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Beneficiarios</TableHead>
+                    <TableHead>Tipo / Empresa</TableHead>
+                    <TableHead>Benef.</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredTitulares.map((titular) => (
-                    <TableRow key={titular.id}>
-                    <TableCell className="font-medium">{titular.nombreCompleto}</TableCell>
-                    <TableCell>{titular.cedula}</TableCell>
-                    <TableCell>{titular.email}</TableCell>
-                    <TableCell>
-                        <Badge variant="secondary">{titularTypeMap[titular.tipo]}</Badge>
-                    </TableCell>
-                    <TableCell>{(titular.beneficiarios as any).length}</TableCell>
-                    <TableCell className="text-right">
-                        <AlertDialog>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menú</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  <span>Editar</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
-                                  <Users className="mr-2 h-4 w-4" />
-                                  <span>Gestionar Beneficiarios</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Eliminar</span>
+                {titulares.length > 0 ? (
+                    titulares.map((titular) => (
+                        <TableRow key={titular.id}>
+                        <TableCell className="font-medium">{titular.nombreCompleto}</TableCell>
+                        <TableCell>{titular.cedula}</TableCell>
+                        <TableCell>{titular.email}</TableCell>
+                        <TableCell>
+                            <Badge variant="secondary">{titularTypeMap[titular.tipo]}</Badge>
+                            {titular.tipo === 'corporate_affiliate' && titular.empresaName && (
+                                <div className="text-xs text-muted-foreground">{titular.empresaName}</div>
+                            )}
+                        </TableCell>
+                        <TableCell className="text-center">{(titular.beneficiarios as any).length}</TableCell>
+                        <TableCell className="text-right">
+                            <AlertDialog>
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Abrir menú</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      <span>Editar</span>
                                     </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Esto eliminará permanentemente al titular
-                                        y todos sus datos asociados de nuestros servidores.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteTitular(titular.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Sí, eliminar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
+                                      <Users className="mr-2 h-4 w-4" />
+                                      <span>Gestionar Beneficiarios</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Eliminar</span>
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Está absolutely seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción no se puede deshacer. Esto eliminará permanentemente al titular
+                                            y todos sus datos asociados (incluyendo beneficiarios).
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteTitular(titular.id)} className="bg-destructive hover:bg-destructive/90">
+                                            Sí, eliminar
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                            No se encontraron titulares.
+                        </TableCell>
                     </TableRow>
-                ))}
+                )}
                 </TableBody>
             </Table>
           )}

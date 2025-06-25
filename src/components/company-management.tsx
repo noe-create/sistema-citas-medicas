@@ -30,10 +30,10 @@ export function CompanyManagement() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
   React.useEffect(() => {
-    async function fetchData() {
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        const empresasData = await getEmpresas();
+        const empresasData = await getEmpresas(search);
         setEmpresas(empresasData);
       } catch (error) {
         console.error("Error al cargar las empresas:", error);
@@ -45,15 +45,10 @@ export function CompanyManagement() {
       } finally {
         setIsLoading(false);
       }
-    }
-    fetchData();
-  }, [toast]);
+    }, 300);
 
-  const filteredEmpresas = empresas.filter(
-    (empresa) =>
-      empresa.name.toLowerCase().includes(search.toLowerCase()) ||
-      empresa.rif.toLowerCase().includes(search.toLowerCase())
-  );
+    return () => clearTimeout(timer);
+  }, [search, toast]);
 
   const handleOpenForm = (empresa: Empresa | null) => {
     setSelectedEmpresa(empresa);
@@ -69,14 +64,14 @@ export function CompanyManagement() {
     try {
       if (selectedEmpresa) {
         const updated = await updateEmpresa({ ...values, id: selectedEmpresa.id });
-        setEmpresas(empresas.map((e) => (e.id === updated.id ? updated : e)));
         toast({ title: '¡Empresa Actualizada!', description: `${updated.name} ha sido guardada.` });
       } else {
         const created = await createEmpresa(values);
-        setEmpresas([...empresas, created]);
         toast({ title: '¡Empresa Creada!', description: `${created.name} ha sido añadida.` });
       }
       handleCloseDialog();
+      const empresasData = await getEmpresas(search);
+      setEmpresas(empresasData);
     } catch (error: any) {
       console.error("Error al guardar empresa:", error);
       toast({ title: 'Error', description: error.message || 'No se pudo guardar la empresa.', variant: 'destructive' });
@@ -86,8 +81,9 @@ export function CompanyManagement() {
   const handleDeleteEmpresa = async (id: string) => {
     try {
         await deleteEmpresa(id);
-        setEmpresas(empresas.filter(e => e.id !== id));
         toast({ title: '¡Empresa Eliminada!', description: 'La empresa ha sido eliminada correctamente.' });
+        const empresasData = await getEmpresas(search);
+        setEmpresas(empresasData);
     } catch (error: any) {
         console.error("Error al eliminar empresa:", error);
         toast({ title: 'Error al Eliminar', description: error.message || 'No se pudo eliminar la empresa.', variant: 'destructive' });
@@ -132,8 +128,8 @@ export function CompanyManagement() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredEmpresas.length > 0 ? (
-                  filteredEmpresas.map((empresa) => (
+                {empresas.length > 0 ? (
+                  empresas.map((empresa) => (
                     <TableRow key={empresa.id}>
                     <TableCell className="font-medium">{empresa.name}</TableCell>
                     <TableCell>{empresa.rif}</TableCell>

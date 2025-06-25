@@ -63,5 +63,6 @@ export interface Titular {
   email: string;
   tipo: TitularType;
   empresaId?: string; // Optional, only if tipo is 'corporate_affiliate'
+  empresaName?: string;
   beneficiarios: Beneficiario[];
 }
