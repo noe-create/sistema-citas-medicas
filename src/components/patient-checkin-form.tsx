@@ -13,7 +13,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -22,11 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Loader2, UserCheck, Users } from 'lucide-react';
+import { ChevronsUpDown, Loader2, UserCheck, Users } from 'lucide-react';
 import { searchCombinedPatients, getTitularTypeById } from '@/actions/patient-actions';
 import type { Patient, SearchResult, ServiceType, TitularType, AccountType } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
@@ -93,7 +92,7 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-            <PatientSearch onPatientSelect={setSelectedPatient} />
+            <PatientSearch selectedPatient={selectedPatient} onPatientSelect={setSelectedPatient} />
             
             <FormField
                 control={form.control}
@@ -128,108 +127,104 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
 }
 
 
-function PatientSearch({ onPatientSelect }: { onPatientSelect: (patient: SearchResult | null) => void }) {
+function PatientSearch({ selectedPatient, onPatientSelect }: { selectedPatient: SearchResult | null, onPatientSelect: (patient: SearchResult | null) => void }) {
     const [query, setQuery] = React.useState('');
     const [results, setResults] = React.useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-    const [selectedPatient, setSelectedPatient] = React.useState<SearchResult | null>(null);
 
     React.useEffect(() => {
         const timer = setTimeout(async () => {
             if (query.length > 1) {
                 setIsLoading(true);
-                const data = await searchCombinedPatients(query);
-                setResults(data);
-                setIsLoading(false);
+                try {
+                    const data = await searchCombinedPatients(query);
+                    setResults(data);
+                } catch (e) {
+                    console.error("Error searching patients:", e);
+                    setResults([]);
+                } finally {
+                    setIsLoading(false);
+                }
             } else {
                 setResults([]);
             }
-        }, 300); // Debounce search
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [query]);
 
-    const handleSelect = (result: SearchResult) => {
-        setSelectedPatient(result);
+    const handleSelect = (result: SearchResult | null) => {
         onPatientSelect(result);
-        setQuery(result.nombreCompleto);
         setIsPopoverOpen(false);
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setQuery(e.target.value);
-        setSelectedPatient(null);
-        onPatientSelect(null);
-        if (!isPopoverOpen) {
-            setIsPopoverOpen(true);
-        }
+        setQuery(''); // Reset search query on select
     };
     
     return (
         <div className="space-y-2">
             <Label>Paciente</Label>
-            {selectedPatient ? (
-                <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2">
-                    <div className="flex items-center gap-2">
-                        <UserCheck className="h-5 w-5 text-green-600"/>
-                        <div>
-                            <p className="text-sm font-medium">{selectedPatient.nombreCompleto}</p>
-                            <p className="text-xs text-muted-foreground">{selectedPatient.cedula} &bull; {selectedPatient.kind === 'titular' ? 'Titular' : 'Beneficiario'}</p>
-                        </div>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => {
-                        setSelectedPatient(null);
-                        onPatientSelect(null);
-                        setQuery('');
-                    }}>Cambiar</Button>
-                </div>
-            ) : (
-                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <Input
-                            placeholder="Buscar por nombre o cédula..."
+            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                     <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isPopoverOpen}
+                        className="w-full justify-between font-normal text-left h-auto"
+                     >
+                        {selectedPatient ? (
+                            <div className="flex items-center gap-2">
+                                <UserCheck className="h-5 w-5 text-green-600 flex-shrink-0"/>
+                                <div>
+                                    <p className="text-sm font-medium">{selectedPatient.nombreCompleto}</p>
+                                    <p className="text-xs text-muted-foreground">{selectedPatient.cedula} &bull; {selectedPatient.kind === 'titular' ? 'Titular' : 'Beneficiario'}</p>
+                                </div>
+                            </div>
+                        ) : 'Buscar por nombre o cédula...' }
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command shouldFilter={false}>
+                        <CommandInput 
+                            placeholder="Buscar paciente..."
                             value={query}
-                            onChange={handleInputChange}
+                            onValueChange={setQuery}
+                            className="h-9"
                         />
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command shouldFilter={false}>
-                            <CommandList>
-                                {isLoading && <div className="p-4 text-sm text-center">Buscando...</div>}
-                                {!isLoading && results.length === 0 && query.length > 1 && (
-                                     <div className="p-4 text-sm text-center">No se encontraron resultados.</div>
-                                )}
-                                {results.length > 0 && (
-                                    <CommandGroup>
-                                        {results.map((result) => (
-                                            <CommandItem
-                                                key={result.id}
-                                                value={result.nombreCompleto}
-                                                onSelect={() => handleSelect(result)}
-                                                className="cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-2 w-full">
-                                                    <Users className="h-4 w-4 text-muted-foreground"/>
-                                                    <div>
-                                                        <p className="text-sm">{result.nombreCompleto}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {result.cedula} &bull; {result.kind === 'titular' 
-                                                                ? <span className="font-semibold">Titular</span> 
-                                                                : <span>Beneficiario de {result.titularInfo?.nombreCompleto}</span>
-                                                            }
-                                                        </p>
-                                                    </div>
+                        <CommandList>
+                            {isLoading && <CommandItem disabled>Buscando...</CommandItem>}
+                            <CommandEmpty>
+                                No se encontraron resultados.
+                            </CommandEmpty>
+                             {results.length > 0 && !isLoading && (
+                                <CommandGroup>
+                                    {results.map((result) => (
+                                        <CommandItem
+                                            key={result.id}
+                                            value={result.nombreCompleto}
+                                            onSelect={() => handleSelect(result)}
+                                            className="cursor-pointer"
+                                        >
+                                           <div className="flex items-center gap-2 w-full">
+                                                <Users className="h-4 w-4 text-muted-foreground"/>
+                                                <div>
+                                                    <p className="text-sm">{result.nombreCompleto}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {result.cedula} &bull; {result.kind === 'titular' 
+                                                            ? <span className="font-semibold">Titular</span> 
+                                                            : <span>Beneficiario de {result.titularInfo?.nombreCompleto}</span>
+                                                        }
+                                                    </p>
                                                 </div>
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                )}
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-            )}
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         </div>
     );
 }
