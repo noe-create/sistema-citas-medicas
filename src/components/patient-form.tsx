@@ -16,13 +16,18 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, PlusCircle } from 'lucide-react';
 import type { Empresa, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CompanyForm } from './company-form';
+import { createEmpresa } from '@/actions/patient-actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 const phoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
 
@@ -65,9 +70,17 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ titular, empresas, onSubmitted, onCancel }: PatientFormProps) {
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
   
+  const [isCompanyDialogOpen, setIsCompanyDialogOpen] = React.useState(false);
+  const [localEmpresas, setLocalEmpresas] = React.useState<Empresa[]>(empresas);
+  
+  React.useEffect(() => {
+    setLocalEmpresas(empresas);
+  }, [empresas]);
+
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
@@ -145,6 +158,20 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
     await onSubmitted(submissionData);
     setIsSubmitting(false);
   }
+
+  async function handleCreateEmpresa(companyValues: any) {
+    try {
+        const newEmpresa = await createEmpresa(companyValues);
+        setLocalEmpresas(prev => [...prev, newEmpresa]);
+        form.setValue('empresaId', newEmpresa.id, { shouldValidate: true });
+        toast({ title: "¡Empresa Creada!", description: `${newEmpresa.name} ha sido añadida.` });
+        setIsCompanyDialogOpen(false);
+    } catch (error: any) {
+        console.error("Error creating company:", error);
+        toast({ title: 'Error', description: error.message || 'No se pudo crear la empresa.', variant: 'destructive' });
+    }
+  }
+
 
   return (
     <Form {...form}>
@@ -434,60 +461,79 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                             <FormLabel>Empresa</FormLabel>
-                            <Popover open={empresaPopoverOpen} onOpenChange={setEmpresaPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            className={cn(
-                                                "w-full justify-between font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
-                                        >
-                                            {field.value
-                                                ? empresas.find(
-                                                    (empresa) => empresa.id === field.value
-                                                  )?.name
-                                                : "Seleccione una empresa"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <div className="flex items-center gap-2">
+                                <Popover open={empresaPopoverOpen} onOpenChange={setEmpresaPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value
+                                                    ? localEmpresas.find(
+                                                        (empresa) => empresa.id === field.value
+                                                      )?.name
+                                                    : "Seleccione una empresa"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar empresa..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {localEmpresas.map((empresa) => (
+                                                        <CommandItem
+                                                            value={empresa.name}
+                                                            key={empresa.id}
+                                                            onSelect={(currentValue) => {
+                                                                const selectedEmpresa = localEmpresas.find(e => e.name.toLowerCase() === currentValue.toLowerCase());
+                                                                if (selectedEmpresa) {
+                                                                    form.setValue("empresaId", selectedEmpresa.id, { shouldValidate: true });
+                                                                }
+                                                                setEmpresaPopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    empresa.id === field.value
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {empresa.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon">
+                                            <PlusCircle className="h-4 w-4" />
                                         </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar empresa..." />
-                                        <CommandList>
-                                            <CommandEmpty>No se encontró la empresa.</CommandEmpty>
-                                            <CommandGroup>
-                                                {empresas.map((empresa) => (
-                                                    <CommandItem
-                                                        value={empresa.name}
-                                                        key={empresa.id}
-                                                        onSelect={(currentValue) => {
-                                                            const selectedEmpresa = empresas.find(e => e.name.toLowerCase() === currentValue.toLowerCase());
-                                                            if (selectedEmpresa) {
-                                                                form.setValue("empresaId", selectedEmpresa.id, { shouldValidate: true });
-                                                            }
-                                                            setEmpresaPopoverOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                empresa.id === field.value
-                                                                    ? "opacity-100"
-                                                                    : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {empresa.name}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-2xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Crear Nueva Empresa</DialogTitle>
+                                        </DialogHeader>
+                                        <CompanyForm
+                                            empresa={null}
+                                            onSubmitted={handleCreateEmpresa}
+                                            onCancel={() => setIsCompanyDialogOpen(false)}
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                             <FormMessage />
                         </FormItem>
                     )}
