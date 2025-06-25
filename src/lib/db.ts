@@ -3,13 +3,23 @@
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
 import type { Empresa } from './types';
+import fs from 'fs';
+import path from 'path';
 
 // Use a singleton for the database connection
 let db: Database | null = null;
 
+// Ensure the database directory exists
+const dbDir = path.join(process.cwd(), '.data');
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+const dbPath = path.join(dbDir, 'database.db');
+
+
 async function initializeDb(): Promise<Database> {
     const newDb = await open({
-        filename: './database.db',
+        filename: dbPath,
         driver: sqlite3.Database
     });
 
