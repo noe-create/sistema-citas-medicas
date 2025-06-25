@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown, PlusCircle } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2 } from 'lucide-react';
 import type { Empresa, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
@@ -30,6 +30,14 @@ import { useToast } from '@/hooks/use-toast';
 
 
 const phoneCodes = ['0412', '0414', '0424', '0416', '0426'] as const;
+const allAreaCodes = [
+    '0212', '0234', '0235', '0238', '0239', '0241', '0243', '0244', '0245', '0246', '0247',
+    '0251', '0253', '0255', '0256', '0258', '0261', '0264', '0265', '0268', '0269', '0271',
+    '0272', '0273', '0274', '0275', '0276', '0277', '0278', '0281', '0282', '0283', '0285',
+    '0286', '0288', '0291', '0292', '0293', '0294', '0295',
+    '0412', '0414', '0416', '0424', '0426'
+].sort();
+
 
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -41,9 +49,7 @@ const patientSchema = z.object({
   genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
     required_error: 'El género es requerido.',
   }),
-  codigoTelefono: z.enum(phoneCodes, {
-    required_error: 'El código es requerido.',
-  }),
+  codigoTelefono: z.string({ required_error: 'El código es requerido.' }),
   numeroTelefono: z.string().length(7, { message: 'El número debe tener 7 dígitos.' }).regex(/^[0-9]+$/, 'El número solo debe contener dígitos.'),
   email: z.string().email({ message: 'Email inválido.' }).min(1, 'El email es requerido.'),
   tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], {
@@ -73,6 +79,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
+  const [areaCodePopoverOpen, setAreaCodePopoverOpen] = React.useState(false);
   
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = React.useState(false);
   const [localEmpresas, setLocalEmpresas] = React.useState<Empresa[]>(empresas);
@@ -104,11 +111,11 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
         return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
     }
     
-    const parseTelefono = (telefonoStr?: string): { codigoTelefono?: typeof phoneCodes[number], numeroTelefono?: string } => {
+    const parseTelefono = (telefonoStr?: string): { codigoTelefono?: string, numeroTelefono?: string } => {
         if (!telefonoStr || !telefonoStr.includes('-')) return { codigoTelefono: undefined, numeroTelefono: ''};
         const [codigo, numero] = telefonoStr.split('-');
-        if ((phoneCodes as readonly string[]).includes(codigo) && numero) {
-            return { codigoTelefono: codigo as typeof phoneCodes[number], numeroTelefono: numero };
+        if (allAreaCodes.includes(codigo) && numero) {
+            return { codigoTelefono: codigo, numeroTelefono: numero };
         }
         return { codigoTelefono: undefined, numeroTelefono: '' };
     }
@@ -182,7 +189,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
               name="nombreCompleto"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Nombre Completo</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Nombre Completo
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Ej. Juan Pérez" {...field} />
                   </FormControl>
@@ -196,7 +206,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 name="nacionalidad"
                 render={({ field }) => (
                     <FormItem className="space-y-3">
-                        <FormLabel>Nacionalidad</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-muted-foreground" />
+                            Nacionalidad
+                        </FormLabel>
                         <FormControl>
                             <RadioGroup
                                 onValueChange={field.onChange}
@@ -227,7 +240,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                   name="cedula"
                   render={({ field }) => (
                       <FormItem>
-                      <FormLabel>Número de Cédula</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        Número de Cédula
+                      </FormLabel>
                       <FormControl>
                           <Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => {
                               field.onChange(e.target.value.replace(/\D/g, ''));
@@ -278,7 +294,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
 
                     return (
                         <FormItem className="md:col-span-2">
-                            <FormLabel>Fecha de Nacimiento</FormLabel>
+                            <FormLabel className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                Fecha de Nacimiento
+                            </FormLabel>
                             <div className="grid grid-cols-3 gap-2">
                                 <Select
                                     onValueChange={(value) => handleDateChange('day', value)}
@@ -338,7 +357,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 name="genero"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Género</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                        <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                        Género
+                    </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
@@ -356,26 +378,68 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 )}
             />
             <div className="space-y-2">
-                <FormLabel>Teléfono Celular</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-muted-foreground" />
+                    Teléfono Celular
+                </FormLabel>
                 <div className="grid grid-cols-3 gap-2">
-                    <FormField
-                    control={form.control}
-                    name="codigoTelefono"
-                    render={({ field }) => (
-                        <FormItem className="col-span-1">
-                            <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Código" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {phoneCodes.map(code => <SelectItem key={code} value={code}>{code}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
+                     <FormField
+                        control={form.control}
+                        name="codigoTelefono"
+                        render={({ field }) => (
+                            <FormItem className="col-span-1">
+                                <Popover open={areaCodePopoverOpen} onOpenChange={setAreaCodePopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between px-3 font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value
+                                                    ? allAreaCodes.find((code) => code === field.value)
+                                                    : "Código"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar código..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró código.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {allAreaCodes.map((code) => (
+                                                        <CommandItem
+                                                            value={code}
+                                                            key={code}
+                                                            onSelect={(value) => {
+                                                                form.setValue("codigoTelefono", value, { shouldValidate: true });
+                                                                setAreaCodePopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    code === field.value
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {code}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
                     <FormField
                     control={form.control}
@@ -398,7 +462,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
               name="email"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    Email
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="juan.perez@email.com" {...field} type="email" />
                   </FormControl>
@@ -411,7 +478,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 name="tipo"
                 render={({ field }) => (
                     <FormItem className="space-y-3">
-                        <FormLabel>Tipo de Titular</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                            <UserCog className="h-4 w-4 text-muted-foreground" />
+                            Tipo de Titular
+                        </FormLabel>
                         <FormControl>
                              <RadioGroup
                                 onValueChange={(value) => {
@@ -459,7 +529,10 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     name="empresaId"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel>Empresa</FormLabel>
+                            <FormLabel className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                Empresa
+                            </FormLabel>
                             <div className="flex items-center gap-2">
                                 <Popover open={empresaPopoverOpen} onOpenChange={setEmpresaPopoverOpen}>
                                     <PopoverTrigger asChild>
