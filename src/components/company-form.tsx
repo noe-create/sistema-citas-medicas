@@ -14,18 +14,31 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import type { Empresa } from '@/lib/types';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { cn } from '@/lib/utils';
 
 const rifTypes = ['J', 'G', 'C'] as const;
+
+const areaCodes = [
+    '0212', '0234', '0235', '0238', '0239', '0241', '0243', '0244', '0245', '0246', '0247',
+    '0251', '0253', '0255', '0256', '0258', '0261', '0264', '0265', '0268', '0269', '0271',
+    '0272', '0273', '0274', '0275', '0276', '0277', '0278', '0281', '0282', '0283', '0285',
+    '0286', '0288', '0291', '0292', '0293', '0294', '0295',
+    '0412', '0414', '0416', '0424', '0426'
+].sort();
+
 
 const companySchema = z.object({
   name: z.string().min(3, { message: 'El nombre es requerido.' }),
   rifType: z.enum(rifTypes, { required_error: 'El tipo de RIF es requerido.'}),
   rifNumber: z.string().regex(/^\d{8}-\d$/, { message: 'El formato debe ser 12345678-9.' }),
-  telefono: z.string().min(10, { message: 'El teléfono es requerido.' }),
+  areaCode: z.string({ required_error: 'El código de área es requerido.' }),
+  phoneNumber: z.string().length(7, { message: 'El número debe tener 7 dígitos.' }).regex(/^[0-9]+$/, 'El número solo debe contener dígitos.'),
   direccion: z.string().min(10, { message: 'La dirección es requerida.' }),
 });
 
@@ -39,6 +52,7 @@ interface CompanyFormProps {
 
 export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [areaCodePopoverOpen, setAreaCodePopoverOpen] = React.useState(false);
   
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
@@ -46,7 +60,8 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
       name: '',
       rifType: 'J',
       rifNumber: '',
-      telefono: '',
+      areaCode: undefined,
+      phoneNumber: '',
       direccion: '',
     },
   });
@@ -62,13 +77,26 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
         return { rifType: 'J', rifNumber: rifStr }; // Fallback
     }
 
+    const parseTelefono = (telefonoStr?: string): { areaCode?: string, phoneNumber: string } => {
+        if (!telefonoStr || !telefonoStr.includes('-')) return { areaCode: undefined, phoneNumber: '' };
+        const parts = telefonoStr.split('-');
+        const code = parts[0];
+        const number = parts.slice(1).join('');
+        if (areaCodes.includes(code)) {
+            return { areaCode: code, phoneNumber: number };
+        }
+        return { areaCode: undefined, phoneNumber: '' }; // Fallback
+    }
+
     if (empresa) {
         const { rifType, rifNumber } = parseRif(empresa.rif);
+        const { areaCode, phoneNumber } = parseTelefono(empresa.telefono);
         form.reset({
           name: empresa.name || '',
           rifType: rifType,
           rifNumber: rifNumber,
-          telefono: empresa.telefono || '',
+          areaCode: areaCode,
+          phoneNumber: phoneNumber,
           direccion: empresa.direccion || '',
         });
     } else {
@@ -76,11 +104,12 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
             name: '',
             rifType: 'J',
             rifNumber: '',
-            telefono: '',
+            areaCode: undefined,
+            phoneNumber: '',
             direccion: '',
         });
     }
-  }, [empresa, form.reset]);
+  }, [empresa, form]);
 
   const handleRifNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/[^0-9]/g, '');
@@ -95,7 +124,7 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
     const submissionData = {
         name: values.name,
         rif: `${values.rifType}-${values.rifNumber}`,
-        telefono: values.telefono,
+        telefono: `${values.areaCode}-${values.phoneNumber}`,
         direccion: values.direccion,
     };
     await onSubmitted(submissionData as any);
@@ -156,19 +185,90 @@ export function CompanyForm({ empresa, onSubmitted, onCancel }: CompanyFormProps
                 </div>
             </div>
             
-            <FormField
-              control={form.control}
-              name="telefono"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0212-555-1122" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+                <FormLabel>Teléfono</FormLabel>
+                <div className="grid grid-cols-3 gap-2">
+                    <FormField
+                        control={form.control}
+                        name="areaCode"
+                        render={({ field }) => (
+                            <FormItem className="col-span-1">
+                                <Popover open={areaCodePopoverOpen} onOpenChange={setAreaCodePopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value
+                                                    ? areaCodes.find((code) => code === field.value)
+                                                    : "Código"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar código..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró código.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {areaCodes.map((code) => (
+                                                        <CommandItem
+                                                            value={code}
+                                                            key={code}
+                                                            onSelect={(currentValue) => {
+                                                                form.setValue("areaCode", currentValue, { shouldValidate: true });
+                                                                setAreaCodePopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    code === field.value
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {code}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="phoneNumber"
+                        render={({ field }) => (
+                            <FormItem className="col-span-2">
+                                <FormControl>
+                                    <Input
+                                        placeholder="1234567"
+                                        maxLength={7}
+                                        {...field}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, ''); // Allow only digits
+                                            field.onChange(value);
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
+
              <FormField
                 control={form.control}
                 name="direccion"
