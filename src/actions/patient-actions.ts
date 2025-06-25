@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import type { Titular, Beneficiario } from '@/lib/types';
+import type { Titular, Beneficiario, SearchResult, TitularType } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const generateId = () => `t${Date.now()}`;
@@ -222,4 +222,48 @@ export async function deleteBeneficiario(id: string): Promise<{ success: boolean
     revalidatePath('/dashboard/pacientes'); // To update beneficiary count
     
     return { success: true, titularId: beneficiario.titularId };
+}
+
+
+// --- Patient Check-in Actions ---
+
+export async function searchCombinedPatients(query: string): Promise<SearchResult[]> {
+    if (!query || query.trim().length < 2) return [];
+    const db = await getDb();
+    const searchQuery = `%${query}%`;
+
+    const titulares = await db.all(
+        "SELECT id, nombreCompleto, cedula FROM titulares WHERE nombreCompleto LIKE ? OR cedula LIKE ?",
+        searchQuery, searchQuery
+    );
+
+    const beneficiarios = await db.all(
+        `SELECT b.id, b.nombreCompleto, b.cedula, t.id as titularId, t.nombreCompleto as titularNombre
+        FROM beneficiarios b
+        JOIN titulares t ON b.titularId = t.id
+        WHERE b.nombreCompleto LIKE ? OR b.cedula LIKE ?`,
+        searchQuery, searchQuery
+    );
+    
+    const results: SearchResult[] = [
+        ...titulares.map(t => ({ ...t, kind: 'titular' as const })),
+        ...beneficiarios.map((b: any) => ({
+            id: b.id,
+            nombreCompleto: b.nombreCompleto,
+            cedula: b.cedula,
+            kind: 'beneficiario' as const,
+            titularInfo: {
+                id: b.titularId,
+                nombreCompleto: b.titularNombre,
+            }
+        }))
+    ];
+    
+    return results;
+}
+
+export async function getTitularTypeById(titularId: string): Promise<TitularType | null> {
+    const db = await getDb();
+    const row = await db.get('SELECT tipo FROM titulares WHERE id = ?', titularId);
+    return row?.tipo || null;
 }

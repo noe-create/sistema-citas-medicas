@@ -13,13 +13,32 @@ import {
 import { PatientQueue } from '@/components/patient-queue';
 import { PatientCheckinForm } from '@/components/patient-checkin-form';
 import { PlusCircle } from 'lucide-react';
+import type { Patient } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function DashboardPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [patientQueue, setPatientQueue] = React.useState<Patient[]>([]);
+  const { toast } = useToast();
 
-  const handleFormSubmitted = () => {
+  const handleFormSubmitted = (newPatient: Patient) => {
+     // Check if patient is already in the queue
+    if (patientQueue.some(p => p.patientDbId === newPatient.patientDbId && p.status !== 'Completado')) {
+      toast({
+        title: 'Paciente ya en cola',
+        description: `${newPatient.name} ya se encuentra en la cola de espera.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setPatientQueue(prevQueue => [...prevQueue, newPatient]);
+    toast({
+        title: '¡Paciente Registrado!',
+        description: `${newPatient.name} ha sido añadido a la cola.`,
+    });
     setIsDialogOpen(false);
-    // In a real app, you'd likely want to trigger a refresh of the patient queue here.
   };
 
   return (
@@ -33,18 +52,18 @@ export default function DashboardPage() {
               Registrar Paciente
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>Registrar Nuevo Paciente</DialogTitle>
+              <DialogTitle>Registrar Paciente en Cola</DialogTitle>
               <DialogDescription>
-                Complete los siguientes datos para añadir un nuevo paciente a la cola.
+                Busque un titular o beneficiario para añadirlo a la cola de espera.
               </DialogDescription>
             </DialogHeader>
             <PatientCheckinForm onSubmitted={handleFormSubmitted} />
           </DialogContent>
         </Dialog>
       </div>
-      <PatientQueue />
+      <PatientQueue patients={patientQueue} setPatients={setPatientQueue} />
     </div>
   );
 }

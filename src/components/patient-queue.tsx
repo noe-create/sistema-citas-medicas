@@ -43,48 +43,14 @@ const accountIcons: Record<AccountType, React.ReactNode> = {
   'Privado': <User className="h-5 w-5 text-gray-500" />,
 };
 
-export function PatientQueue() {
-  const [patients, setPatients] = React.useState<Patient[]>([]);
+interface PatientQueueProps {
+    patients: Patient[];
+    setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+}
+
+export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const mockPatients: Patient[] = [
-      {
-        id: '1',
-        name: 'Alice Johnson',
-        serviceType: 'Medicina General',
-        accountType: 'Privado',
-        status: 'Esperando',
-        checkInTime: new Date(new Date().getTime() - 10 * 60000),
-      },
-      {
-        id: '2',
-        name: 'Bob Williams',
-        serviceType: 'Pediatría',
-        accountType: 'Empleado',
-        status: 'Esperando',
-        checkInTime: new Date(new Date().getTime() - 15 * 60000),
-      },
-      {
-        id: '3',
-        name: 'Charlie Brown',
-        serviceType: 'Enfermería',
-        accountType: 'Afiliado Corporativo',
-        status: 'En Consulta',
-        checkInTime: new Date(new Date().getTime() - 30 * 60000),
-      },
-      {
-        id: '4',
-        name: 'Diana Miller',
-        serviceType: 'Medicina General',
-        accountType: 'Privado',
-        status: 'Completado',
-        checkInTime: new Date(new Date().getTime() - 60 * 60000),
-      },
-    ];
-    setPatients(mockPatients);
-  }, []);
 
   const handleManagePatient = (patient: Patient) => {
     setSelectedPatient(patient);
@@ -118,47 +84,60 @@ export function PatientQueue() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {patients.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell className="font-medium">{patient.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {serviceIcons[patient.serviceType]}
-                      <span>{patient.serviceType}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {accountIcons[patient.accountType]}
-                      <span>{patient.accountType}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={patient.status === 'Completado' ? 'secondary' : patient.status === 'En Consulta' ? 'default' : 'outline'}
-                      className={patient.status === 'En Consulta' ? 'bg-accent text-accent-foreground' : ''}
-                    >
-                      {patient.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{new Date(patient.checkInTime).toLocaleTimeString()}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Abrir menú</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
-                          Gestionar Paciente
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {patients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No hay pacientes en la cola.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                patients.map((patient) => (
+                  <TableRow key={patient.id}>
+                    <TableCell className="font-medium">
+                        <div>{patient.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                            {patient.kind === 'titular' ? 'Titular' : 'Beneficiario'}
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {serviceIcons[patient.serviceType]}
+                        <span>{patient.serviceType}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {accountIcons[patient.accountType]}
+                        <span>{patient.accountType}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={patient.status === 'Completado' ? 'secondary' : patient.status === 'En Consulta' ? 'default' : 'outline'}
+                        className={patient.status === 'En Consulta' ? 'bg-accent text-accent-foreground' : ''}
+                      >
+                        {patient.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(patient.checkInTime).toLocaleTimeString('es-VE')}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menú</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
+                            Gestionar Paciente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

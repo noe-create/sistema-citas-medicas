@@ -1,14 +1,30 @@
 // For Patient Queue
 export type ServiceType = 'Medicina General' | 'Pediatría' | 'Enfermería';
 export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
+export type PatientStatus = 'Esperando' | 'En Consulta' | 'Completado';
+export type PatientKind = 'titular' | 'beneficiario';
 
 export interface Patient {
-  id: string;
+  id: string; // Unique ID for the queue entry
+  patientDbId: string; // ID from the titulares or beneficiarios table
   name: string;
+  kind: PatientKind;
   serviceType: ServiceType;
   accountType: AccountType;
-  status: 'Esperando' | 'En Consulta' | 'Completado';
+  status: PatientStatus;
   checkInTime: Date;
+}
+
+export interface SearchResult {
+  id: string; // The ID from titulares or beneficiarios table
+  nombreCompleto: string;
+  cedula: string;
+  kind: PatientKind;
+  // For beneficiaries, include titular info for context
+  titularInfo?: {
+    id: string;
+    nombreCompleto: string;
+  };
 }
 
 
