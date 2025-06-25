@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,7 +26,8 @@ import type { Empresa, Titular } from '@/lib/types';
 
 const patientSchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
-  cedula: z.string().min(5, { message: 'La cédula es requerida.' }),
+  nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
+  cedula: z.string().regex(/^[0-9]+$/, "La cédula solo debe contener números.").min(5, { message: 'La cédula debe tener al menos 5 dígitos.' }),
   fechaNacimiento: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
@@ -53,7 +55,7 @@ type PatientFormValues = z.infer<typeof patientSchema>;
 interface PatientFormProps {
   titular: Titular | null;
   empresas: Empresa[];
-  onSubmitted: (values: PatientFormValues) => Promise<void>;
+  onSubmitted: (values: any) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -63,35 +65,62 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
-      nombreCompleto: titular?.nombreCompleto || '',
-      cedula: titular?.cedula || '',
-      fechaNacimiento: titular?.fechaNacimiento ? new Date(titular.fechaNacimiento) : undefined,
-      genero: titular?.genero || undefined,
-      telefono: titular?.telefono || '',
-      email: titular?.email || '',
-      tipo: titular?.tipo || undefined,
-      empresaId: titular?.empresaId || undefined,
+        nombreCompleto: '',
+        nacionalidad: 'V',
+        cedula: '',
+        telefono: '',
+        email: '',
     },
   });
 
   const tipo = form.watch('tipo');
 
   React.useEffect(() => {
-    form.reset({
-      nombreCompleto: titular?.nombreCompleto || '',
-      cedula: titular?.cedula || '',
-      fechaNacimiento: titular?.fechaNacimiento ? new Date(titular.fechaNacimiento) : undefined,
-      genero: titular?.genero || undefined,
-      telefono: titular?.telefono || '',
-      email: titular?.email || '',
-      tipo: titular?.tipo || undefined,
-      empresaId: titular?.empresaId || undefined,
-    });
+    const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
+        if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
+        const match = cedulaStr.match(/^([VE])-?(\d+)$/);
+        if (match) {
+            return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
+        }
+        return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
+    }
+    
+    if (titular) {
+        const { nacionalidad, cedula } = parseCedula(titular.cedula);
+        form.reset({
+          nombreCompleto: titular.nombreCompleto || '',
+          cedula: cedula,
+          fechaNacimiento: titular.fechaNacimiento ? new Date(titular.fechaNacimiento) : undefined,
+          genero: titular.genero || undefined,
+          telefono: titular.telefono || '',
+          email: titular.email || '',
+          tipo: titular.tipo || undefined,
+          empresaId: titular.empresaId || undefined,
+          nacionalidad: nacionalidad,
+        });
+    } else {
+        form.reset({
+            nombreCompleto: '',
+            cedula: '',
+            fechaNacimiento: undefined,
+            genero: undefined,
+            telefono: '',
+            email: '',
+            tipo: undefined,
+            empresaId: undefined,
+            nacionalidad: 'V',
+        });
+    }
   }, [titular, form.reset]);
 
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
-    await onSubmitted(values);
+    const submissionData = {
+        ...values,
+        cedula: `${values.nacionalidad}-${values.cedula}`,
+    };
+    delete (submissionData as any).nacionalidad;
+    await onSubmitted(submissionData);
     setIsSubmitting(false);
   }
 
@@ -112,19 +141,46 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="cedula"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cédula</FormLabel>
-                  <FormControl>
-                    <Input placeholder="V-12345678" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
+            <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start">
+              <FormField
+                  control={form.control}
+                  name="nacionalidad"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Nac.</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue="V">
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="V">V - Venezolano</SelectItem>
+                          <SelectItem value="E">E - Extranjero</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+              <FormField
+                  control={form.control}
+                  name="cedula"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Número de Cédula</FormLabel>
+                      <FormControl>
+                          <Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => {
+                              field.onChange(e.target.value.replace(/\D/g, ''));
+                          }}/>
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+            </div>
+
             <FormField
                 control={form.control}
                 name="fechaNacimiento"
