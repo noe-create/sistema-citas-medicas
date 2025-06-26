@@ -5,17 +5,17 @@ import { sessionOptions, type SessionData } from '@/lib/auth';
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const session = await getIronSession<SessionData>(req.cookies, sessionOptions);
-  const { user } = session;
+  const { isLoggedIn } = session;
   const { pathname } = req.nextUrl;
 
   const isPublicPage = pathname.startsWith('/login');
   const isDashboardPage = pathname.startsWith('/dashboard') || pathname === '/';
 
-  if (isPublicPage && user?.isLoggedIn) {
+  if (isPublicPage && isLoggedIn) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  if (isDashboardPage && !user?.isLoggedIn) {
+  if (isDashboardPage && !isLoggedIn) {
     let from = pathname;
     if (req.nextUrl.search) {
         from += req.nextUrl.search;

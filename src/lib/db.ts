@@ -12,25 +12,16 @@ let db: Database | null = null;
 async function initializeDb(): Promise<Database> {
     const dbPath = path.join(process.cwd(), 'database.db');
     
-    try {
-        await fs.access(dbPath);
-    } catch {
-        const newDb = await open({
-            filename: dbPath,
-            driver: sqlite3.Database
-        });
-        await seedDb(newDb);
-        return newDb;
-    }
-
-    const existingDb = await open({
+    const dbInstance = await open({
         filename: dbPath,
         driver: sqlite3.Database
     });
-    
-    await createTables(existingDb);
 
-    return existingDb;
+    // createTables is called within seedDb, and both are idempotent.
+    // This ensures tables and seed data are always present.
+    await seedDb(dbInstance);
+
+    return dbInstance;
 }
 
 
