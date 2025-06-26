@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardUser } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -90,12 +90,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
+                isActive={pathname.startsWith('/dashboard/personas')}
+                tooltip="Personas"
+              >
+                <Link href="/dashboard/personas">
+                  <Contact />
+                  <span>Personas</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/dashboard/lista-pacientes')}
+                tooltip="Lista de Pacientes"
+              >
+                <Link href="/dashboard/lista-pacientes">
+                  <ClipboardUser />
+                  <span>Lista de Pacientes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
                 isActive={pathname.startsWith('/dashboard/pacientes')}
-                tooltip="Titulares"
+                tooltip="Gestión de Titulares"
               >
                 <Link href="/dashboard/pacientes">
                   <Users />
-                  <span>Titulares</span>
+                  <span>Gestión de Titulares</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -9,6 +9,8 @@ import {
   User,
   Building,
   FileHeart,
+  Contact,
+  ClipboardUser,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -32,9 +34,21 @@ const menuOptions = [
     description: 'Busque y consulte el historial de los pacientes.',
   },
   {
+    href: '/dashboard/personas',
+    icon: <Contact className="h-8 w-8 text-primary" />,
+    title: 'Personas',
+    description: 'Repositorio central de individuos del sistema.',
+  },
+  {
+    href: '/dashboard/lista-pacientes',
+    icon: <ClipboardUser className="h-8 w-8 text-primary" />,
+    title: 'Lista de Pacientes',
+    description: 'Consulte los pacientes con historial médico.',
+  },
+  {
     href: '/dashboard/pacientes',
     icon: <Users className="h-8 w-8 text-primary" />,
-    title: 'Titulares',
+    title: 'Gestión de Titulares',
     description: 'Administre los perfiles de los titulares.',
   },
   {
