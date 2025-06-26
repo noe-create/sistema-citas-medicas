@@ -23,6 +23,7 @@ import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useUser } from './app-shell';
+import { calculateAge } from '@/lib/utils';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
@@ -136,70 +137,74 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                             No hay pacientes en espera.
                         </div>
                     ) : (
-                        groupedPatients[service].map((patient) => (
-                        <div key={patient.id} className={`flex flex-col gap-3 p-3 rounded-lg border-l-4 ${statusInfo[patient.status].color} bg-card shadow-sm`}>
-                            <div className="flex justify-between items-start">
-                                <div className='flex-1 overflow-hidden'>
-                                    <p className="font-semibold truncate">{patient.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {patient.accountType} &bull; {patient.kind === 'titular' ? 'Titular' : 'Beneficiario'}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Badge variant={statusInfo[patient.status].badgeVariant} className="capitalize">{statusInfo[patient.status].label}</Badge>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
-                                                <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status as PatientStatus)}>
-                                                    {statusInfo[status as PatientStatus].label}
+                        groupedPatients[service].map((patient) => {
+                          const age = calculateAge(patient.fechaNacimiento);
+                          return (
+                            <div key={patient.id} className={`flex flex-col gap-3 p-3 rounded-lg border-l-4 ${statusInfo[patient.status].color} bg-card shadow-sm`}>
+                                <div className="flex justify-between items-start">
+                                    <div className='flex-1 overflow-hidden'>
+                                        <p className="font-semibold truncate">{patient.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {patient.accountType} &bull; {patient.kind === 'titular' ? 'Titular' : 'Beneficiario'}
+                                            {age < 18 && ` • ${age} años`}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Badge variant={statusInfo[patient.status].badgeVariant} className="capitalize">{statusInfo[patient.status].label}</Badge>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
+                                                    <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status as PatientStatus)}>
+                                                        {statusInfo[status as PatientStatus].label}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem 
+                                                    className="text-destructive focus:text-destructive" 
+                                                    onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}
+                                                    disabled={patient.status === 'En Consulta' || patient.status === 'En Tratamiento'}
+                                                >
+                                                    <XCircle className="mr-2 h-4 w-4" />
+                                                    <span>Cancelar Cita</span>
                                                 </DropdownMenuItem>
-                                            ))}
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem 
-                                                className="text-destructive focus:text-destructive" 
-                                                onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}
-                                                disabled={patient.status === 'En Consulta' || patient.status === 'En Tratamiento'}
-                                            >
-                                                <XCircle className="mr-2 h-4 w-4" />
-                                                <span>Cancelar Cita</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex justify-between items-center text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1.5">
-                                    <ClockIcon className="h-3.5 w-3.5" />
-                                    <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1.5">
+                                        <ClockIcon className="h-3.5 w-3.5" />
+                                        <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <WaitTimeStopwatch startTime={patient.checkInTime} />
                                 </div>
-                                <WaitTimeStopwatch startTime={patient.checkInTime} />
+                                {(user.role === 'superuser' || user.role === 'doctor') &&
+                                    (patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
+                                    <Button 
+                                        onClick={() => handleStartOrContinueConsultation(patient)} 
+                                        size="sm" 
+                                        className="w-full mt-1"
+                                        variant={patient.status === 'En Consulta' ? 'secondary' : 'default'}
+                                    >
+                                        {patient.status === 'En Consulta' ? (
+                                            <><FilePenLine className="mr-2 h-4 w-4" /> Continuar Consulta</>
+                                        ) : patient.status === 'Reevaluacion' ? (
+                                            <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Reevaluación</>
+                                        ) : (
+                                            <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Consulta</>
+                                        )}
+                                    </Button>
+                                )}
                             </div>
-                            {(user.role === 'superuser' || user.role === 'doctor') &&
-                                (patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
-                                <Button 
-                                    onClick={() => handleStartOrContinueConsultation(patient)} 
-                                    size="sm" 
-                                    className="w-full mt-1"
-                                    variant={patient.status === 'En Consulta' ? 'secondary' : 'default'}
-                                >
-                                    {patient.status === 'En Consulta' ? (
-                                        <><FilePenLine className="mr-2 h-4 w-4" /> Continuar Consulta</>
-                                    ) : patient.status === 'Reevaluacion' ? (
-                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Reevaluación</>
-                                    ) : (
-                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Consulta</>
-                                    )}
-                                </Button>
-                            )}
-                        </div>
-                        ))
+                          )
+                        })
                     )}
                     </div>
                 </ScrollArea>

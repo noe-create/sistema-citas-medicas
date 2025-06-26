@@ -99,6 +99,7 @@ export interface Patient {
   accountType: AccountType;
   status: PatientStatus;
   checkInTime: Date;
+  fechaNacimiento: Date;
 }
 
 

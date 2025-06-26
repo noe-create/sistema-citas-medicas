@@ -545,13 +545,18 @@ async function getOrCreatePaciente(db: any, personaId: string): Promise<string> 
 export async function getWaitlist(): Promise<Patient[]> {
     const db = await getDb();
     const rows = await db.all(`
-        SELECT * FROM waitlist 
-        WHERE status NOT IN ('Completado', 'Cancelado')
-        ORDER BY checkInTime ASC
+        SELECT 
+            w.id, w.personaId, w.pacienteId, w.name, w.kind, w.serviceType, w.accountType, w.status, w.checkInTime,
+            p.fechaNacimiento
+        FROM waitlist w
+        JOIN personas p ON w.personaId = p.id
+        WHERE w.status NOT IN ('Completado', 'Cancelado')
+        ORDER BY w.checkInTime ASC
     `);
     return rows.map((row: any) => ({
         ...row,
         checkInTime: new Date(row.checkInTime),
+        fechaNacimiento: new Date(row.fechaNacimiento),
     }));
 }
 

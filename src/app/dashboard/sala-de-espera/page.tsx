@@ -36,7 +36,7 @@ export default function SalaDeEsperaPage() {
     setIsLoading(true);
     try {
       const data = await getWaitlist();
-      setPatientQueue(data.map(p => ({ ...p, checkInTime: new Date(p.checkInTime) })));
+      setPatientQueue(data);
     } catch (error) {
       console.error(error);
       toast({
@@ -102,6 +102,7 @@ export default function SalaDeEsperaPage() {
           accountType: accountType,
           status: 'Esperando',
           checkInTime: new Date(),
+          fechaNacimiento: persona.fechaNacimiento,
       };
       
       await addPatientToWaitlist(newPatientData);
