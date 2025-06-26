@@ -1100,6 +1100,7 @@ export async function getMorbidityReport(filters: { from: Date; to: Date; accoun
             COUNT(cd.id) as frequency
         FROM consultation_diagnoses cd
         JOIN consultations c ON cd.consultationId = c.id
+        JOIN waitlist w ON c.waitlistId = w.id
     `;
     const params: any[] = [];
     const whereClauses: string[] = [];
@@ -1107,17 +1108,20 @@ export async function getMorbidityReport(filters: { from: Date; to: Date; accoun
     whereClauses.push(`c.consultationDate BETWEEN ? AND ?`);
     params.push(from.toISOString(), to.toISOString());
 
-    if (accountType || empresaId) {
-        query += ` JOIN waitlist w ON c.waitlistId = w.id `;
-        if (accountType) {
-            whereClauses.push(`w.accountType = ?`);
-            params.push(accountType);
-        }
-        if (empresaId) {
-            query += ` JOIN titulares t ON w.personaId = t.personaId `;
-            whereClauses.push(`t.empresaId = ?`);
-            params.push(empresaId);
-        }
+    if (accountType) {
+        whereClauses.push(`w.accountType = ?`);
+        params.push(accountType);
+    }
+    
+    if (empresaId) {
+        whereClauses.push(`
+            w.personaId IN (
+                SELECT t.personaId FROM titulares t WHERE t.empresaId = ?
+                UNION
+                SELECT b.personaId FROM beneficiarios b JOIN titulares t ON b.titularId = t.id WHERE t.empresaId = ?
+            )
+        `);
+        params.push(empresaId, empresaId);
     }
     
     if (whereClauses.length > 0) {

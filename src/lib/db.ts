@@ -152,6 +152,17 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
         );
     `);
+
+    // Migration for adding waitlistId to consultations.
+    // This handles cases where the database was created before this column was added.
+    try {
+        await dbInstance.exec('ALTER TABLE consultations ADD COLUMN waitlistId TEXT');
+    } catch (error: any) {
+        // This is expected to fail if the column already exists, which is fine.
+        if (!error.message.includes('duplicate column name')) {
+             console.error("An unexpected error occurred during database migration:", error);
+        }
+    }
 }
 
 
