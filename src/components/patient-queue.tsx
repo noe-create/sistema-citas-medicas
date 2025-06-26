@@ -60,7 +60,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   }, [user]);
 
   const selectedPatient = React.useMemo(
-    () => patients.find((p) => p.id === selectedPatientId) || null,
+    () => (patients || []).find((p) => p.id === selectedPatientId) || null,
     [patients, selectedPatientId]
   );
 
@@ -139,7 +139,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   }, [user]);
 
   const groupedPatients = visibleServices.reduce((acc, service) => {
-    acc[service] = patients.filter(p => p.serviceType === service);
+    acc[service] = (patients || []).filter(p => p.serviceType === service);
     return acc;
   }, {} as Record<ServiceType, Patient[]>);
 
@@ -153,12 +153,12 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                 {serviceInfo[service].icon}
                 {serviceInfo[service].title}
               </CardTitle>
-              <Badge variant="outline">{groupedPatients[service].length}</Badge>
+              <Badge variant="outline">{groupedPatients[service]?.length || 0}</Badge>
             </CardHeader>
             <CardContent className="flex-1 p-0">
                 <ScrollArea className="h-96 w-full p-6 pt-0">
                     <div className="space-y-4">
-                    {groupedPatients[service].length === 0 ? (
+                    {!groupedPatients[service] || groupedPatients[service].length === 0 ? (
                         <div className="flex items-center justify-center h-full text-sm text-muted-foreground pt-10">
                             No hay pacientes en espera.
                         </div>
