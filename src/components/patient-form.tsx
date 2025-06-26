@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2, Phone } from 'lucide-react';
-import type { Empresa, Titular } from '@/lib/types';
+import type { Empresa, Persona, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CompanyForm } from './company-form';
 import { createEmpresa } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
+import { PersonaSearch } from './persona-search';
 
 
 const allAreaCodes = [
@@ -52,7 +53,7 @@ const patientSchema = z.object({
   numeroTelefono: z.string().optional(),
   codigoCelular: z.string().optional(),
   numeroCelular: z.string().optional(),
-  email: z.string().email({ message: 'Email inválido.' }).optional(),
+  email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
   tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], {
     required_error: 'El tipo de titular es requerido.',
   }),
@@ -85,15 +86,17 @@ interface PatientFormProps {
   empresas: Empresa[];
   onSubmitted: (values: any) => Promise<void>;
   onCancel: () => void;
+  excludeIds?: string[];
 }
 
-export function PatientForm({ titular, empresas, onSubmitted, onCancel }: PatientFormProps) {
+export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeIds = [] }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
   const [areaCodePopoverOpen, setAreaCodePopoverOpen] = React.useState(false);
   const [areaCodeCelularPopoverOpen, setAreaCodeCelularPopoverOpen] = React.useState(false);
-  
+  const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
+
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = React.useState(false);
   const [localEmpresas, setLocalEmpresas] = React.useState<Empresa[]>(empresas);
   
@@ -114,25 +117,45 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
   });
 
   const tipo = form.watch('tipo');
+  const isPersonaSelected = !!selectedPersona;
+
+  const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
+    if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
+    const match = cedulaStr.match(/^([VE])-?(\d+)$/);
+    if (match) {
+        return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
+    }
+    return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
+  }
+    
+  const parseTelefono = (telefonoStr?: string): { codigo?: string, numero?: string } => {
+    if (!telefonoStr || !telefonoStr.includes('-')) return { codigo: undefined, numero: ''};
+    const [codigo, ...numeroParts] = telefonoStr.split('-');
+    const numero = numeroParts.join('');
+    return { codigo: codigo, numero: numero };
+  }
 
   React.useEffect(() => {
-    const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
-        if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
-        const match = cedulaStr.match(/^([VE])-?(\d+)$/);
-        if (match) {
-            return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
-        }
-        return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
-    }
-    
-    const parseTelefono = (telefonoStr?: string): { codigo?: string, numero?: string } => {
-        if (!telefonoStr || !telefonoStr.includes('-')) return { codigo: undefined, numero: ''};
-        const [codigo, ...numeroParts] = telefonoStr.split('-');
-        const numero = numeroParts.join('');
-        return { codigo: codigo, numero: numero };
-    }
-
-    if (titular) {
+    if (selectedPersona) {
+      const { nacionalidad, cedula } = parseCedula(selectedPersona.cedula);
+      const { codigo: codigoTelefono, numero: numeroTelefono } = parseTelefono(selectedPersona.telefono);
+      const { codigo: codigoCelular, numero: numeroCelular } = parseTelefono(selectedPersona.telefonoCelular);
+      form.reset({
+        nombreCompleto: selectedPersona.nombreCompleto,
+        nacionalidad,
+        cedula,
+        fechaNacimiento: new Date(selectedPersona.fechaNacimiento),
+        genero: selectedPersona.genero,
+        codigoTelefono,
+        numeroTelefono,
+        codigoCelular,
+        numeroCelular,
+        email: selectedPersona.email || '',
+        tipo: form.getValues('tipo'),
+        empresaId: form.getValues('empresaId'),
+      });
+    } else if (titular) {
+        // If selection is cleared, go back to editing the titular
         const { nacionalidad, cedula } = parseCedula(titular.persona.cedula);
         const { codigo: codigoTelefono, numero: numeroTelefono } = parseTelefono(titular.persona.telefono);
         const { codigo: codigoCelular, numero: numeroCelular } = parseTelefono(titular.persona.telefonoCelular);
@@ -151,42 +174,57 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
           empresaId: titular.empresaId || undefined,
         });
     } else {
+        // Or clear the form for new creation
+        const currentTipo = form.getValues('tipo');
+        const currentEmpresaId = form.getValues('empresaId');
         form.reset({
-            nombreCompleto: '',
-            cedula: '',
-            fechaNacimiento: undefined,
-            genero: undefined,
-            codigoTelefono: undefined,
-            numeroTelefono: '',
-            codigoCelular: undefined,
-            numeroCelular: '',
-            email: '',
-            tipo: undefined,
-            empresaId: undefined,
-            nacionalidad: 'V',
+            nombreCompleto: '', cedula: '', fechaNacimiento: undefined, genero: undefined,
+            codigoTelefono: undefined, numeroTelefono: '', codigoCelular: undefined, numeroCelular: '',
+            email: '', nacionalidad: 'V',
+            tipo: currentTipo, empresaId: currentEmpresaId,
         });
     }
-  }, [titular, form]);
+  }, [selectedPersona, titular, form]);
+
 
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
-    const submissionData: any = {
-        ...values,
-        cedula: `${values.nacionalidad}-${values.cedula}`,
-        telefono: (values.codigoTelefono && values.numeroTelefono) ? `${values.codigoTelefono}-${values.numeroTelefono}` : undefined,
-        telefonoCelular: (values.codigoCelular && values.numeroCelular) ? `${values.codigoCelular}-${values.numeroCelular}` : undefined,
-    };
-    delete submissionData.nacionalidad;
-    delete submissionData.codigoTelefono;
-    delete submissionData.numeroTelefono;
-    delete submissionData.codigoCelular;
-    delete submissionData.numeroCelular;
-
+    let submissionData: any;
     if (titular) {
+        // UPDATE
+        submissionData = {
+            ...values,
+            cedula: `${values.nacionalidad}-${values.cedula}`,
+            telefono: (values.codigoTelefono && values.numeroTelefono) ? `${values.codigoTelefono}-${values.numeroTelefono}` : undefined,
+            telefonoCelular: (values.codigoCelular && values.numeroCelular) ? `${values.codigoCelular}-${values.numeroCelular}` : undefined,
+        };
         await onSubmitted(titular.id, titular.personaId, submissionData);
     } else {
+        // CREATE
+        if (selectedPersona) {
+            submissionData = {
+                personaId: selectedPersona.id,
+                tipo: values.tipo,
+                empresaId: values.empresaId,
+            };
+        } else {
+            submissionData = {
+                persona: {
+                    nombreCompleto: values.nombreCompleto,
+                    cedula: `${values.nacionalidad}-${values.cedula}`,
+                    fechaNacimiento: values.fechaNacimiento,
+                    genero: values.genero,
+                    telefono: (values.codigoTelefono && values.numeroTelefono) ? `${values.codigoTelefono}-${values.numeroTelefono}` : undefined,
+                    telefonoCelular: (values.codigoCelular && values.numeroCelular) ? `${values.codigoCelular}-${values.numeroCelular}` : undefined,
+                    email: values.email,
+                },
+                tipo: values.tipo,
+                empresaId: values.empresaId,
+            };
+        }
         await onSubmitted(submissionData);
     }
+    
     setIsSubmitting(false);
   }
 
@@ -207,6 +245,17 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {!titular && (
+            <div className="space-y-2 mb-6 border-b pb-6">
+                <Label>Asignar Rol de Titular a Persona Existente</Label>
+                <PersonaSearch 
+                    onPersonaSelect={setSelectedPersona} 
+                    excludeIds={excludeIds}
+                    placeholder="Buscar para vincular..."
+                />
+                <p className="text-xs text-muted-foreground text-center">O llene los campos de abajo para crear una nueva persona.</p>
+            </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
             <FormField
               control={form.control}
@@ -218,7 +267,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                     Nombre Completo
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej. Juan Pérez" {...field} />
+                    <Input placeholder="Ej. Juan Pérez" {...field} disabled={isPersonaSelected} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -240,6 +289,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                                 value={field.value}
                                 defaultValue="V"
                                 className="flex items-center space-x-4 pt-1"
+                                disabled={isPersonaSelected}
                             >
                                 <FormItem className="flex items-center space-x-2">
                                     <FormControl>
@@ -271,7 +321,9 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                       <FormControl>
                           <Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => {
                               field.onChange(e.target.value.replace(/\D/g, ''));
-                          }}/>
+                          }}
+                          disabled={isPersonaSelected}
+                          />
                       </FormControl>
                       <FormMessage />
                       </FormItem>
@@ -311,9 +363,9 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                         <FormItem className="md:col-span-2">
                             <FormLabel className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-muted-foreground" />Fecha de Nacimiento</FormLabel>
                             <div className="grid grid-cols-3 gap-2">
-                                <Select onValueChange={(v) => handleDateChange('day', v)} value={selectedDay ? String(selectedDay) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger></FormControl><SelectContent>{days.map((d) => (<SelectItem key={d} value={String(d)}>{d}</SelectItem>))}</SelectContent></Select>
-                                <Select onValueChange={(v) => handleDateChange('month', v)} value={selectedMonth ? String(selectedMonth) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger></FormControl><SelectContent>{months.map((m) => (<SelectItem key={m.value} value={String(m.value)}><span className="capitalize">{m.label}</span></SelectItem>))}</SelectContent></Select>
-                                <Select onValueChange={(v) => handleDateChange('year', v)} value={selectedYear ? String(selectedYear) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger></FormControl><SelectContent>{years.map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}</SelectContent></Select>
+                                <Select disabled={isPersonaSelected} onValueChange={(v) => handleDateChange('day', v)} value={selectedDay ? String(selectedDay) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger></FormControl><SelectContent>{days.map((d) => (<SelectItem key={d} value={String(d)}>{d}</SelectItem>))}</SelectContent></Select>
+                                <Select disabled={isPersonaSelected} onValueChange={(v) => handleDateChange('month', v)} value={selectedMonth ? String(selectedMonth) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger></FormControl><SelectContent>{months.map((m) => (<SelectItem key={m.value} value={String(m.value)}><span className="capitalize">{m.label}</span></SelectItem>))}</SelectContent></Select>
+                                <Select disabled={isPersonaSelected} onValueChange={(v) => handleDateChange('year', v)} value={selectedYear ? String(selectedYear) : ''}><FormControl><SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger></FormControl><SelectContent>{years.map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}</SelectContent></Select>
                             </div>
                             <FormMessage />
                         </FormItem>
@@ -326,7 +378,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel className="flex items-center gap-2"><UsersIcon className="h-4 w-4 text-muted-foreground" />Género</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={isPersonaSelected}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un género" /></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="Masculino">Masculino</SelectItem>
@@ -346,12 +398,12 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                         name="codigoTelefono"
                         render={({ field }) => (
                             <FormItem className="col-span-1">
-                                <Popover open={areaCodePopoverOpen} onOpenChange={setAreaCodePopoverOpen}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className={cn("w-full justify-between px-3 font-normal",!field.value && "text-muted-foreground")}>{field.value? allAreaCodes.find((code) => code === field.value): "Código"}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Command><CommandInput placeholder="Buscar código..." /><CommandList><CommandEmpty>No se encontró código.</CommandEmpty><CommandGroup>{allAreaCodes.map((code) => (<CommandItem value={code} key={code} onSelect={(value) => {form.setValue("codigoTelefono", value, { shouldValidate: true }); setAreaCodePopoverOpen(false);}}><Check className={cn("mr-2 h-4 w-4", code === field.value ? "opacity-100" : "opacity-0")}/>{code}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent></Popover>
+                                <Popover open={areaCodePopoverOpen} onOpenChange={setAreaCodePopoverOpen}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" disabled={isPersonaSelected} className={cn("w-full justify-between px-3 font-normal",!field.value && "text-muted-foreground")}>{field.value? allAreaCodes.find((code) => code === field.value): "Código"}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Command><CommandInput placeholder="Buscar código..." /><CommandList><CommandEmpty>No se encontró código.</CommandEmpty><CommandGroup>{allAreaCodes.map((code) => (<CommandItem value={code} key={code} onSelect={(value) => {form.setValue("codigoTelefono", value, { shouldValidate: true }); setAreaCodePopoverOpen(false);}}><Check className={cn("mr-2 h-4 w-4", code === field.value ? "opacity-100" : "opacity-0")}/>{code}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent></Popover>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <FormField control={form.control} name="numeroTelefono" render={({ field }) => (<FormItem className="col-span-2"><FormControl><Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="numeroTelefono" render={({ field }) => (<FormItem className="col-span-2"><FormControl><Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
                 </div>
             </div>
 
@@ -363,12 +415,12 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
                         name="codigoCelular"
                         render={({ field }) => (
                             <FormItem className="col-span-1">
-                                <Popover open={areaCodeCelularPopoverOpen} onOpenChange={setAreaCodeCelularPopoverOpen}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className={cn("w-full justify-between px-3 font-normal",!field.value && "text-muted-foreground")}>{field.value? mobilePhoneCodes.find((code) => code === field.value): "Código"}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Command><CommandInput placeholder="Buscar código..." /><CommandList><CommandEmpty>No se encontró código.</CommandEmpty><CommandGroup>{mobilePhoneCodes.map((code) => (<CommandItem value={code} key={code} onSelect={(value) => {form.setValue("codigoCelular", value, { shouldValidate: true }); setAreaCodeCelularPopoverOpen(false);}}><Check className={cn("mr-2 h-4 w-4", code === field.value ? "opacity-100" : "opacity-0")}/>{code}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent></Popover>
+                                <Popover open={areaCodeCelularPopoverOpen} onOpenChange={setAreaCodeCelularPopoverOpen}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" disabled={isPersonaSelected} className={cn("w-full justify-between px-3 font-normal",!field.value && "text-muted-foreground")}>{field.value? mobilePhoneCodes.find((code) => code === field.value): "Código"}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Command><CommandInput placeholder="Buscar código..." /><CommandList><CommandEmpty>No se encontró código.</CommandEmpty><CommandGroup>{mobilePhoneCodes.map((code) => (<CommandItem value={code} key={code} onSelect={(value) => {form.setValue("codigoCelular", value, { shouldValidate: true }); setAreaCodeCelularPopoverOpen(false);}}><Check className={cn("mr-2 h-4 w-4", code === field.value ? "opacity-100" : "opacity-0")}/>{code}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent></Popover>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <FormField control={form.control} name="numeroCelular" render={({ field }) => (<FormItem className="col-span-2"><FormControl><Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="numeroCelular" render={({ field }) => (<FormItem className="col-span-2"><FormControl><Input placeholder="Solo 7 números" {...field} maxLength={7} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
                 </div>
             </div>
 
@@ -378,7 +430,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel }: Patien
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />Email</FormLabel>
-                  <FormControl><Input placeholder="juan.perez@email.com" {...field} value={field.value || ''} type="email" /></FormControl>
+                  <FormControl><Input placeholder="juan.perez@email.com" {...field} value={field.value || ''} type="email" disabled={isPersonaSelected}/></FormControl>
                   <FormMessage />
                 </FormItem>
               )}

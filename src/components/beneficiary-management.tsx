@@ -53,17 +53,18 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const handleFormSubmitted = async (values: any) => {
     try {
       if (selectedBeneficiario) {
-        const updated = await updateBeneficiario(selectedBeneficiario.id, selectedBeneficiario.personaId, values);
-        toast({ title: '¡Beneficiario Actualizado!', description: `${updated.persona.nombreCompleto} ha sido guardado.` });
+        await updateBeneficiario(selectedBeneficiario.id, selectedBeneficiario.personaId, values);
+        toast({ title: '¡Beneficiario Actualizado!', description: `${values.nombreCompleto} ha sido guardado.` });
       } else {
-        const created = await createBeneficiario(titular.id, values);
-        toast({ title: '¡Beneficiario Creado!', description: `${created.persona.nombreCompleto} ha sido añadido.` });
+        await createBeneficiario(titular.id, values);
+        const personaName = values.persona ? values.persona.nombreCompleto : 'La persona seleccionada';
+        toast({ title: '¡Beneficiario Creado!', description: `${personaName} ha sido añadido.` });
       }
       handleCloseDialog();
       await refreshBeneficiarios();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al guardar beneficiario:", error);
-      toast({ title: 'Error', description: 'No se pudo guardar el beneficiario.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'No se pudo guardar el beneficiario.', variant: 'destructive' });
     }
   };
 
@@ -77,6 +78,8 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
       toast({ title: 'Error', description: 'No se pudo eliminar el beneficiario.', variant: 'destructive' });
     }
   };
+
+  const excludeIds = [titular.personaId, ...beneficiarios.map(b => b.personaId)];
 
   return (
     <>
@@ -173,6 +176,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
             beneficiario={selectedBeneficiario}
             onSubmitted={handleFormSubmitted}
             onCancel={handleCloseDialog}
+            excludeIds={excludeIds}
           />
         </DialogContent>
       </Dialog>

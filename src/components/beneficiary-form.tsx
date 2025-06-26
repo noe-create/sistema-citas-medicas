@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import type { Beneficiario, Persona } from '@/lib/types';
+import { PersonaSearch } from './persona-search';
+import { Label } from './ui/label';
 
 const beneficiarySchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -27,7 +29,7 @@ const beneficiarySchema = z.object({
   genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
     required_error: 'El género es requerido.',
   }),
-  email: z.string().email({ message: 'Email inválido.' }).optional(),
+  email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
   telefono: z.string().optional(),
   telefonoCelular: z.string().optional(),
 });
@@ -36,13 +38,15 @@ type BeneficiaryFormValues = z.infer<typeof beneficiarySchema>;
 
 interface BeneficiaryFormProps {
   beneficiario: Beneficiario | null;
-  onSubmitted: (values: BeneficiaryFormValues) => Promise<void>;
+  onSubmitted: (values: any) => Promise<void>;
   onCancel: () => void;
+  excludeIds?: string[];
 }
 
-export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: BeneficiaryFormProps) {
+export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeIds = [] }: BeneficiaryFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  
+  const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
+
   const form = useForm<BeneficiaryFormValues>({
     resolver: zodResolver(beneficiarySchema),
     defaultValues: {
@@ -56,27 +60,64 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
     },
   });
 
+  const isPersonaSelected = !!selectedPersona;
+
   React.useEffect(() => {
-    form.reset({
-      nombreCompleto: beneficiario?.persona.nombreCompleto || '',
-      cedula: beneficiario?.persona.cedula || '',
-      fechaNacimiento: beneficiario?.persona.fechaNacimiento ? new Date(beneficiario.persona.fechaNacimiento) : undefined,
-      genero: beneficiario?.persona.genero || undefined,
-      email: beneficiario?.persona.email || '',
-      telefono: beneficiario?.persona.telefono || '',
-      telefonoCelular: beneficiario?.persona.telefonoCelular || '',
-    });
+    // Populate form if an existing person is selected
+    if (selectedPersona) {
+      form.reset({
+        nombreCompleto: selectedPersona.nombreCompleto,
+        cedula: selectedPersona.cedula,
+        fechaNacimiento: new Date(selectedPersona.fechaNacimiento),
+        genero: selectedPersona.genero,
+        email: selectedPersona.email || '',
+        telefono: selectedPersona.telefono || '',
+        telefonoCelular: selectedPersona.telefonoCelular || '',
+      });
+    }
+  }, [selectedPersona, form]);
+  
+  React.useEffect(() => {
+    // Populate form if editing an existing beneficiary
+    if (beneficiario) {
+        form.reset({
+            nombreCompleto: beneficiario.persona.nombreCompleto,
+            cedula: beneficiario.persona.cedula,
+            fechaNacimiento: new Date(beneficiario.persona.fechaNacimiento),
+            genero: beneficiario.persona.genero,
+            email: beneficiario.persona.email || '',
+            telefono: beneficiario.persona.telefono || '',
+            telefonoCelular: beneficiario.persona.telefonoCelular || '',
+        });
+    }
   }, [beneficiario, form]);
 
   async function onSubmit(values: BeneficiaryFormValues) {
     setIsSubmitting(true);
-    await onSubmitted(values);
+    if (selectedPersona) {
+      await onSubmitted({ personaId: selectedPersona.id });
+    } else if (beneficiario) {
+      await onSubmitted(values) // For updates
+    } else {
+      await onSubmitted({ persona: values }); // For new person creation
+    }
     setIsSubmitting(false);
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {!beneficiario && (
+            <div className="space-y-2 mb-6">
+                <Label>Vincular Persona Existente como Beneficiario</Label>
+                <PersonaSearch 
+                    onPersonaSelect={setSelectedPersona}
+                    excludeIds={excludeIds}
+                    placeholder="Buscar persona para añadir..."
+                />
+                <p className="text-xs text-muted-foreground">O llene los campos de abajo para crear una nueva persona.</p>
+            </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
             <FormField
               control={form.control}
@@ -85,7 +126,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                 <FormItem>
                   <FormLabel>Nombre Completo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej. Ana Pérez" {...field} />
+                    <Input placeholder="Ej. Ana Pérez" {...field} disabled={isPersonaSelected} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,7 +139,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                 <FormItem>
                   <FormLabel>Cédula</FormLabel>
                   <FormControl>
-                    <Input placeholder="V-23456789" {...field} />
+                    <Input placeholder="V-23456789" {...field} disabled={isPersonaSelected}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,6 +190,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                                 <Select
                                     onValueChange={(value) => handleDateChange('day', value)}
                                     value={selectedDay ? String(selectedDay) : ''}
+                                    disabled={isPersonaSelected}
                                 >
                                     <FormControl>
                                     <SelectTrigger>
@@ -164,6 +206,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                                 <Select
                                     onValueChange={(value) => handleDateChange('month', value)}
                                     value={selectedMonth ? String(selectedMonth) : ''}
+                                    disabled={isPersonaSelected}
                                 >
                                     <FormControl>
                                     <SelectTrigger>
@@ -181,6 +224,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                                 <Select
                                     onValueChange={(value) => handleDateChange('year', value)}
                                     value={selectedYear ? String(selectedYear) : ''}
+                                    disabled={isPersonaSelected}
                                 >
                                     <FormControl>
                                     <SelectTrigger>
@@ -205,7 +249,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Género</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isPersonaSelected}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccione un género" />
@@ -228,7 +272,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                 <FormItem>
                   <FormLabel>Email (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="correo@ejemplo.com" {...field} />
+                    <Input placeholder="correo@ejemplo.com" {...field} disabled={isPersonaSelected}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

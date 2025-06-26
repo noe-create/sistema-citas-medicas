@@ -158,15 +158,33 @@ export async function getTitularById(id: string): Promise<Titular | null> {
 }
 
 
-export async function createTitular(data: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date, tipo: TitularType, empresaId?: string }) {
+export async function createTitular(data: {
+    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string };
+    tipo: TitularType;
+    empresaId?: string;
+} | {
+    personaId: string;
+    tipo: TitularType;
+    empresaId?: string;
+}) {
     const db = await getDb();
     const titularId = generateId('t');
     
     try {
         await db.exec('BEGIN TRANSACTION');
 
-        const personaData = { ...data, fechaNacimiento: data.fechaNacimiento.toISOString() };
-        const personaId = await getOrCreatePersona(db, personaData);
+        let personaId: string;
+
+        if ('personaId' in data) {
+            const existingTitular = await db.get('SELECT id FROM titulares WHERE personaId = ?', data.personaId);
+            if (existingTitular) {
+                throw new Error('Esta persona ya es un titular.');
+            }
+            personaId = data.personaId;
+        } else {
+            const personaData = { ...data.persona, fechaNacimiento: data.persona.fechaNacimiento.toISOString() };
+            personaId = await getOrCreatePersona(db, personaData);
+        }
 
         await db.run(
             'INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)',
@@ -187,16 +205,24 @@ export async function createTitular(data: Omit<Persona, 'id' | 'fechaNacimiento'
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date, tipo: TitularType, empresaId?: string }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; tipo: TitularType; empresaId?: string }) {
     const db = await getDb();
 
     try {
         await db.exec('BEGIN TRANSACTION');
 
+        // Check for cedula duplication before updating
+        const cedulaParts = data.cedula.split('-');
+        const cedulaToCheck = `${cedulaParts[0]}-${cedulaParts.slice(1).join('')}`;
+        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', cedulaToCheck, personaId);
+        if (existingPersona) {
+            throw new Error('Ya existe otra persona con la misma cédula.');
+        }
+
         await db.run(
             'UPDATE personas SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ? WHERE id = ?',
             data.nombreCompleto,
-            data.cedula,
+            cedulaToCheck,
             data.fechaNacimiento.toISOString(),
             data.genero,
             data.telefono,
@@ -324,15 +350,25 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
 }
 
 
-export async function createBeneficiario(titularId: string, data: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
+export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
     const db = await getDb();
     const beneficiarioId = generateId('b');
-    let personaId = '';
+    let personaId: string = '';
 
     try {
         await db.exec('BEGIN TRANSACTION');
-        const personaData = { ...data, fechaNacimiento: data.fechaNacimiento.toISOString() };
-        personaId = await getOrCreatePersona(db, personaData);
+        
+        if ('personaId' in data) {
+             const existingBeneficiario = await db.get('SELECT id FROM beneficiarios WHERE personaId = ? AND titularId = ?', data.personaId, titularId);
+            if (existingBeneficiario) {
+                throw new Error('Esta persona ya es beneficiaria de este titular.');
+            }
+            personaId = data.personaId;
+        } else {
+            const personaData = { ...data.persona, fechaNacimiento: data.persona.fechaNacimiento.toISOString() };
+            personaId = await getOrCreatePersona(db, personaData);
+        }
+
 
         await db.run(
             'INSERT INTO beneficiarios (id, titularId, personaId) VALUES (?, ?, ?)',

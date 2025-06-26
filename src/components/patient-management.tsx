@@ -79,20 +79,21 @@ export function PatientManagement() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmitted = async (titularIdOrData: any, personaId?: string, data?: any) => {
+  const handleFormSubmitted = async (arg1: any, arg2?: string, arg3?: any) => {
     try {
       if (selectedTitular) { // Editing
-        await updateTitular(titularIdOrData, personaId!, data);
-        toast({ title: '¡Titular Actualizado!', description: `${data.nombreCompleto} ha sido guardado.` });
+        await updateTitular(arg1, arg2!, arg3);
+        toast({ title: '¡Titular Actualizado!', description: `${arg3.nombreCompleto} ha sido guardado.` });
       } else { // Creating
-        await createTitular(titularIdOrData);
-        toast({ title: '¡Titular Creado!', description: `${titularIdOrData.nombreCompleto} ha sido añadido.` });
+        await createTitular(arg1);
+        const personaName = arg1.persona ? arg1.persona.nombreCompleto : 'La persona seleccionada';
+        toast({ title: '¡Rol de Titular Creado!', description: `${personaName} ahora es titular.` });
       }
       handleCloseDialog();
       await refreshTitulares(search);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al guardar titular:", error);
-      toast({ title: 'Error', description: 'No se pudo guardar el titular. Verifique que la cédula o email no estén duplicados.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'No se pudo guardar el titular. Verifique que la cédula o email no estén duplicados.', variant: 'destructive' });
     }
   };
   
@@ -111,6 +112,8 @@ export function PatientManagement() {
     setIsFormOpen(false);
     setSelectedTitular(null);
   }
+
+  const excludeIds = titulares.map(t => t.personaId);
 
   return (
     <>
@@ -233,6 +236,7 @@ export function PatientManagement() {
                     empresas={empresas}
                     onSubmitted={handleFormSubmitted}
                     onCancel={handleCloseDialog}
+                    excludeIds={excludeIds}
                  />
             </DialogContent>
         </Dialog>
