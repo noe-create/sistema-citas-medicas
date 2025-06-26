@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -584,12 +585,23 @@ export async function addPatientToWaitlist(data: Omit<Patient, 'id'| 'pacienteId
 
 export async function updatePatientStatus(id: string, status: PatientStatus): Promise<{ success: boolean }> {
     const db = await getDb();
+
+    if (status === 'Cancelado') {
+        const patient = await db.get('SELECT status FROM waitlist WHERE id = ?', id);
+        if (!patient) throw new Error('Paciente en lista de espera no encontrado');
+        
+        if (patient.status === 'En Consulta' || patient.status === 'En Tratamiento') {
+            throw new Error('No se puede cancelar una cita que ya está en curso (en consulta o tratamiento).');
+        }
+    }
+
     const result = await db.run(
         'UPDATE waitlist SET status = ? WHERE id = ?',
         status,
         id
     );
     if (result.changes === 0) throw new Error('Paciente en lista de espera no encontrado');
+
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/sala-de-espera');
     revalidatePath('/dashboard/consulta');

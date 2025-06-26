@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -78,9 +79,9 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
             description: `El estado del paciente ha sido actualizado a "${statusInfo[status].label}".`,
         });
         onListRefresh();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating status:", error);
-        toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
+        toast({ title: "Error", description: error.message || "No se pudo actualizar el estado.", variant: 'destructive'});
     }
   };
 
@@ -161,7 +162,11 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                                 </DropdownMenuItem>
                                             ))}
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}>
+                                            <DropdownMenuItem 
+                                                className="text-destructive focus:text-destructive" 
+                                                onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}
+                                                disabled={patient.status === 'En Consulta' || patient.status === 'En Tratamiento'}
+                                            >
                                                 <XCircle className="mr-2 h-4 w-4" />
                                                 <span>Cancelar Cita</span>
                                             </DropdownMenuItem>
