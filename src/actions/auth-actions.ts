@@ -70,7 +70,15 @@ export async function logout() {
 
 // --- User Management Actions ---
 
+async function ensureSuperuser() {
+    const session = await getSession();
+    if (session.user?.role !== 'superuser') {
+        throw new Error('Acción no autorizada. Se requiere rol de superusuario.');
+    }
+}
+
 export async function getUsers(query?: string): Promise<User[]> {
+    await ensureSuperuser();
     const db = await getDb();
     let selectQuery = `
         SELECT u.id, u.username, u.role, u.personaId, p.nombreCompleto as name
@@ -94,6 +102,7 @@ export async function createUser(data: {
     role: Role;
     personaId?: string;
 }) {
+    await ensureSuperuser();
     const db = await getDb();
 
     if (!data.password) {
@@ -135,6 +144,7 @@ export async function updateUser(id: string, data: {
     role: Role;
     personaId?: string;
 }) {
+    await ensureSuperuser();
     const db = await getDb();
     
     const existingUser = await db.get('SELECT id FROM users WHERE username = ? AND id != ?', data.username, id);
@@ -174,12 +184,15 @@ export async function updateUser(id: string, data: {
 }
 
 export async function deleteUser(id: string) {
-    const db = await getDb();
     const session = await getSession();
+    if (session.user?.role !== 'superuser') {
+        throw new Error('Acción no autorizada. Se requiere rol de superusuario.');
+    }
     if (session.user?.id === id) {
         throw new Error('No puede eliminar su propio usuario.');
     }
-
+    
+    const db = await getDb();
     const result = await db.run('DELETE FROM users WHERE id = ?', id);
     if (result.changes === 0) {
         throw new Error('Usuario no encontrado.');

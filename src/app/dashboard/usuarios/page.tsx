@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 
 export default async function UsuariosPage() {
   const session = await getSession();
+  // Authorization is now handled in the page component and the server actions.
+  // The link to this page is only shown to superusers in app-shell.
   if (session.user?.role !== 'superuser') {
     redirect('/dashboard');
   }
