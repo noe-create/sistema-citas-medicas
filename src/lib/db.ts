@@ -5,6 +5,7 @@ import { open, type Database } from 'sqlite';
 import type { Empresa } from './types';
 import path from 'path';
 import fs from 'fs/promises';
+import bcrypt from 'bcryptjs';
 
 let db: Database | null = null;
 
@@ -36,6 +37,15 @@ async function initializeDb(): Promise<Database> {
 async function createTables(dbInstance: Database): Promise<void> {
      await dbInstance.exec(`
         PRAGMA foreign_keys = ON;
+
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            personaId TEXT,
+            FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE SET NULL
+        );
 
         CREATE TABLE IF NOT EXISTS empresas (
             id TEXT PRIMARY KEY,
@@ -153,12 +163,9 @@ async function createTables(dbInstance: Database): Promise<void> {
         );
     `);
 
-    // Migration for adding waitlistId to consultations.
-    // This handles cases where the database was created before this column was added.
     try {
         await dbInstance.exec('ALTER TABLE consultations ADD COLUMN waitlistId TEXT');
     } catch (error: any) {
-        // This is expected to fail if the column already exists, which is fine.
         if (!error.message.includes('duplicate column name')) {
              console.error("An unexpected error occurred during database migration:", error);
         }
@@ -187,9 +194,9 @@ async function seedDb(dbInstance: Database): Promise<void> {
     if (personaCountResult.count === 0) {
         const personas = [
             { id: "p1", nombreCompleto: "Carlos Rodriguez", cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono: "0212-555-1234", telefonoCelular: "0414-1234567", email: "carlos.r@email.com" },
-            { id: "p2", nombreCompleto: "Ana Martinez", cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono: "0241-555-5678", telefonoCelular: "0412-7654321", email: "ana.m@email.com" },
+            { id: "p2", nombreCompleto: "Ana Martinez (Doctora)", cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono: "0241-555-5678", telefonoCelular: "0412-7654321", email: "ana.m@email.com" },
             { id: "p3", nombreCompleto: "Luis Hernandez", cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono: "0261-555-9012", telefonoCelular: "0424-9876543", email: "luis.h@email.com" },
-            { id: "p4", nombreCompleto: "Sofia Gomez", cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono: "0212-555-3456", telefonoCelular: "0416-2345678", email: "sofia.g@email.com" },
+            { id: "p4", nombreCompleto: "Sofia Gomez (Asistente)", cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono: "0212-555-3456", telefonoCelular: "0416-2345678", email: "sofia.g@email.com" },
             { id: "p5", nombreCompleto: "Laura Rodriguez", cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com" },
             { id: "p6", nombreCompleto: "David Rodriguez", cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com" },
         ];
@@ -226,6 +233,24 @@ async function seedDb(dbInstance: Database): Promise<void> {
             await pacienteStmt.run(`pac-${p.id}`, p.id);
         }
         await pacienteStmt.finalize();
+    }
+    
+    const userCount = await dbInstance.get('SELECT COUNT(*) as count FROM users');
+    if (userCount.count === 0) {
+        const users = [
+            { id: 'usr-super', username: 'superuser', password: 'password123', role: 'superuser', personaId: null, name: 'Super Usuario' },
+            { id: 'usr-admin', username: 'admin', password: 'password123', role: 'administrator', personaId: null, name: 'Administrador' },
+            { id: 'usr-assist', username: 'asistente', password: 'password123', role: 'asistencial', personaId: 'p4', name: 'Sofia Gomez' },
+            { id: 'usr-doctor', username: 'drsmith', password: 'password123', role: 'doctor', personaId: 'p2', name: 'Ana Martinez' },
+            { id: 'usr-nurse', username: 'enfermera', password: 'password123', role: 'enfermera', personaId: null, name: 'Enfermera Jefa' },
+        ];
+
+        const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, role, personaId) VALUES (?, ?, ?, ?, ?)');
+        for (const u of users) {
+            const hashedPassword = await bcrypt.hash(u.password, 10);
+            await userStmt.run(u.id, u.username, hashedPassword, u.role, u.personaId);
+        }
+        await userStmt.finalize();
     }
 
     const cie10CountResult = await dbInstance.get('SELECT COUNT(*) as count FROM cie10_codes');
