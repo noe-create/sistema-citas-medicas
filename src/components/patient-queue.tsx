@@ -78,7 +78,7 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   };
 
   const handleStartOrContinueConsultation = async (patient: Patient) => {
-    if (patient.status === 'Esperando') {
+    if (patient.status === 'Esperando' || patient.status === 'Reevaluacion') {
         try {
             await updatePatientStatus(patient.id, 'En Consulta');
             toast({
@@ -169,17 +169,19 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                 </div>
                                 <WaitTimeStopwatch startTime={patient.checkInTime} />
                             </div>
-                            {(patient.status === 'Esperando' || patient.status === 'En Consulta') && (
+                            {(patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
                                 <Button 
                                     onClick={() => handleStartOrContinueConsultation(patient)} 
                                     size="sm" 
                                     className="w-full mt-1"
                                     variant={patient.status === 'En Consulta' ? 'secondary' : 'default'}
                                 >
-                                    {patient.status === 'Esperando' ? (
-                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Consulta</>
-                                    ) : (
+                                    {patient.status === 'En Consulta' ? (
                                         <><FilePenLine className="mr-2 h-4 w-4" /> Continuar Consulta</>
+                                    ) : patient.status === 'Reevaluacion' ? (
+                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Reevaluación</>
+                                    ) : (
+                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Consulta</>
                                     )}
                                 </Button>
                             )}
