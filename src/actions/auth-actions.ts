@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 import { sessionOptions, type SessionData, getSession } from '@/lib/auth';
-import type { User, Role } from '@/lib/types';
+import type { User, Role, DoctorSpecialty } from '@/lib/types';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 
@@ -24,7 +24,7 @@ export async function login(
 
   try {
     const userRow: any = await db.get(
-        `SELECT u.id, u.username, u.password, u.role, u.personaId, p.nombreCompleto as name
+        `SELECT u.id, u.username, u.password, u.role, u.specialty, u.personaId, p.nombreCompleto as name
          FROM users u
          LEFT JOIN personas p ON u.personaId = p.id
          WHERE u.username = ?`,
@@ -48,6 +48,7 @@ export async function login(
       id: userRow.id,
       username: userRow.username,
       role: userRow.role,
+      specialty: userRow.specialty,
       personaId: userRow.personaId,
       name: userRow.name || userRow.username,
     };
@@ -81,7 +82,7 @@ export async function getUsers(query?: string): Promise<User[]> {
     await ensureSuperuser();
     const db = await getDb();
     let selectQuery = `
-        SELECT u.id, u.username, u.role, u.personaId, p.nombreCompleto as name
+        SELECT u.id, u.username, u.role, u.specialty, u.personaId, p.nombreCompleto as name
         FROM users u
         LEFT JOIN personas p ON u.personaId = p.id
     `;
@@ -100,6 +101,7 @@ export async function createUser(data: {
     username: string;
     password?: string;
     role: Role;
+    specialty?: DoctorSpecialty;
     personaId?: string;
 }) {
     await ensureSuperuser();
@@ -125,16 +127,17 @@ export async function createUser(data: {
     const userId = `usr-${Date.now()}`;
 
     await db.run(
-        'INSERT INTO users (id, username, password, role, personaId) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO users (id, username, password, role, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)',
         userId,
         data.username,
         hashedPassword,
         data.role,
+        data.role === 'doctor' ? data.specialty : null,
         data.personaId || null
     );
 
     revalidatePath('/dashboard/usuarios');
-    const newUser = await db.get('SELECT id, username, role, personaId FROM users WHERE id = ?', userId);
+    const newUser = await db.get('SELECT id, username, role, specialty, personaId FROM users WHERE id = ?', userId);
     return newUser;
 }
 
@@ -142,6 +145,7 @@ export async function updateUser(id: string, data: {
     username: string;
     password?: string;
     role: Role;
+    specialty?: DoctorSpecialty;
     personaId?: string;
 }) {
     await ensureSuperuser();
@@ -162,24 +166,26 @@ export async function updateUser(id: string, data: {
     if (data.password) {
         const hashedPassword = await bcrypt.hash(data.password, 10);
         await db.run(
-            'UPDATE users SET username = ?, password = ?, role = ?, personaId = ? WHERE id = ?',
+            'UPDATE users SET username = ?, password = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             hashedPassword,
             data.role,
+            data.role === 'doctor' ? data.specialty : null,
             data.personaId || null,
             id
         );
     } else {
         await db.run(
-            'UPDATE users SET username = ?, role = ?, personaId = ? WHERE id = ?',
+            'UPDATE users SET username = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             data.role,
+            data.role === 'doctor' ? data.specialty : null,
             data.personaId || null,
             id
         );
     }
     revalidatePath('/dashboard/usuarios');
-    const updatedUser = await db.get('SELECT id, username, role, personaId FROM users WHERE id = ?', id);
+    const updatedUser = await db.get('SELECT id, username, role, specialty, personaId FROM users WHERE id = ?', id);
     return updatedUser;
 }
 

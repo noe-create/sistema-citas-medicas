@@ -15,14 +15,13 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Patient, ServiceType, PatientStatus } from '@/lib/types';
+import type { Patient, ServiceType, PatientStatus, User } from '@/lib/types';
 import { ManagePatientDialog } from './manage-patient-sheet';
 import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
 import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { useUser } from './app-shell';
 import { calculateAge } from '@/lib/utils';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
@@ -43,13 +42,13 @@ const statusInfo: Record<PatientStatus, { label: string; color: string; badgeVar
 };
 
 interface PatientQueueProps {
+    user: User;
     patients: Patient[];
     onListRefresh: () => void;
 }
 
-export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
+export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProps) {
   const { toast } = useToast();
-  const user = useUser();
   const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
@@ -111,8 +110,24 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
     setSelectedPatientId(null);
   };
 
-  const services = Object.keys(serviceInfo) as ServiceType[];
-  const groupedPatients = services.reduce((acc, service) => {
+  const visibleServices = React.useMemo(() => {
+    const allServices = Object.keys(serviceInfo) as ServiceType[];
+    if (!user) return [];
+    if (user.role === 'superuser') {
+        return allServices;
+    }
+    if (user.role === 'doctor') {
+        if (user.specialty === 'medico pediatra') {
+            return allServices.filter(s => s === 'consulta pediatrica');
+        }
+        if (user.specialty === 'medico general') {
+            return allServices.filter(s => s === 'medicina general');
+        }
+    }
+    return [];
+  }, [user]);
+
+  const groupedPatients = visibleServices.reduce((acc, service) => {
     acc[service] = patients.filter(p => p.serviceType === service);
     return acc;
   }, {} as Record<ServiceType, Patient[]>);
@@ -120,7 +135,7 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {services.map((service) => (
+        {visibleServices.map((service) => (
           <Card key={service} className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium capitalize flex items-center gap-2">

@@ -117,7 +117,9 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                         </Avatar>
                         <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
                           <span className="text-sm font-medium">{user.name}</span>
-                          <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {user.role === 'doctor' && user.specialty ? user.specialty : user.role}
+                          </span>
                         </div>
                       </div>
                     </div>

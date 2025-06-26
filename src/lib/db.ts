@@ -34,6 +34,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             role TEXT NOT NULL,
+            specialty TEXT,
             personaId TEXT,
             FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE SET NULL
         );
@@ -162,6 +163,13 @@ async function createTables(dbInstance: Database): Promise<void> {
              console.error("An unexpected error occurred during database migration (users.personaId):", error);
         }
     }
+    try {
+        await dbInstance.exec('ALTER TABLE users ADD COLUMN specialty TEXT');
+    } catch (error: any) {
+        if (!error.message.includes('duplicate column name')) {
+             console.error("An unexpected error occurred during database migration (users.specialty):", error);
+        }
+    }
 
     try {
         await dbInstance.exec('ALTER TABLE consultations ADD COLUMN waitlistId TEXT');
@@ -238,17 +246,17 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const userCount = await dbInstance.get('SELECT COUNT(*) as count FROM users');
     if (userCount.count === 0) {
         const users = [
-            { id: 'usr-super', username: 'superuser', password: 'password123', role: 'superuser', personaId: null, name: 'Super Usuario' },
-            { id: 'usr-admin', username: 'admin', password: 'password123', role: 'administrator', personaId: null, name: 'Administrador' },
-            { id: 'usr-assist', username: 'asistente', password: 'password123', role: 'asistencial', personaId: 'p4', name: 'Sofia Gomez' },
-            { id: 'usr-doctor', username: 'drsmith', password: 'password123', role: 'doctor', personaId: 'p2', name: 'Ana Martinez' },
-            { id: 'usr-nurse', username: 'enfermera', password: 'password123', role: 'enfermera', personaId: null, name: 'Enfermera Jefa' },
+            { id: 'usr-super', username: 'superuser', password: 'password123', role: 'superuser', specialty: null, personaId: null, name: 'Super Usuario' },
+            { id: 'usr-admin', username: 'admin', password: 'password123', role: 'administrator', specialty: null, personaId: null, name: 'Administrador' },
+            { id: 'usr-assist', username: 'asistente', password: 'password123', role: 'asistencial', specialty: null, personaId: 'p4', name: 'Sofia Gomez' },
+            { id: 'usr-doctor', username: 'drsmith', password: 'password123', role: 'doctor', specialty: 'medico pediatra', personaId: 'p2', name: 'Ana Martinez' },
+            { id: 'usr-nurse', username: 'enfermera', password: 'password123', role: 'enfermera', specialty: null, personaId: null, name: 'Enfermera Jefa' },
         ];
 
-        const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, role, personaId) VALUES (?, ?, ?, ?, ?)');
+        const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, role, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)');
         for (const u of users) {
             const hashedPassword = await bcrypt.hash(u.password, 10);
-            await userStmt.run(u.id, u.username, hashedPassword, u.role, u.personaId);
+            await userStmt.run(u.id, u.username, hashedPassword, u.role, u.specialty, u.personaId);
         }
         await userStmt.finalize();
     }

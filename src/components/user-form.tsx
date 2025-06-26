@@ -8,17 +8,30 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, KeyRound, User as UserIcon, Shield, Link2 } from 'lucide-react';
-import type { User, Role, Persona } from '@/lib/types';
+import { Loader2, KeyRound, User as UserIcon, Shield, Link2, Stethoscope } from 'lucide-react';
+import type { User, Role, Persona, DoctorSpecialty } from '@/lib/types';
 import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
 
 const roles: Role[] = ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'];
+const specialties: { value: DoctorSpecialty; label: string }[] = [
+    { value: 'medico general', label: 'Médico General' },
+    { value: 'medico pediatra', label: 'Médico Pediatra' },
+];
 
 const baseSchema = z.object({
   username: z.string().min(3, { message: 'El nombre de usuario es requerido (mínimo 3 caracteres).' }),
   role: z.enum(roles, { required_error: 'El rol es requerido.' }),
+  specialty: z.enum(['medico general', 'medico pediatra']).optional(),
   personaId: z.string().optional(),
+}).refine(data => {
+    if (data.role === 'doctor') {
+        return !!data.specialty;
+    }
+    return true;
+}, {
+    message: "La especialidad es requerida para el rol de doctor.",
+    path: ["specialty"],
 });
 
 const createUserSchema = baseSchema.extend({
@@ -52,6 +65,7 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
     defaultValues: {
         username: user?.username || '',
         role: user?.role,
+        specialty: user?.specialty,
         personaId: user?.personaId || '',
         password: '',
         confirmPassword: '',
@@ -62,6 +76,7 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
       form.setValue('personaId', persona?.id || '', { shouldValidate: true });
   }, [form]);
   
+  const role = form.watch('role');
 
   async function onSubmit(values: any) {
     setIsSubmitting(true);
@@ -113,6 +128,32 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
                 </FormItem>
               )}
             />
+
+            {role === 'doctor' && (
+                <FormField
+                    control={form.control}
+                    name="specialty"
+                    render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                        <FormLabel className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/>Especialidad</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Seleccione una especialidad" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {specialties.map(s => (
+                            <SelectItem key={s.value} value={s.value} className="capitalize">{s.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            )}
+
             <FormField
               control={form.control}
               name="password"
