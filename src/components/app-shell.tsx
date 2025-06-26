@@ -44,11 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === '/dashboard'}
-                  tooltip="Panel"
+                  tooltip="Sala de Espera"
                 >
                   <Link href="/dashboard">
                     <LayoutGrid />
-                    <span>Panel</span>
+                    <span>Sala de Espera</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

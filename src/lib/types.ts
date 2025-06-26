@@ -1,5 +1,5 @@
 // For Patient Queue
-export type ServiceType = 'Medicina General' | 'Pediatría' | 'Enfermería';
+export type ServiceType = 'medicina general' | 'consulta pediatrica' | 'servicio de enfermeria';
 export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
 export type PatientStatus = 'Esperando' | 'En Consulta' | 'Completado';
 export type PatientKind = 'titular' | 'beneficiario';

@@ -53,6 +53,16 @@ async function initializeDb(): Promise<Database> {
             genero TEXT NOT NULL,
             FOREIGN KEY (titularId) REFERENCES titulares(id) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS waitlist (
+            id TEXT PRIMARY KEY,
+            patientDbId TEXT NOT NULL,
+            name TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            serviceType TEXT NOT NULL,
+            accountType TEXT NOT NULL,
+            status TEXT NOT NULL,
+            checkInTime TEXT NOT NULL
+        );
     `);
     
     // Seed initial data if tables are empty

@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular, Empresa } from '@/lib/types';
+import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular, Empresa, Patient, PatientStatus } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const generateId = () => `t${Date.now()}`;
@@ -402,5 +402,60 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
     revalidatePath('/dashboard/empresas');
     revalidatePath('/dashboard/pacientes');
 
+    return { success: true };
+}
+
+
+// --- Waitlist Actions ---
+
+export async function getWaitlist(): Promise<Patient[]> {
+    const db = await getDb();
+    const rows = await db.all(`
+        SELECT * FROM waitlist 
+        WHERE status != 'Completado' 
+        ORDER BY checkInTime ASC
+    `);
+    return rows.map(row => ({
+        ...row,
+        checkInTime: new Date(row.checkInTime),
+    }));
+}
+
+export async function addPatientToWaitlist(data: Omit<Patient, 'id'>): Promise<Patient> {
+    const db = await getDb();
+    const newPatient: Patient = {
+        ...data,
+        id: `q-${Date.now()}`,
+    };
+
+    await db.run(
+        'INSERT INTO waitlist (id, patientDbId, name, kind, serviceType, accountType, status, checkInTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        newPatient.id,
+        newPatient.patientDbId,
+        newPatient.name,
+        newPatient.kind,
+        newPatient.serviceType,
+        newPatient.accountType,
+        newPatient.status,
+        newPatient.checkInTime.toISOString()
+    );
+
+    revalidatePath('/dashboard');
+    return newPatient;
+}
+
+export async function updatePatientStatus(id: string, status: PatientStatus): Promise<{ success: boolean }> {
+    const db = await getDb();
+    const result = await db.run(
+        'UPDATE waitlist SET status = ? WHERE id = ?',
+        status,
+        id
+    );
+
+    if (result.changes === 0) {
+        throw new Error('Paciente en lista de espera no encontrado');
+    }
+
+    revalidatePath('/dashboard');
     return { success: true };
 }

@@ -22,70 +22,37 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronsUpDown, Loader2, UserCheck, Users } from 'lucide-react';
-import { searchCombinedPatients, getTitularTypeById } from '@/actions/patient-actions';
-import type { Patient, SearchResult, ServiceType, TitularType, AccountType } from '@/lib/types';
+import { searchCombinedPatients } from '@/actions/patient-actions';
+import type { Patient, SearchResult, ServiceType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
-  serviceType: z.enum(['Medicina General', 'Pediatría', 'Enfermería'], {
+  serviceType: z.enum(['medicina general', 'consulta pediatrica', 'servicio de enfermeria'], {
     required_error: "El tipo de servicio es requerido."
   }),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 interface PatientCheckinFormProps {
-  onSubmitted: (patient: Patient) => void;
+  onSubmitted: (data: { serviceType: ServiceType, patient: SearchResult }) => void;
 }
-
-const titularTypeToAccountType = (titularType: TitularType): AccountType => {
-  switch (titularType) {
-    case 'internal_employee': return 'Empleado';
-    case 'corporate_affiliate': return 'Afiliado Corporativo';
-    case 'private': return 'Privado';
-    default: return 'Privado';
-  }
-};
-
 
 export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedPatient, setSelectedPatient] = React.useState<SearchResult | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormValues) {
     if (!selectedPatient) return;
-
     setIsSubmitting(true);
-    try {
-        const titularId = selectedPatient.kind === 'titular' ? selectedPatient.id : selectedPatient.titularInfo!.id;
-        const titularType = await getTitularTypeById(titularId);
-
-        if (!titularType) {
-            throw new Error("No se pudo determinar el tipo de cuenta del titular.");
-        }
-
-        const newPatient: Patient = {
-            id: `q-${Date.now()}`,
-            patientDbId: selectedPatient.id,
-            name: selectedPatient.nombreCompleto,
-            kind: selectedPatient.kind,
-            serviceType: values.serviceType,
-            accountType: titularTypeToAccountType(titularType),
-            status: 'Esperando',
-            checkInTime: new Date(),
-        };
-
-        onSubmitted(newPatient);
-
-    } catch (error) {
-        console.error("Error al registrar paciente:", error);
-    } finally {
-        setIsSubmitting(false);
-    }
+    await onSubmitted({ serviceType: values.serviceType, patient: selectedPatient });
+    setIsSubmitting(false);
   }
 
   return (
@@ -107,9 +74,9 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="Medicina General">Medicina General</SelectItem>
-                        <SelectItem value="Pediatría">Pediatría</SelectItem>
-                        <SelectItem value="Enfermería">Enfermería</SelectItem>
+                        <SelectItem value="medicina general" className="capitalize">Medicina General</SelectItem>
+                        <SelectItem value="consulta pediatrica" className="capitalize">Consulta Pediátrica</SelectItem>
+                        <SelectItem value="servicio de enfermeria" className="capitalize">Servicio de Enfermería</SelectItem>
                     </SelectContent>
                     </Select>
                     <FormMessage />
@@ -149,6 +116,24 @@ function PatientSearch({ selectedPatient, onPatientSelect }: { selectedPatient: 
 
         return () => clearTimeout(timer);
     }, [query]);
+    
+    // Fetch all patients when the popover opens for the first time
+    React.useEffect(() => {
+        if (isPopoverOpen && results.length === 0 && query === '') {
+             const fetchInitialData = async () => {
+                setIsLoading(true);
+                try {
+                    const data = await searchCombinedPatients('');
+                    setResults(data);
+                } catch(e) {
+                    console.error(e);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchInitialData();
+        }
+    }, [isPopoverOpen, results.length, query]);
 
     const handleSelect = (result: SearchResult | null) => {
         onPatientSelect(result);
