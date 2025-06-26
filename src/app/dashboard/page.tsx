@@ -51,7 +51,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="font-headline text-3xl font-bold tracking-tight">Dashboard Principal</h2>
       </div>
-      <div className={`grid gap-6 md:grid-cols-2 ${state === 'expanded' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+      <div className={`grid gap-6 transition-all duration-300 ease-in-out md:grid-cols-2 ${state === 'expanded' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
         {menuOptions.map((option) => (
           <Link href={option.href} key={option.href} className="flex">
             <Card className="flex flex-col w-full transition-colors hover:bg-muted/50">
