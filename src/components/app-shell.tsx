@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -72,6 +72,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link href="/dashboard/consulta">
                   <ClipboardPlus />
                   <span>Consulta</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/dashboard/hce')}
+                tooltip="HCE"
+              >
+                <Link href="/dashboard/hce">
+                  <FileHeart />
+                  <span>HCE</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

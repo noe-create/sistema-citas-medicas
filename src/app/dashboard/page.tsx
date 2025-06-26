@@ -8,6 +8,7 @@ import {
   Users,
   User,
   Building,
+  FileHeart,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -23,6 +24,12 @@ const menuOptions = [
     icon: <ClipboardPlus className="h-8 w-8 text-primary" />,
     title: 'Consulta',
     description: 'Acceda al módulo de atención médica.',
+  },
+   {
+    href: '/dashboard/hce',
+    icon: <FileHeart className="h-8 w-8 text-primary" />,
+    title: 'Historia Clínica (HCE)',
+    description: 'Busque y consulte el historial de los pacientes.',
   },
   {
     href: '/dashboard/pacientes',
