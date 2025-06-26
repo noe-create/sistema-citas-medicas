@@ -113,3 +113,7 @@ export interface CreateConsultationInput {
     treatmentPlan: string;
     diagnoses: Diagnosis[];
 }
+
+export interface PacienteConInfo extends Persona {
+    roles: string[];
+}

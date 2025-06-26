@@ -13,7 +13,8 @@ import type {
     CreateConsultationInput, 
     SearchResult,
     TitularType,
-    BeneficiarioConTitular
+    BeneficiarioConTitular,
+    PacienteConInfo
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -45,6 +46,32 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
     await getOrCreatePaciente(db, personaId);
     return personaId;
 }
+
+
+export async function getPersonas(query?: string): Promise<Persona[]> {
+    const db = await getDb();
+    let selectQuery = `
+        SELECT id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email 
+        FROM personas
+    `;
+    const params: any[] = [];
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += `
+            WHERE nombreCompleto LIKE ? 
+            OR cedula LIKE ? 
+            OR email LIKE ?
+        `;
+        params.push(searchQuery, searchQuery, searchQuery);
+    }
+    selectQuery += ' ORDER BY nombreCompleto';
+    const rows = await db.all(selectQuery, ...params);
+    return rows.map((row: any) => ({
+        ...row,
+        fechaNacimiento: new Date(row.fechaNacimiento),
+    }));
+}
+
 
 // --- Titular Actions ---
 
@@ -650,4 +677,56 @@ export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
         searchQuery,
         searchQuery
     );
+}
+
+export async function getListaPacientes(query?: string): Promise<PacienteConInfo[]> {
+    const db = await getDb();
+    let selectQuery = `
+        SELECT DISTINCT
+            p.id,
+            p.nombreCompleto,
+            p.cedula,
+            p.fechaNacimiento,
+            p.genero,
+            p.telefono,
+            p.telefonoCelular,
+            p.email
+        FROM pacientes pac
+        JOIN personas p ON pac.personaId = p.id
+    `;
+    const params: any[] = [];
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += `
+            WHERE p.nombreCompleto LIKE ? 
+            OR p.cedula LIKE ? 
+            OR p.email LIKE ?
+        `;
+        params.push(searchQuery, searchQuery, searchQuery);
+    }
+    selectQuery += ' ORDER BY p.nombreCompleto';
+
+    const rows = await db.all(selectQuery, ...params);
+    
+    if (rows.length === 0) return [];
+    
+    const personaIds = rows.map(p => p.id);
+    const placeholders = personaIds.map(() => '?').join(',');
+
+    const titulares = await db.all(`SELECT personaId FROM titulares WHERE personaId IN (${placeholders})`, ...personaIds);
+    const beneficiarios = await db.all(`SELECT personaId FROM beneficiarios WHERE personaId IN (${placeholders})`, ...personaIds);
+
+    const titularSet = new Set(titulares.map(t => t.personaId));
+    const beneficiarioSet = new Set(beneficiarios.map(b => b.personaId));
+
+    return rows.map((row: any) => {
+        const roles = [];
+        if (titularSet.has(row.id)) roles.push('Titular');
+        if (beneficiarioSet.has(row.id)) roles.push('Beneficiario');
+        return {
+            ...row,
+            fechaNacimiento: new Date(row.fechaNacimiento),
+            roles: roles.length > 0 ? roles : ['Paciente'],
+        }
+    });
 }
