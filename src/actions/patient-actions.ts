@@ -528,7 +528,7 @@ export async function getWaitlist(): Promise<Patient[]> {
     const db = await getDb();
     const rows = await db.all(`
         SELECT * FROM waitlist 
-        WHERE status != 'Completado' 
+        WHERE status NOT IN ('Completado', 'Cancelado')
         ORDER BY checkInTime ASC
     `);
     return rows.map((row: any) => ({
@@ -574,6 +574,8 @@ export async function updatePatientStatus(id: string, status: PatientStatus): Pr
     );
     if (result.changes === 0) throw new Error('Paciente en lista de espera no encontrado');
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/sala-de-espera');
+    revalidatePath('/dashboard/consulta');
     return { success: true };
 }
 

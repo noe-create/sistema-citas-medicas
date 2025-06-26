@@ -8,8 +8,10 @@ import {
   FilePenLine,
   HeartPulse,
   Stethoscope,
-  Clock,
+  Clock as ClockIcon,
   PlayCircle,
+  MoreHorizontal,
+  XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus } from '@/lib/types';
@@ -18,6 +20,7 @@ import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
 import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
@@ -25,11 +28,18 @@ const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }>
   'servicio de enfermeria': { icon: <Stethoscope className="h-5 w-5 text-green-500" />, title: 'Servicio de Enfermería' },
 };
 
-const statusColors: Record<PatientStatus, string> = {
-    'Esperando': 'border-yellow-500/80',
-    'En Consulta': 'border-blue-500/80',
-    'Completado': 'border-green-500/80',
-}
+const statusInfo: Record<PatientStatus, { label: string; color: string; badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+    'Esperando': { label: 'Esperando', color: 'border-yellow-500/80', badgeVariant: 'secondary' },
+    'En Consulta': { label: 'En Consulta', color: 'border-blue-500/80', badgeVariant: 'default' },
+    'En Tratamiento': { label: 'En Tratamiento', color: 'border-purple-500/80', badgeVariant: 'secondary' },
+    'Ausente': { label: 'Ausente', color: 'border-gray-500/80', badgeVariant: 'secondary' },
+    'Pospuesto': { label: 'Pospuesto', color: 'border-orange-500/80', badgeVariant: 'secondary' },
+    'Reevaluacion': { label: 'Reevaluación', color: 'border-cyan-500/80', badgeVariant: 'secondary' },
+    'Cancelado': { label: 'Cancelado', color: 'border-red-500/80', badgeVariant: 'destructive' },
+    'Completado': { label: 'Completado', color: 'border-green-500/80', badgeVariant: 'secondary' },
+};
+
+const statusOptions: PatientStatus[] = ['Esperando', 'En Consulta', 'En Tratamiento', 'Ausente', 'Pospuesto', 'Reevaluacion'];
 
 interface PatientQueueProps {
     patients: Patient[];
@@ -52,6 +62,20 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
       setSelectedPatientId(null);
     }
   }
+
+  const handleChangeStatus = async (patientId: string, status: PatientStatus) => {
+    try {
+        await updatePatientStatus(patientId, status);
+        toast({
+            title: 'Estado actualizado',
+            description: `El estado del paciente ha sido actualizado a "${statusInfo[status].label}".`,
+        });
+        onListRefresh();
+    } catch (error) {
+        console.error("Error updating status:", error);
+        toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
+    }
+  };
 
   const handleStartOrContinueConsultation = async (patient: Patient) => {
     if (patient.status === 'Esperando') {
@@ -105,24 +129,47 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                         </div>
                     ) : (
                         groupedPatients[service].map((patient) => (
-                        <div key={patient.id} className={`flex flex-col gap-3 p-3 rounded-lg border-l-4 ${statusColors[patient.status]} bg-card shadow-sm`}>
+                        <div key={patient.id} className={`flex flex-col gap-3 p-3 rounded-lg border-l-4 ${statusInfo[patient.status].color} bg-card shadow-sm`}>
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-semibold">{patient.name}</p>
+                                <div className='flex-1 overflow-hidden'>
+                                    <p className="font-semibold truncate">{patient.name}</p>
                                     <p className="text-xs text-muted-foreground">
                                         {patient.accountType} &bull; {patient.kind === 'titular' ? 'Titular' : 'Beneficiario'}
                                     </p>
                                 </div>
-                                <Badge variant={patient.status === 'En Consulta' ? 'default' : 'secondary'} className="capitalize">{patient.status}</Badge>
+                                <div className="flex items-center gap-1">
+                                    <Badge variant={statusInfo[patient.status].badgeVariant} className="capitalize">{statusInfo[patient.status].label}</Badge>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {statusOptions.filter(s => s !== patient.status).map(status => (
+                                                <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status)}>
+                                                    {statusInfo[status].label}
+                                                </DropdownMenuItem>
+                                            ))}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}>
+                                                <XCircle className="mr-2 h-4 w-4" />
+                                                <span>Cancelar Cita</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                             <div className="flex justify-between items-center text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5" />
+                                    <ClockIcon className="h-3.5 w-3.5" />
                                     <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <WaitTimeStopwatch startTime={patient.checkInTime} />
                             </div>
-                            {patient.status !== 'Completado' && (
+                            {(patient.status === 'Esperando' || patient.status === 'En Consulta') && (
                                 <Button 
                                     onClick={() => handleStartOrContinueConsultation(patient)} 
                                     size="sm" 

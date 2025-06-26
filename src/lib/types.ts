@@ -69,7 +69,16 @@ export interface SearchResult {
 // For Patient Queue
 export type ServiceType = 'medicina general' | 'consulta pediatrica' | 'servicio de enfermeria';
 export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
-export type PatientStatus = 'Esperando' | 'En Consulta' | 'Completado';
+export type PatientStatus =
+  | 'Esperando'
+  | 'En Consulta'
+  | 'Completado'
+  | 'Ausente'
+  | 'En Tratamiento'
+  | 'Cancelado'
+  | 'Pospuesto'
+  | 'Reevaluacion';
+
 
 export interface Patient {
   id: string; // Unique ID for the queue entry
