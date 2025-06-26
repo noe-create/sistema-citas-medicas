@@ -23,11 +23,11 @@ import { Separator } from './ui/separator';
 const consultationSchema = z.object({
   anamnesis: z.string().min(1, 'La anamnesis es obligatoria.'),
   physicalExam: z.string().min(1, 'El examen físico es obligatorio.'),
-  treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
   diagnoses: z.array(z.object({
     cie10Code: z.string(),
     cie10Description: z.string(),
   })).min(1, 'Se requiere al menos un diagnóstico.'),
+  treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
 });
 
 interface ConsultationFormProps {
@@ -63,7 +63,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             await createConsultation({
                 ...values,
                 waitlistId: patient.id,
-                patientDbId: patient.patientDbId,
+                pacienteId: patient.pacienteId,
             });
             
             toast({

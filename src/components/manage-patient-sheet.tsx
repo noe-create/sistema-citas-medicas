@@ -42,7 +42,7 @@ export function ManagePatientDialog({ patient, isOpen, onOpenChange, onConsultat
               <ConsultationForm patient={patient} onConsultationComplete={onConsultationComplete}/>
             </TabsContent>
             <TabsContent value="history" className="mt-4">
-              <PatientHistory patientDbId={patient.patientDbId} />
+              <PatientHistory personaId={patient.personaId} />
             </TabsContent>
             <TabsContent value="consent" className="mt-4">
               <ConsentFormSuggester serviceType={patient.serviceType} />

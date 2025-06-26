@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -17,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import type { Beneficiario } from '@/lib/types';
+import type { Beneficiario, Persona } from '@/lib/types';
 
 const beneficiarySchema = z.object({
   nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -28,12 +27,15 @@ const beneficiarySchema = z.object({
   genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
     required_error: 'El género es requerido.',
   }),
+  email: z.string().email({ message: 'Email inválido.' }).optional(),
+  telefono: z.string().optional(),
+  telefonoCelular: z.string().optional(),
 });
 
 type BeneficiaryFormValues = z.infer<typeof beneficiarySchema>;
 
 interface BeneficiaryFormProps {
-  beneficiario: Omit<Beneficiario, 'titularId'> | null;
+  beneficiario: Beneficiario | null;
   onSubmitted: (values: BeneficiaryFormValues) => Promise<void>;
   onCancel: () => void;
 }
@@ -44,21 +46,27 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
   const form = useForm<BeneficiaryFormValues>({
     resolver: zodResolver(beneficiarySchema),
     defaultValues: {
-      nombreCompleto: beneficiario?.nombreCompleto || '',
-      cedula: beneficiario?.cedula || '',
-      fechaNacimiento: beneficiario?.fechaNacimiento ? new Date(beneficiario.fechaNacimiento) : undefined,
-      genero: beneficiario?.genero || undefined,
+      nombreCompleto: beneficiario?.persona.nombreCompleto || '',
+      cedula: beneficiario?.persona.cedula || '',
+      fechaNacimiento: beneficiario?.persona.fechaNacimiento ? new Date(beneficiario.persona.fechaNacimiento) : undefined,
+      genero: beneficiario?.persona.genero || undefined,
+      email: beneficiario?.persona.email || '',
+      telefono: beneficiario?.persona.telefono || '',
+      telefonoCelular: beneficiario?.persona.telefonoCelular || '',
     },
   });
 
   React.useEffect(() => {
     form.reset({
-      nombreCompleto: beneficiario?.nombreCompleto || '',
-      cedula: beneficiario?.cedula || '',
-      fechaNacimiento: beneficiario?.fechaNacimiento ? new Date(beneficiario.fechaNacimiento) : undefined,
-      genero: beneficiario?.genero || undefined,
+      nombreCompleto: beneficiario?.persona.nombreCompleto || '',
+      cedula: beneficiario?.persona.cedula || '',
+      fechaNacimiento: beneficiario?.persona.fechaNacimiento ? new Date(beneficiario.persona.fechaNacimiento) : undefined,
+      genero: beneficiario?.persona.genero || undefined,
+      email: beneficiario?.persona.email || '',
+      telefono: beneficiario?.persona.telefono || '',
+      telefonoCelular: beneficiario?.persona.telefonoCelular || '',
     });
-  }, [beneficiario, form.reset]);
+  }, [beneficiario, form]);
 
   async function onSubmit(values: BeneficiaryFormValues) {
     setIsSubmitting(true);
@@ -212,6 +220,19 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel }: Benefic
                     <FormMessage />
                     </FormItem>
                 )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="correo@ejemplo.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
         </div>
         <div className="flex justify-end gap-2 pt-4">

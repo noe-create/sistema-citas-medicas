@@ -24,9 +24,9 @@ export default async function BeneficiariosPage({ params }: { params: { titularI
                 </Link>
             </Button>
             <h2 className="font-headline text-3xl font-bold tracking-tight">
-                Beneficiarios de {titular.nombreCompleto}
+                Beneficiarios de {titular.persona.nombreCompleto}
             </h2>
-            <p className="text-muted-foreground">Cédula: {titular.cedula}</p>
+            <p className="text-muted-foreground">Cédula: {titular.persona.cedula}</p>
          </div>
       </div>
       <BeneficiaryManagement titular={titular} initialBeneficiarios={beneficiarios} />

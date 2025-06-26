@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { BeneficiaryForm } from './beneficiary-form';
-import { createBeneficiario, updateBeneficiario, deleteBeneficiario } from '@/actions/patient-actions';
+import { createBeneficiario, updateBeneficiario, deleteBeneficiario, getBeneficiarios } from '@/actions/patient-actions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -29,9 +29,16 @@ interface BeneficiaryManagementProps {
 
 export function BeneficiaryManagement({ titular, initialBeneficiarios }: BeneficiaryManagementProps) {
   const { toast } = useToast();
-  const [beneficiarios, setBeneficiarios] = React.useState<Beneficiario[]>(initialBeneficiarios);
+  const [beneficiarios, setBeneficiarios] = React.useState<Beneficiario[]>(
+    initialBeneficiarios.map(b => ({...b, persona: { ...b.persona, fechaNacimiento: new Date(b.persona.fechaNacimiento)}}))
+  );
   const [selectedBeneficiario, setSelectedBeneficiario] = React.useState<Beneficiario | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+
+  const refreshBeneficiarios = async () => {
+    const freshData = await getBeneficiarios(titular.id);
+    setBeneficiarios(freshData.map(b => ({...b, persona: { ...b.persona, fechaNacimiento: new Date(b.persona.fechaNacimiento)}})));
+  }
 
   const handleOpenForm = (beneficiario: Beneficiario | null) => {
     setSelectedBeneficiario(beneficiario);
@@ -46,15 +53,14 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const handleFormSubmitted = async (values: any) => {
     try {
       if (selectedBeneficiario) {
-        const updated = await updateBeneficiario({ ...values, id: selectedBeneficiario.id });
-        setBeneficiarios(beneficiarios.map((b) => (b.id === updated.id ? updated : b)));
-        toast({ title: '¡Beneficiario Actualizado!', description: `${updated.nombreCompleto} ha sido guardado.` });
+        const updated = await updateBeneficiario(selectedBeneficiario.id, selectedBeneficiario.personaId, values);
+        toast({ title: '¡Beneficiario Actualizado!', description: `${updated.persona.nombreCompleto} ha sido guardado.` });
       } else {
-        const created = await createBeneficiario(values, titular.id);
-        setBeneficiarios([...beneficiarios, created]);
-        toast({ title: '¡Beneficiario Creado!', description: `${created.nombreCompleto} ha sido añadido.` });
+        const created = await createBeneficiario(titular.id, values);
+        toast({ title: '¡Beneficiario Creado!', description: `${created.persona.nombreCompleto} ha sido añadido.` });
       }
       handleCloseDialog();
+      await refreshBeneficiarios();
     } catch (error) {
       console.error("Error al guardar beneficiario:", error);
       toast({ title: 'Error', description: 'No se pudo guardar el beneficiario.', variant: 'destructive' });
@@ -64,8 +70,8 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const handleDeleteBeneficiario = async (id: string) => {
     try {
       await deleteBeneficiario(id);
-      setBeneficiarios(beneficiarios.filter(b => b.id !== id));
       toast({ title: '¡Beneficiario Eliminado!', description: 'El beneficiario ha sido eliminado correctamente.' });
+      await refreshBeneficiarios();
     } catch (error) {
       console.error("Error al eliminar beneficiario:", error);
       toast({ title: 'Error', description: 'No se pudo eliminar el beneficiario.', variant: 'destructive' });
@@ -100,10 +106,10 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
               {beneficiarios.length > 0 ? (
                 beneficiarios.map((beneficiario) => (
                   <TableRow key={beneficiario.id}>
-                    <TableCell className="font-medium">{beneficiario.nombreCompleto}</TableCell>
-                    <TableCell>{beneficiario.cedula}</TableCell>
-                    <TableCell>{format(beneficiario.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
-                    <TableCell>{beneficiario.genero}</TableCell>
+                    <TableCell className="font-medium">{beneficiario.persona.nombreCompleto}</TableCell>
+                    <TableCell>{beneficiario.persona.cedula}</TableCell>
+                    <TableCell>{format(beneficiario.persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
+                    <TableCell>{beneficiario.persona.genero}</TableCell>
                     <TableCell className="text-right">
                       <AlertDialog>
                         <DropdownMenu>
@@ -132,7 +138,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                             <AlertDialogHeader>
                                 <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente al beneficiario.
+                                    Esta acción no se puede deshacer. Esto eliminará la relación de beneficiario, pero no eliminará a la persona del sistema.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

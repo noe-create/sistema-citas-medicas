@@ -11,11 +11,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { PatientQueue } from '@/components/patient-queue';
-import { PatientCheckinForm } from '@/components/patient-checkin-form';
+import { PatientCheckinForm, type CheckinData } from '@/components/patient-checkin-form';
 import { PlusCircle, RefreshCw } from 'lucide-react';
 import type { Patient, TitularType, AccountType, ServiceType, SearchResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getWaitlist, addPatientToWaitlist, getTitularTypeById } from '@/actions/patient-actions';
+import { getWaitlist, addPatientToWaitlist, getTitularTypeByTitularId } from '@/actions/patient-actions';
 
 const titularTypeToAccountType = (titularType: TitularType): AccountType => {
   switch (titularType) {
@@ -57,31 +57,34 @@ export default function SalaDeEsperaPage() {
   }, [fetchWaitlist]);
 
 
-  const handleCheckinSubmit = async (data: { serviceType: ServiceType, patient: SearchResult }) => {
-     // Check if patient is already in the queue
-    if (patientQueue.some(p => p.patientDbId === data.patient.id && p.status !== 'Completado')) {
+  const handleCheckinSubmit = async (data: CheckinData) => {
+    if (patientQueue.some(p => p.personaId === data.persona.id && p.status !== 'Completado')) {
       toast({
         title: 'Paciente ya en cola',
-        description: `${data.patient.nombreCompleto} ya se encuentra en la cola de espera.`,
+        description: `${data.persona.nombreCompleto} ya se encuentra en la cola de espera.`,
         variant: 'destructive',
       });
       return;
     }
 
     try {
-      const titularId = data.patient.kind === 'titular' ? data.patient.id : data.patient.titularInfo!.id;
-      const titularType = await getTitularTypeById(titularId);
+      let accountType: AccountType;
 
-      if (!titularType) {
-          throw new Error("No se pudo determinar el tipo de cuenta del titular.");
+      if (data.checkinAs === 'titular') {
+          const titularType = data.searchResult.titularInfo!.tipo;
+          accountType = titularTypeToAccountType(titularType);
+      } else { // beneficiary
+          const titularType = await getTitularTypeByTitularId(data.checkinAs.titularId);
+          if (!titularType) throw new Error("No se pudo determinar el tipo de cuenta del titular.");
+          accountType = titularTypeToAccountType(titularType);
       }
 
-      const newPatientData: Omit<Patient, 'id'> = {
-          patientDbId: data.patient.id,
-          name: data.patient.nombreCompleto,
-          kind: data.patient.kind,
+      const newPatientData: Omit<Patient, 'id' | 'pacienteId'> = {
+          personaId: data.persona.id,
+          name: data.persona.nombreCompleto,
+          kind: data.checkinAs === 'titular' ? 'titular' : 'beneficiario',
           serviceType: data.serviceType,
-          accountType: titularTypeToAccountType(titularType),
+          accountType: accountType,
           status: 'Esperando',
           checkInTime: new Date(),
       };
@@ -99,7 +102,7 @@ export default function SalaDeEsperaPage() {
       console.error("Error al registrar paciente:", error);
       toast({
         title: 'Error al registrar',
-        description: 'No se pudo añadir el paciente a la cola.',
+        description: (error as Error).message || 'No se pudo añadir el paciente a la cola.',
         variant: 'destructive',
       });
     }
@@ -124,7 +127,7 @@ export default function SalaDeEsperaPage() {
               <DialogHeader>
                 <DialogTitle>Check-in de Paciente</DialogTitle>
                 <DialogDescription>
-                  Busque un titular o beneficiario y seleccione el servicio para añadirlo a la cola.
+                  Busque una persona y seleccione el rol y servicio para añadirlo a la cola.
                 </DialogDescription>
               </DialogHeader>
               <PatientCheckinForm onSubmitted={handleCheckinSubmit} />

@@ -5,29 +5,28 @@ import { ChevronsUpDown, Loader2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { searchCombinedPatients } from '@/actions/patient-actions';
-import type { SearchResult } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { searchPeopleForCheckin } from '@/actions/patient-actions';
+import type { Persona, SearchResult } from '@/lib/types';
 
 interface HceSearchProps {
-  onPatientSelect: (patient: SearchResult | null) => void;
+  onPersonaSelect: (persona: Persona | null) => void;
 }
 
-export function HceSearch({ onPatientSelect }: HceSearchProps) {
+export function HceSearch({ onPersonaSelect }: HceSearchProps) {
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-  const [selectedPatient, setSelectedPatient] = React.useState<SearchResult | null>(null);
+  const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
 
   React.useEffect(() => {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const data = await searchCombinedPatients(query);
+        const data = await searchPeopleForCheckin(query);
         setResults(data);
       } catch (e) {
-        console.error("Error searching patients:", e);
+        console.error("Error searching people:", e);
         setResults([]);
       } finally {
         setIsLoading(false);
@@ -37,13 +36,13 @@ export function HceSearch({ onPatientSelect }: HceSearchProps) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Fetch all patients when the popover opens for the first time
+  // Fetch all people when the popover opens for the first time
   React.useEffect(() => {
     if (isPopoverOpen && results.length === 0 && query === '') {
       const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-          const data = await searchCombinedPatients('');
+          const data = await searchPeopleForCheckin('');
           setResults(data);
         } catch (e) {
           console.error(e);
@@ -56,11 +55,19 @@ export function HceSearch({ onPatientSelect }: HceSearchProps) {
   }, [isPopoverOpen, results.length, query]);
 
   const handleSelect = (result: SearchResult | null) => {
-    onPatientSelect(result);
-    setSelectedPatient(result);
+    const persona = result ? result.persona : null;
+    onPersonaSelect(persona);
+    setSelectedPersona(persona);
     setIsPopoverOpen(false);
     setQuery(''); // Reset search query on select
   };
+  
+  const getRoles = (result: SearchResult) => {
+    const roles = [];
+    if (result.titularInfo) roles.push('Titular');
+    if (result.beneficiarioDe && result.beneficiarioDe.length > 0) roles.push('Beneficiario');
+    return roles.join(', ');
+  }
 
   return (
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -71,11 +78,11 @@ export function HceSearch({ onPatientSelect }: HceSearchProps) {
           aria-expanded={isPopoverOpen}
           className="w-full justify-between font-normal text-left h-auto"
         >
-          {selectedPatient ? (
+          {selectedPersona ? (
             <div className="flex items-center gap-2">
               <div>
-                <p className="text-sm font-medium">{selectedPatient.nombreCompleto}</p>
-                <p className="text-xs text-muted-foreground">{selectedPatient.cedula}</p>
+                <p className="text-sm font-medium">{selectedPersona.nombreCompleto}</p>
+                <p className="text-xs text-muted-foreground">{selectedPersona.cedula}</p>
               </div>
             </div>
           ) : 'Buscar por nombre o cédula...'}
@@ -85,7 +92,7 @@ export function HceSearch({ onPatientSelect }: HceSearchProps) {
       <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Buscar paciente..."
+            placeholder="Buscar persona..."
             value={query}
             onValueChange={setQuery}
             className="h-9"
@@ -97,20 +104,17 @@ export function HceSearch({ onPatientSelect }: HceSearchProps) {
               <CommandGroup>
                 {results.map((result) => (
                   <CommandItem
-                    key={result.id}
-                    value={result.nombreCompleto}
+                    key={result.persona.id}
+                    value={result.persona.nombreCompleto}
                     onSelect={() => handleSelect(result)}
                     className="cursor-pointer"
                   >
                     <div className="flex items-center gap-2 w-full">
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm">{result.nombreCompleto}</p>
+                        <p className="text-sm">{result.persona.nombreCompleto}</p>
                         <p className="text-xs text-muted-foreground">
-                          {result.cedula} &bull; {result.kind === 'titular' 
-                            ? <span className="font-semibold">Titular</span> 
-                            : <span>Beneficiario de {result.titularInfo?.nombreCompleto}</span>
-                          }
+                          {result.persona.cedula} &bull; <span className="font-semibold">{getRoles(result)}</span> 
                         </p>
                       </div>
                     </div>

@@ -39,6 +39,19 @@ export function PatientManagement() {
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
+  const refreshTitulares = React.useCallback(async (currentSearch: string) => {
+    setIsLoading(true);
+    try {
+        const titularesData = await getTitulares(currentSearch);
+        setTitulares(titularesData.map(t => ({...t, persona: { ...t.persona, fechaNacimiento: new Date(t.persona.fechaNacimiento) }})));
+    } catch (error) {
+        console.error("Error al buscar titulares:", error);
+        toast({ title: 'Error de Búsqueda', description: 'No se pudieron buscar los titulares.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
   // Fetch empresas once for the form dropdown
   React.useEffect(() => {
     async function fetchEmpresasData() {
@@ -47,11 +60,7 @@ export function PatientManagement() {
             setEmpresas(empresasData);
         } catch (error) {
             console.error("Error al cargar las empresas:", error);
-            toast({
-                title: 'Error',
-                description: 'No se pudieron cargar las empresas para el formulario.',
-                variant: 'destructive'
-            })
+            toast({ title: 'Error', description: 'No se pudieron cargar las empresas para el formulario.', variant: 'destructive' });
         }
     }
     fetchEmpresasData();
@@ -59,61 +68,42 @@ export function PatientManagement() {
   
   // Fetch titulares based on search query
   React.useEffect(() => {
-    const timer = setTimeout(async () => {
-        setIsLoading(true);
-        try {
-            const titularesData = await getTitulares(search);
-            setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
-        } catch (error) {
-            console.error("Error al buscar titulares:", error);
-            toast({
-                title: 'Error de Búsqueda',
-                description: 'No se pudieron buscar los titulares.',
-                variant: 'destructive'
-            })
-        } finally {
-            setIsLoading(false);
-        }
+    const timer = setTimeout(() => {
+        refreshTitulares(search);
     }, 300); // Debounce search
-
     return () => clearTimeout(timer);
-  }, [search, toast]);
-
+  }, [search, refreshTitulares]);
 
   const handleOpenForm = (titular: Titular | null) => {
     setSelectedTitular(titular);
     setIsFormOpen(true);
   };
 
-  const handleFormSubmitted = async (values: any) => {
+  const handleFormSubmitted = async (titularIdOrData: any, personaId?: string, data?: any) => {
     try {
-      if (selectedTitular) {
-        const updated = await updateTitular({ ...values, id: selectedTitular.id });
-        toast({ title: '¡Titular Actualizado!', description: `${updated.nombreCompleto} ha sido guardado.` });
-      } else {
-        const created = await createTitular(values);
-        toast({ title: '¡Titular Creado!', description: `${created.nombreCompleto} ha sido añadido.` });
+      if (selectedTitular) { // Editing
+        await updateTitular(titularIdOrData, personaId!, data);
+        toast({ title: '¡Titular Actualizado!', description: `${data.nombreCompleto} ha sido guardado.` });
+      } else { // Creating
+        await createTitular(titularIdOrData);
+        toast({ title: '¡Titular Creado!', description: `${titularIdOrData.nombreCompleto} ha sido añadido.` });
       }
       handleCloseDialog();
-      // Refetch data to get updated list
-      const titularesData = await getTitulares(search);
-      setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
+      await refreshTitulares(search);
     } catch (error) {
       console.error("Error al guardar titular:", error);
-      toast({ title: 'Error', description: 'No se pudo guardar el titular.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'No se pudo guardar el titular. Verifique que la cédula o email no estén duplicados.', variant: 'destructive' });
     }
   };
   
   const handleDeleteTitular = async (id: string) => {
     try {
         await deleteTitular(id);
-        toast({ title: '¡Titular Eliminado!', description: 'El titular ha sido eliminado correctamente.' });
-        // Refetch data after deletion
-        const titularesData = await getTitulares(search);
-        setTitulares(titularesData.map(t => ({...t, fechaNacimiento: new Date(t.fechaNacimiento)})));
+        toast({ title: '¡Rol de Titular Eliminado!', description: 'El rol de titular ha sido eliminado.' });
+        await refreshTitulares(search);
     } catch (error) {
         console.error("Error al eliminar titular:", error);
-        toast({ title: 'Error', description: 'No se pudo eliminar el titular.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'No se pudo eliminar el rol de titular.', variant: 'destructive' });
     }
   }
 
@@ -164,16 +154,16 @@ export function PatientManagement() {
                 {titulares.length > 0 ? (
                     titulares.map((titular) => (
                         <TableRow key={titular.id}>
-                        <TableCell className="font-medium">{titular.nombreCompleto}</TableCell>
-                        <TableCell>{titular.cedula}</TableCell>
-                        <TableCell>{titular.email}</TableCell>
+                        <TableCell className="font-medium">{titular.persona.nombreCompleto}</TableCell>
+                        <TableCell>{titular.persona.cedula}</TableCell>
+                        <TableCell>{titular.persona.email}</TableCell>
                         <TableCell>
                             <Badge variant="secondary">{titularTypeMap[titular.tipo]}</Badge>
                             {titular.tipo === 'corporate_affiliate' && titular.empresaName && (
                                 <div className="text-xs text-muted-foreground">{titular.empresaName}</div>
                             )}
                         </TableCell>
-                        <TableCell className="text-center">{(titular.beneficiarios as any).length}</TableCell>
+                        <TableCell className="text-center">{titular.beneficiariosCount}</TableCell>
                         <TableCell className="text-right">
                             <AlertDialog>
                                 <DropdownMenu>
@@ -204,10 +194,9 @@ export function PatientManagement() {
                                 </DropdownMenu>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Está absolutely seguro?</AlertDialogTitle>
+                                        <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Esta acción no se puede deshacer. Esto eliminará permanentemente al titular
-                                            y todos sus datos asociados (incluyendo beneficiarios).
+                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el rol de titular para esta persona y todos sus beneficiarios asociados. La persona no será eliminada del sistema.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

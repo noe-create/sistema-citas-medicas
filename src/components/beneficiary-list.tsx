@@ -23,7 +23,6 @@ export function BeneficiaryList() {
       setIsLoading(true);
       try {
         const data = await getAllBeneficiarios(search);
-        // Date objects need to be reconstructed on the client
         setBeneficiarios(data.map(b => ({...b, fechaNacimiento: new Date(b.fechaNacimiento)})));
       } catch (error) {
         console.error("Error al buscar beneficiarios:", error);

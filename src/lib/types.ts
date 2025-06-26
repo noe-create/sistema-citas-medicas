@@ -1,36 +1,22 @@
-// For Patient Queue
-export type ServiceType = 'medicina general' | 'consulta pediatrica' | 'servicio de enfermeria';
-export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
-export type PatientStatus = 'Esperando' | 'En Consulta' | 'Completado';
+export type Genero = 'Masculino' | 'Femenino' | 'Otro';
+export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
 
-export interface Patient {
-  id: string; // Unique ID for the queue entry
-  patientDbId: string; // ID from the titulares or beneficiarios table
-  name: string;
-  kind: PatientKind;
-  serviceType: ServiceType;
-  accountType: AccountType;
-  status: PatientStatus;
-  checkInTime: Date;
-}
-
-export interface SearchResult {
-  id: string; // The ID from titulares or beneficiarios table
+export interface Persona {
+  id: string;
   nombreCompleto: string;
   cedula: string;
-  kind: PatientKind;
-  // For beneficiaries, include titular info for context
-  titularInfo?: {
-    id: string;
-    nombreCompleto: string;
-  };
+  fechaNacimiento: Date;
+  genero: Genero;
+  telefono?: string;
+  telefonoCelular?: string;
+  email?: string;
 }
 
-
-// For Patient Management (CRUD)
-export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
-export type Genero = 'Masculino' | 'Femenino' | 'Otro';
+export interface Paciente {
+  id: string; // The specific ID for the patient record in the 'pacientes' table
+  personaId: string;
+}
 
 export interface Empresa {
   id: string;
@@ -40,33 +26,63 @@ export interface Empresa {
   direccion: string;
 }
 
+export interface Titular {
+  id: string; 
+  personaId: string;
+  tipo: TitularType;
+  empresaId?: string;
+  // Denormalized fields for convenience
+  persona: Persona;
+  empresaName?: string;
+  beneficiariosCount?: number;
+}
+
 export interface Beneficiario {
-  id: string;
+  id: string; // The ID of the 'beneficiario' relationship record
+  personaId: string;
   titularId: string;
-  nombreCompleto: string;
-  cedula: string;
-  fechaNacimiento: Date;
-  genero: Genero;
+  persona: Persona;
+  titular?: {
+    id: string,
+    persona: Persona,
+  }
 }
 
 export interface BeneficiarioConTitular extends Beneficiario {
   titularNombre: string;
 }
 
-export interface Titular {
-  id: string;
-  nombreCompleto: string;
-  cedula: string;
-  fechaNacimiento: Date;
-  genero: Genero;
-  telefono: string;
-  telefonoCelular?: string;
-  email: string;
-  tipo: TitularType;
-  empresaId?: string; // Optional, only if tipo is 'corporate_affiliate'
-  empresaName?: string;
-  beneficiarios: Beneficiario[];
+// For Check-in Search
+export interface SearchResult {
+  persona: Persona;
+  // A person can be a titular, a beneficiary of one or more titulares, or both.
+  titularInfo?: {
+    id: string; // titular record id
+    tipo: TitularType;
+  };
+  beneficiarioDe?: {
+    titularId: string;
+    titularNombre: string;
+  }[];
 }
+
+// For Patient Queue
+export type ServiceType = 'medicina general' | 'consulta pediatrica' | 'servicio de enfermeria';
+export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
+export type PatientStatus = 'Esperando' | 'En Consulta' | 'Completado';
+
+export interface Patient {
+  id: string; // Unique ID for the queue entry
+  personaId: string;
+  pacienteId: string;
+  name: string;
+  kind: PatientKind;
+  serviceType: ServiceType;
+  accountType: AccountType;
+  status: PatientStatus;
+  checkInTime: Date;
+}
+
 
 // For EHR / Consultation
 export interface Cie10Code {
@@ -81,7 +97,7 @@ export interface Diagnosis {
 
 export interface Consultation {
   id: string;
-  patientDbId: string;
+  pacienteId: string;
   consultationDate: Date;
   anamnesis: string;
   physicalExam: string;
@@ -91,7 +107,7 @@ export interface Consultation {
 
 export interface CreateConsultationInput {
     waitlistId: string;
-    patientDbId: string;
+    pacienteId: string;
     anamnesis: string;
     physicalExam: string;
     treatmentPlan: string;

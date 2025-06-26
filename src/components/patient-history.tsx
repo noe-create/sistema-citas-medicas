@@ -11,19 +11,20 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface PatientHistoryProps {
-  patientDbId: string;
+  personaId: string;
 }
 
-export function PatientHistory({ patientDbId }: PatientHistoryProps) {
+export function PatientHistory({ personaId }: PatientHistoryProps) {
   const [history, setHistory] = React.useState<Consultation[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
 
   React.useEffect(() => {
     async function fetchHistory() {
+      if (!personaId) return;
       setIsLoading(true);
       try {
-        const data = await getPatientHistory(patientDbId);
+        const data = await getPatientHistory(personaId);
         setHistory(data.map(c => ({...c, consultationDate: new Date(c.consultationDate)})));
       } catch (error) {
         console.error('Error fetching patient history:', error);
@@ -37,7 +38,7 @@ export function PatientHistory({ patientDbId }: PatientHistoryProps) {
       }
     }
     fetchHistory();
-  }, [patientDbId, toast]);
+  }, [personaId, toast]);
 
   if (isLoading) {
     return (
