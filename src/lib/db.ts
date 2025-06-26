@@ -80,6 +80,25 @@ async function createTables(dbInstance: Database): Promise<void> {
             status TEXT NOT NULL,
             checkInTime TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS consultations (
+            id TEXT PRIMARY KEY,
+            patientDbId TEXT NOT NULL,
+            consultationDate TEXT NOT NULL,
+            anamnesis TEXT,
+            physicalExam TEXT,
+            treatmentPlan TEXT
+        );
+        CREATE TABLE IF NOT EXISTS consultation_diagnoses (
+            id TEXT PRIMARY KEY,
+            consultationId TEXT NOT NULL,
+            cie10Code TEXT NOT NULL,
+            cie10Description TEXT NOT NULL,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS cie10_codes (
+            code TEXT PRIMARY KEY,
+            description TEXT NOT NULL
+        );
     `);
 }
 
@@ -126,6 +145,27 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const stmt = await dbInstance.prepare('INSERT INTO beneficiarios (id, titularId, nombreCompleto, cedula, fechaNacimiento, genero) VALUES (?, ?, ?, ?, ?, ?)');
         for (const b of beneficiarios) {
             await stmt.run(b.id, b.titularId, b.nombreCompleto, b.cedula, b.fechaNacimiento, b.genero);
+        }
+        await stmt.finalize();
+    }
+
+    const cie10Count = await dbInstance.get('SELECT COUNT(*) as count FROM cie10_codes');
+    if (cie10Count.count === 0) {
+        const codes = [
+            { code: 'J00', description: 'Nasofaringitis aguda (resfriado común)' },
+            { code: 'J02.9', description: 'Faringitis aguda, no especificada' },
+            { code: 'J03.9', description: 'Amigdalitis aguda, no especificada' },
+            { code: 'A09X', description: 'Enfermedad diarreica y gastroenteritis de presunto origen infeccioso' },
+            { code: 'R51', description: 'Cefalea' },
+            { code: 'M54.5', description: 'Lumbago no especificado' },
+            { code: 'L23.9', description: 'Dermatitis alérgica de contacto, de causa no especificada' },
+            { code: 'H10.9', description: 'Conjuntivitis, no especificada' },
+            { code: 'I10', description: 'Hipertensión esencial (primaria)' },
+            { code: 'E11.9', description: 'Diabetes mellitus tipo 2, sin complicaciones' },
+        ];
+        const stmt = await dbInstance.prepare('INSERT INTO cie10_codes (code, description) VALUES (?, ?)');
+        for (const c of codes) {
+            await stmt.run(c.code, c.description);
         }
         await stmt.finalize();
     }

@@ -10,7 +10,6 @@ import {
   MoreHorizontal,
   Stethoscope,
   Clock,
-  CheckCircle,
   PlayCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,11 +21,9 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
 import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -84,9 +81,7 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   };
   
   const handleConsultationComplete = () => {
-    if (selectedPatient) {
-      handleStatusChange(selectedPatient.id, 'Completado');
-    }
+    onListRefresh();
     setIsSheetOpen(false);
     setSelectedPatientId(null);
   };
@@ -139,24 +134,16 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                             <FilePenLine className="mr-2 h-4 w-4" />
                                             <span>Gestionar Paciente</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
                                         {patient.status === 'Esperando' && (
                                             <DropdownMenuItem onClick={() => handleStatusChange(patient.id, 'En Consulta')}>
                                                 <PlayCircle className="mr-2 h-4 w-4" />
                                                 <span>Llamar a Consulta</span>
                                             </DropdownMenuItem>
                                         )}
-                                        {patient.status === 'En Consulta' && (
-                                            <DropdownMenuItem onClick={() => handleStatusChange(patient.id, 'Completado')}>
-                                                <CheckCircle className="mr-2 h-4 w-4" />
-                                                <span>Finalizar Consulta</span>
-                                            </DropdownMenuItem>
-                                        )}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center text-sm text-muted-foreground">
+                            <div className="flex justify-between items-center text-sm text-muted-foreground mt-2">
                                 <div className="flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5" />
                                     <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>

@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from '@/lib/db';
-import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular, Empresa, Patient, PatientStatus } from '@/lib/types';
+import type { Titular, Beneficiario, SearchResult, TitularType, BeneficiarioConTitular, Empresa, Patient, PatientStatus, Cie10Code, Consultation, Diagnosis, CreateConsultationInput } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 const generateId = () => `t${Date.now()}`;
@@ -459,4 +459,102 @@ export async function updatePatientStatus(id: string, status: PatientStatus): Pr
 
     revalidatePath('/dashboard');
     return { success: true };
+}
+
+// --- EHR Actions ---
+
+export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
+    const db = await getDb();
+    if (!query || query.trim().length < 2) {
+        return [];
+    }
+    const searchQuery = `%${query.trim()}%`;
+    return db.all(
+        'SELECT * FROM cie10_codes WHERE code LIKE ? OR description LIKE ? LIMIT 10',
+        searchQuery,
+        searchQuery
+    );
+}
+
+export async function getPatientHistory(patientDbId: string): Promise<Consultation[]> {
+    const db = await getDb();
+    const consultationsRows = await db.all(
+        'SELECT * FROM consultations WHERE patientDbId = ? ORDER BY consultationDate DESC',
+        patientDbId
+    );
+
+    const consultations: Consultation[] = await Promise.all(
+        consultationsRows.map(async (row) => {
+            const diagnoses = await db.all(
+                'SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?',
+                row.id
+            );
+            return {
+                ...row,
+                consultationDate: new Date(row.consultationDate),
+                diagnoses: diagnoses,
+            };
+        })
+    );
+
+    return consultations;
+}
+
+const generateConsultationId = () => `c${Date.now()}`;
+const generateDiagnosisId = () => `d${Date.now()}`;
+
+
+export async function createConsultation(data: CreateConsultationInput): Promise<Consultation> {
+    const db = await getDb();
+    const consultationId = generateConsultationId();
+    const consultationDate = new Date();
+
+    try {
+        await db.exec('BEGIN TRANSACTION');
+        
+        await db.run(
+            'INSERT INTO consultations (id, patientDbId, consultationDate, anamnesis, physicalExam, treatmentPlan) VALUES (?, ?, ?, ?, ?, ?)',
+            consultationId,
+            data.patientDbId,
+            consultationDate.toISOString(),
+            data.anamnesis,
+            data.physicalExam,
+            data.treatmentPlan
+        );
+        
+        const diagnosisStmt = await db.prepare('INSERT INTO consultation_diagnoses (id, consultationId, cie10Code, cie10Description) VALUES (?, ?, ?, ?)');
+        for (const diagnosis of data.diagnoses) {
+            await diagnosisStmt.run(
+                generateDiagnosisId(),
+                consultationId,
+                diagnosis.cie10Code,
+                diagnosis.cie10Description
+            );
+        }
+        await diagnosisStmt.finalize();
+
+        // Update waitlist status
+        await db.run('UPDATE waitlist SET status = ? WHERE id = ?', 'Completado', data.waitlistId);
+
+        await db.exec('COMMIT');
+
+    } catch (error) {
+        await db.exec('ROLLBACK');
+        console.error("Error creating consultation:", error);
+        throw new Error('No se pudo guardar la consulta.');
+    }
+
+    revalidatePath('/dashboard');
+    
+    const newConsultation: Consultation = {
+        id: consultationId,
+        patientDbId: data.patientDbId,
+        consultationDate,
+        anamnesis: data.anamnesis,
+        physicalExam: data.physicalExam,
+        treatmentPlan: data.treatmentPlan,
+        diagnoses: data.diagnoses,
+    };
+    
+    return newConsultation;
 }

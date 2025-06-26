@@ -1,0 +1,242 @@
+'use client';
+
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, X, PlusCircle } from 'lucide-react';
+import type { Patient, Cie10Code, Diagnosis } from '@/lib/types';
+import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { Badge } from './ui/badge';
+
+const consultationSchema = z.object({
+  anamnesis: z.string().min(1, 'La anamnesis es obligatoria.'),
+  physicalExam: z.string().min(1, 'El examen físico es obligatorio.'),
+  treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
+  diagnoses: z.array(z.object({
+    cie10Code: z.string(),
+    cie10Description: z.string(),
+  })).min(1, 'Se requiere al menos un diagnóstico.'),
+});
+
+interface ConsultationFormProps {
+    patient: Patient;
+    onConsultationComplete: () => void;
+}
+
+export function ConsultationForm({ patient, onConsultationComplete }: ConsultationFormProps) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    
+    const form = useForm<z.infer<typeof consultationSchema>>({
+        resolver: zodResolver(consultationSchema),
+        defaultValues: {
+            anamnesis: '',
+            physicalExam: '',
+            treatmentPlan: '',
+            diagnoses: [],
+        }
+    });
+
+    async function onSubmit(values: z.infer<typeof consultationSchema>) {
+        setIsSubmitting(true);
+        try {
+            await createConsultation({
+                ...values,
+                waitlistId: patient.id,
+                patientDbId: patient.patientDbId,
+            });
+            
+            toast({
+                title: 'Consulta Guardada y Completada',
+                description: `La historia clínica de ${patient.name} ha sido actualizada.`,
+            });
+            
+            form.reset();
+            onConsultationComplete();
+
+        } catch (error) {
+            console.error("Error saving consultation:", error);
+            toast({
+                title: 'Error al guardar la consulta',
+                description: 'No se pudo registrar la consulta. Intente de nuevo.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nueva Consulta</CardTitle>
+        <CardDescription>
+          Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
+        </CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="anamnesis"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Anamnesis</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Motivo de consulta, historia de la enfermedad actual..." {...field} rows={4} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="physicalExam"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Examen Físico</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Signos vitales, hallazgos por sistema..." {...field} rows={4} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                
+                <FormField
+                    control={form.control}
+                    name="diagnoses"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Diagnóstico(s) CIE-10</FormLabel>
+                             <Cie10Autocomplete 
+                                selected={field.value}
+                                onChange={field.onChange}
+                             />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+
+                 <FormField
+                    control={form.control}
+                    name="treatmentPlan"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Plan de Tratamiento</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={4} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </CardContent>
+            <CardFooter>
+                 <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Guardar y Completar Consulta
+                 </Button>
+            </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
+
+// Sub-component for CIE-10 Autocomplete
+interface Cie10AutocompleteProps {
+    selected: Diagnosis[];
+    onChange: (diagnoses: Diagnosis[]) => void;
+}
+function Cie10Autocomplete({ selected, onChange }: Cie10AutocompleteProps) {
+    const [query, setQuery] = React.useState('');
+    const [results, setResults] = React.useState<Cie10Code[]>([]);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        if (query.length < 2) {
+            setResults([]);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            setIsLoading(true);
+            const data = await searchCie10Codes(query);
+            setResults(data);
+            setIsLoading(false);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    const handleSelect = (code: Cie10Code) => {
+        if (!selected.some(s => s.cie10Code === code.code)) {
+            onChange([...selected, { cie10Code: code.code, cie10Description: code.description }]);
+        }
+        setQuery('');
+        setIsPopoverOpen(false);
+    };
+    
+    const handleRemove = (codeToRemove: string) => {
+        onChange(selected.filter(s => s.cie10Code !== codeToRemove));
+    };
+
+    return (
+        <div>
+            <div className="flex flex-wrap gap-2 mb-2 min-h-[2.5rem] p-2 border rounded-md bg-background">
+                {selected.length === 0 && <span className="text-sm text-muted-foreground">Ningún diagnóstico seleccionado</span>}
+                {selected.map(diagnosis => (
+                    <Badge key={diagnosis.cie10Code} variant="secondary">
+                        {diagnosis.cie10Code}: {diagnosis.cie10Description}
+                        <button type="button" onClick={() => handleRemove(diagnosis.cie10Code)} className="ml-2 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                        </button>
+                    </Badge>
+                ))}
+            </div>
+            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start font-normal">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Añadir diagnóstico
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command shouldFilter={false}>
+                        <CommandInput 
+                            placeholder="Buscar código o descripción CIE-10..."
+                            value={query}
+                            onValueChange={setQuery}
+                        />
+                        <CommandList>
+                            {isLoading && <CommandItem disabled>Buscando...</CommandItem>}
+                            {!isLoading && results.length === 0 && query.length > 1 && <CommandEmpty>No se encontraron resultados.</CommandEmpty>}
+                             {results.map((result) => (
+                                <CommandItem
+                                    key={result.code}
+                                    value={result.description}
+                                    onSelect={() => handleSelect(result)}
+                                    className="cursor-pointer"
+                                >
+                                    <div className="flex flex-col w-full">
+                                        <span className="font-semibold">{result.code}</span>
+                                        <span className="text-muted-foreground text-wrap">{result.description}</span>
+                                    </div>
+                                </CommandItem>
+                            ))}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}

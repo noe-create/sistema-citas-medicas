@@ -67,3 +67,33 @@ export interface Titular {
   empresaName?: string;
   beneficiarios: Beneficiario[];
 }
+
+// For EHR / Consultation
+export interface Cie10Code {
+  code: string;
+  description: string;
+}
+
+export interface Diagnosis {
+  cie10Code: string;
+  cie10Description: string;
+}
+
+export interface Consultation {
+  id: string;
+  patientDbId: string;
+  consultationDate: Date;
+  anamnesis: string;
+  physicalExam: string;
+  treatmentPlan: string;
+  diagnoses: Diagnosis[];
+}
+
+export interface CreateConsultationInput {
+    waitlistId: string;
+    patientDbId: string;
+    anamnesis: string;
+    physicalExam: string;
+    treatmentPlan: string;
+    diagnoses: Diagnosis[];
+}
