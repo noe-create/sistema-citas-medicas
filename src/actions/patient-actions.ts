@@ -682,7 +682,7 @@ export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
 export async function getListaPacientes(query?: string): Promise<PacienteConInfo[]> {
     const db = await getDb();
     let selectQuery = `
-        SELECT DISTINCT
+        SELECT
             p.id,
             p.nombreCompleto,
             p.cedula,
@@ -690,9 +690,13 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
             p.genero,
             p.telefono,
             p.telefonoCelular,
-            p.email
+            p.email,
+            MAX(t.id IS NOT NULL) as isTitular,
+            MAX(b.id IS NOT NULL) as isBeneficiario
         FROM pacientes pac
         JOIN personas p ON pac.personaId = p.id
+        LEFT JOIN titulares t ON p.id = t.personaId
+        LEFT JOIN beneficiarios b ON p.id = b.personaId
     `;
     const params: any[] = [];
     if (query && query.trim().length > 1) {
@@ -704,29 +708,26 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
-    selectQuery += ' ORDER BY p.nombreCompleto';
+    
+    selectQuery += ' GROUP BY p.id ORDER BY p.nombreCompleto';
 
     const rows = await db.all(selectQuery, ...params);
     
-    if (rows.length === 0) return [];
-    
-    const personaIds = rows.map(p => p.id);
-    const placeholders = personaIds.map(() => '?').join(',');
-
-    const titulares = await db.all(`SELECT personaId FROM titulares WHERE personaId IN (${placeholders})`, ...personaIds);
-    const beneficiarios = await db.all(`SELECT personaId FROM beneficiarios WHERE personaId IN (${placeholders})`, ...personaIds);
-
-    const titularSet = new Set(titulares.map(t => t.personaId));
-    const beneficiarioSet = new Set(beneficiarios.map(b => b.personaId));
-
     return rows.map((row: any) => {
         const roles = [];
-        if (titularSet.has(row.id)) roles.push('Titular');
-        if (beneficiarioSet.has(row.id)) roles.push('Beneficiario');
+        if (row.isTitular) roles.push('Titular');
+        if (row.isBeneficiario) roles.push('Beneficiario');
+        
         return {
-            ...row,
+            id: row.id,
+            nombreCompleto: row.nombreCompleto,
+            cedula: row.cedula,
             fechaNacimiento: new Date(row.fechaNacimiento),
+            genero: row.genero,
+            telefono: row.telefono,
+            telefonoCelular: row.telefonoCelular,
+            email: row.email,
             roles: roles.length > 0 ? roles : ['Paciente'],
-        }
+        };
     });
 }
