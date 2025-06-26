@@ -16,14 +16,14 @@ const DiagnosisSchema = z.object({
     cie10Description: z.string(),
 });
 
-export const GeneratePrescriptionInputSchema = z.object({
+const GeneratePrescriptionInputSchema = z.object({
   patientName: z.string().describe('El nombre completo del paciente.'),
   diagnoses: z.array(DiagnosisSchema).describe('La lista de diagnósticos para el paciente.'),
   treatmentPlan: z.string().describe('El plan de tratamiento detallado, incluyendo indicaciones y medicamentos.'),
 });
 export type GeneratePrescriptionInput = z.infer<typeof GeneratePrescriptionInputSchema>;
 
-export const GeneratePrescriptionOutputSchema = z.object({
+const GeneratePrescriptionOutputSchema = z.object({
   doctorName: z.string().describe('El nombre del médico que emite la receta.'),
   doctorLicense: z.string().describe('El número de licencia o colegiado del médico.'),
   date: z.string().describe('La fecha de emisión de la receta en formato "dd de mmmm de yyyy".'),
