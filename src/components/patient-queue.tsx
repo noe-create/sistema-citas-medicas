@@ -40,8 +40,6 @@ const statusInfo: Record<PatientStatus, { label: string; color: string; badgeVar
     'Completado': { label: 'Completado', color: 'border-green-500/80', badgeVariant: 'secondary' },
 };
 
-const statusOptions: PatientStatus[] = ['Esperando', 'En Consulta', 'En Tratamiento', 'Ausente', 'Pospuesto', 'Reevaluacion'];
-
 interface PatientQueueProps {
     patients: Patient[];
     onListRefresh: () => void;
@@ -52,6 +50,13 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   const user = useUser();
   const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  const statusOptionsForRole = React.useMemo(() => {
+    if (user.role === 'asistencial') {
+      return ['Ausente', 'Pospuesto', 'Reevaluacion'];
+    }
+    return ['Esperando', 'En Consulta', 'En Tratamiento', 'Ausente', 'Pospuesto', 'Reevaluacion'];
+  }, [user.role]);
 
   const selectedPatient = React.useMemo(
     () => patients.find((p) => p.id === selectedPatientId) || null,
@@ -150,9 +155,9 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            {statusOptions.filter(s => s !== patient.status).map(status => (
-                                                <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status)}>
-                                                    {statusInfo[status].label}
+                                            {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
+                                                <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status as PatientStatus)}>
+                                                    {statusInfo[status as PatientStatus].label}
                                                 </DropdownMenuItem>
                                             ))}
                                             <DropdownMenuSeparator />
