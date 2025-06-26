@@ -850,7 +850,62 @@ export async function deletePersona(personaId: string): Promise<{ success: boole
 }
 
 
-// --- CIE-10 Actions (Unchanged) ---
+// --- CIE-10 Actions ---
+export async function getManagedCie10Codes(query?: string): Promise<Cie10Code[]> {
+    const db = await getDb();
+    let selectQuery = 'SELECT * FROM cie10_codes';
+    const params: any[] = [];
+    if (query && query.trim().length > 0) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += ' WHERE code LIKE ? OR description LIKE ?';
+        params.push(searchQuery, searchQuery);
+    }
+    selectQuery += ' ORDER BY code';
+    return db.all(selectQuery, ...params);
+}
+
+export async function createCie10Code(data: Cie10Code): Promise<Cie10Code> {
+    const db = await getDb();
+    try {
+        await db.run(
+            'INSERT INTO cie10_codes (code, description) VALUES (?, ?)',
+            data.code.toUpperCase(), data.description
+        );
+    } catch (error: any) {
+        if (error.code === 'SQLITE_CONSTRAINT') {
+            throw new Error('El código CIE-10 ya existe.');
+        }
+        throw error;
+    }
+    revalidatePath('/dashboard/cie10');
+    return data;
+}
+
+export async function updateCie10Code(code: string, data: { description: string }): Promise<Cie10Code> {
+    const db = await getDb();
+    const result = await db.run(
+        'UPDATE cie10_codes SET description = ? WHERE code = ?',
+        data.description, code
+    );
+    if (result.changes === 0) throw new Error('Código CIE-10 no encontrado');
+    revalidatePath('/dashboard/cie10');
+    return { code: code, description: data.description };
+}
+
+export async function deleteCie10Code(code: string): Promise<{ success: boolean }> {
+    const db = await getDb();
+    const usage = await db.get('SELECT COUNT(*) as count FROM consultation_diagnoses WHERE cie10Code = ?', code);
+    if (usage.count > 0) {
+        throw new Error('Este código CIE-10 está en uso y no puede ser eliminado.');
+    }
+    
+    const result = await db.run('DELETE FROM cie10_codes WHERE code = ?', code);
+    if (result.changes === 0) throw new Error('Código CIE-10 no encontrado para eliminar');
+    revalidatePath('/dashboard/cie10');
+    return { success: true };
+}
+
+
 export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
     const db = await getDb();
     if (!query || query.trim().length < 2) return [];

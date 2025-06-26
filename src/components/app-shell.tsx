@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -96,6 +96,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link href="/dashboard/bitacora">
                   <ClipboardCheck />
                   <span>Bitácora</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/dashboard/cie10')}
+                tooltip="Catálogo CIE-10"
+              >
+                <Link href="/dashboard/cie10">
+                  <Code2 />
+                  <span>CIE-10</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

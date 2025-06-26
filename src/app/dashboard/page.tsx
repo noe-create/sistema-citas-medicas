@@ -12,6 +12,7 @@ import {
   Contact,
   ClipboardList,
   ClipboardCheck,
+  Code2,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -39,6 +40,12 @@ const menuOptions = [
     icon: <ClipboardCheck className="h-8 w-8 text-primary" />,
     title: 'Bitácora de Tratamiento',
     description: 'Cree y siga las órdenes de tratamiento.',
+  },
+  {
+    href: '/dashboard/cie10',
+    icon: <Code2 className="h-8 w-8 text-primary" />,
+    title: 'Catálogo CIE-10',
+    description: 'Gestione el catálogo de códigos de diagnóstico.',
   },
   {
     href: '/dashboard/personas',
