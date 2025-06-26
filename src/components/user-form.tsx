@@ -24,6 +24,14 @@ const baseSchema = z.object({
   role: z.enum(roles, { required_error: 'El rol es requerido.' }),
   specialty: z.enum(['medico general', 'medico pediatra']).optional(),
   personaId: z.string().optional(),
+});
+
+const createUserSchema = baseSchema.extend({
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+    confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
 }).refine(data => {
     if (data.role === 'doctor') {
         return !!data.specialty;
@@ -34,20 +42,20 @@ const baseSchema = z.object({
     path: ["specialty"],
 });
 
-const createUserSchema = baseSchema.extend({
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
-    confirmPassword: z.string()
-}).refine(data => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden.",
-    path: ["confirmPassword"],
-});
-
 const updateUserSchema = baseSchema.extend({
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.').optional().or(z.literal('')),
     confirmPassword: z.string().optional().or(z.literal('')),
 }).refine(data => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
+}).refine(data => {
+    if (data.role === 'doctor') {
+        return !!data.specialty;
+    }
+    return true;
+}, {
+    message: "La especialidad es requerida para el rol de doctor.",
+    path: ["specialty"],
 });
 
 
