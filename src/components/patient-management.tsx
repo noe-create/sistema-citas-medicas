@@ -22,6 +22,7 @@ import { getTitulares, getEmpresas, createTitular, updateTitular, deleteTitular 
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useRouter } from 'next/navigation';
+import { useUser } from './app-shell';
 
 const titularTypeMap: Record<string, string> = {
   internal_employee: 'Empleado Interno',
@@ -32,6 +33,7 @@ const titularTypeMap: Record<string, string> = {
 export function PatientManagement() {
   const { toast } = useToast();
   const router = useRouter();
+  const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [titulares, setTitulares] = React.useState<Titular[]>([]);
@@ -132,10 +134,12 @@ export function PatientManagement() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-             <Button onClick={() => handleOpenForm(null)}>
+            {(user.role === 'superuser' || user.role === 'administrator') && (
+              <Button onClick={() => handleOpenForm(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Añadir Titular
               </Button>
+            )}
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -178,21 +182,27 @@ export function PatientManagement() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      <span>Editar</span>
-                                    </DropdownMenuItem>
+                                    {(user.role === 'superuser' || user.role === 'administrator') && (
+                                        <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        <span>Editar</span>
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
                                       <Users className="mr-2 h-4 w-4" />
                                       <span>Gestionar Beneficiarios</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            <span>Eliminar</span>
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
+                                    {(user.role === 'superuser' || user.role === 'administrator') && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>Eliminar</span>
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                        </>
+                                    )}
                                 </DropdownMenuContent>
                                 </DropdownMenu>
                                 <AlertDialogContent>

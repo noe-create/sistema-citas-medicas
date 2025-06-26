@@ -21,6 +21,7 @@ import { BeneficiaryForm } from './beneficiary-form';
 import { createBeneficiario, updateBeneficiario, deleteBeneficiario, getBeneficiarios } from '@/actions/patient-actions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useUser } from './app-shell';
 
 interface BeneficiaryManagementProps {
   titular: Titular;
@@ -29,6 +30,7 @@ interface BeneficiaryManagementProps {
 
 export function BeneficiaryManagement({ titular, initialBeneficiarios }: BeneficiaryManagementProps) {
   const { toast } = useToast();
+  const user = useUser();
   const [beneficiarios, setBeneficiarios] = React.useState<Beneficiario[]>(
     initialBeneficiarios.map(b => ({...b, persona: { ...b.persona, fechaNacimiento: new Date(b.persona.fechaNacimiento)}}))
   );
@@ -90,10 +92,12 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
         </CardHeader>
         <CardContent>
           <div className="flex justify-end items-center mb-4">
-            <Button onClick={() => handleOpenForm(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Beneficiario
-            </Button>
+            {(user.role === 'superuser' || user.role === 'administrator') && (
+              <Button onClick={() => handleOpenForm(null)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Añadir Beneficiario
+              </Button>
+            )}
           </div>
           <Table>
             <TableHeader>
@@ -114,44 +118,46 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                     <TableCell>{format(beneficiario.persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
                     <TableCell>{beneficiario.persona.genero}</TableCell>
                     <TableCell className="text-right">
-                      <AlertDialog>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Abrir menú</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleOpenForm(beneficiario)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              <span>Editar</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>Eliminar</span>
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará la relación de beneficiario, pero no eliminará a la persona del sistema.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteBeneficiario(beneficiario.id)} className="bg-destructive hover:bg-destructive/90">
-                                    Sí, eliminar
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {(user.role === 'superuser' || user.role === 'administrator') && (
+                        <AlertDialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menú</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpenForm(beneficiario)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                <span>Editar</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <span>Eliminar</span>
+                                  </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. Esto eliminará la relación de beneficiario, pero no eliminará a la persona del sistema.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteBeneficiario(beneficiario.id)} className="bg-destructive hover:bg-destructive/90">
+                                      Sí, eliminar
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
