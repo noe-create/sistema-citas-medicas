@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus } from '@/lib/types';
-import { ManagePatientSheet } from './manage-patient-sheet';
+import { ManagePatientDialog } from './manage-patient-sheet';
 import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
 import { updatePatientStatus } from '@/actions/patient-actions';
@@ -147,7 +147,7 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
       </div>
 
       {selectedPatient && (
-        <ManagePatientSheet
+        <ManagePatientDialog
           patient={selectedPatient}
           isOpen={isSheetOpen}
           onOpenChange={handleSheetOpenChange}

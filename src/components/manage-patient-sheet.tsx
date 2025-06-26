@@ -2,36 +2,36 @@
 
 import * as React from 'react';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Patient } from '@/lib/types';
 import { ConsentFormSuggester } from './consent-form-suggester';
 import { ConsultationForm } from './consultation-form';
 import { PatientHistory } from './patient-history';
 
-interface ManagePatientSheetProps {
+interface ManagePatientDialogProps {
   patient: Patient;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConsultationComplete: () => void;
 }
 
-export function ManagePatientSheet({ patient, isOpen, onOpenChange, onConsultationComplete }: ManagePatientSheetProps) {
+export function ManagePatientDialog({ patient, isOpen, onOpenChange, onConsultationComplete }: ManagePatientDialogProps) {
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Gestionar: {patient.name}</SheetTitle>
-          <SheetDescription>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Gestionar: {patient.name}</DialogTitle>
+          <DialogDescription>
             {patient.serviceType} &bull; Cuenta {patient.accountType} &bull; {patient.status}
-          </SheetDescription>
-        </SheetHeader>
-        <div className="py-4">
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 flex-1 overflow-y-auto">
           <Tabs defaultValue="consultation" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="consultation">Nueva Consulta</TabsTrigger>
@@ -49,7 +49,7 @@ export function ManagePatientSheet({ patient, isOpen, onOpenChange, onConsultati
             </TabsContent>
           </Tabs>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
