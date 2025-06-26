@@ -666,6 +666,87 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
     return { success: true };
 }
 
+// --- Central Person Management Actions ---
+
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
+    const db = await getDb();
+    
+    const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+    if (existingPersona) {
+        throw new Error('Ya existe una persona con esa cédula.');
+    }
+
+    const personaId = generateId('p');
+
+    await db.run(
+        'INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        personaId,
+        data.nombreCompleto,
+        data.cedula,
+        data.fechaNacimiento.toISOString(),
+        data.genero,
+        data.telefono,
+        data.telefonoCelular,
+        data.email
+    );
+
+    // Also create a patient record for them so they can have a clinical history
+    await getOrCreatePaciente(db, personaId);
+
+    revalidatePath('/dashboard/personas');
+    
+    const createdPersona = await db.get('SELECT * FROM personas WHERE id = ?', personaId);
+    return { ...createdPersona, fechaNacimiento: new Date(createdPersona.fechaNacimiento) };
+}
+
+export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
+    const db = await getDb();
+
+    const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
+    if (existingPersonaWithCedula) {
+        throw new Error('Ya existe otra persona con la misma cédula.');
+    }
+
+    await db.run(
+        'UPDATE personas SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ? WHERE id = ?',
+        data.nombreCompleto,
+        data.cedula,
+        data.fechaNacimiento.toISOString(),
+        data.genero,
+        data.telefono,
+        data.telefonoCelular,
+        data.email,
+        personaId
+    );
+
+    revalidatePath('/dashboard/personas');
+    revalidatePath('/dashboard/pacientes'); // Titulares
+    revalidatePath('/dashboard/beneficiarios');
+    revalidatePath('/dashboard/lista-pacientes');
+
+    const updatedPersona = await db.get('SELECT * FROM personas WHERE id = ?', personaId);
+    return { ...updatedPersona, fechaNacimiento: new Date(updatedPersona.fechaNacimiento) };
+}
+
+
+export async function deletePersona(personaId: string): Promise<{ success: boolean }> {
+    const db = await getDb();
+    
+    // ON DELETE CASCADE will handle relationships in titulares, beneficiarios, pacientes, waitlist.
+    const result = await db.run('DELETE FROM personas WHERE id = ?', personaId);
+
+    if (result.changes === 0) {
+        throw new Error('Persona no encontrada para eliminar.');
+    }
+
+    revalidatePath('/dashboard/personas');
+    revalidatePath('/dashboard/pacientes'); // Titulares
+    revalidatePath('/dashboard/beneficiarios');
+    revalidatePath('/dashboard/lista-pacientes');
+
+    return { success: true };
+}
+
 
 // --- CIE-10 Actions (Unchanged) ---
 export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
