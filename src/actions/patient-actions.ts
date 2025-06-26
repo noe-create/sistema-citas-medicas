@@ -219,8 +219,8 @@ export async function getBeneficiarios(titularId: string): Promise<Beneficiario[
     const db = await getDb();
     const rows = await db.all(`
         SELECT 
-            b.id, b.personaId, b.titularId,
-            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email
+            b.id, b.titularId,
+            p.id as personaId, p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email
         FROM beneficiarios b
         JOIN personas p ON b.personaId = p.id
         WHERE b.titularId = ? 
