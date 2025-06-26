@@ -1,4 +1,4 @@
-'use server';
+'server-only';
 
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';

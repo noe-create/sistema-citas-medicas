@@ -72,7 +72,7 @@ export async function logout() {
 
 async function ensureSuperuser() {
     const session = await getSession();
-    if (session.user?.role !== 'superuser') {
+    if (!session.isLoggedIn || !session.user || session.user.role !== 'superuser') {
         throw new Error('Acción no autorizada. Se requiere rol de superusuario.');
     }
 }
