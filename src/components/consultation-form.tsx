@@ -9,8 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2 } from 'lucide-react';
-import type { Patient, Cie10Code, Diagnosis } from '@/lib/types';
+import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud } from 'lucide-react';
+import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -40,6 +40,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
+    const [filesToUpload, setFilesToUpload] = React.useState<File[]>([]);
 
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
@@ -57,13 +58,41 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan.trim().length > 0;
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            setFilesToUpload(prev => [...prev, ...Array.from(event.target.files!)]);
+        }
+    };
+
+    const handleRemoveFile = (index: number) => {
+        setFilesToUpload(prev => prev.filter((_, i) => i !== index));
+    };
+
+
     async function onSubmit(values: z.infer<typeof consultationSchema>) {
         setIsSubmitting(true);
+
         try {
+            const documentsData: CreateConsultationDocumentInput[] = await Promise.all(
+                filesToUpload.map(file => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => resolve({
+                            fileName: file.name,
+                            fileType: file.type,
+                            fileData: reader.result as string,
+                        });
+                        reader.onerror = error => reject(error);
+                    });
+                })
+            );
+
             await createConsultation({
                 ...values,
                 waitlistId: patient.id,
                 pacienteId: patient.pacienteId,
+                documents: documentsData,
             });
             
             toast({
@@ -184,8 +213,44 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                         />
                      </div>
                 </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                        <Paperclip className="h-5 w-5" /> Documentos Adjuntos
+                    </h3>
+                     <div className="flex items-center justify-center w-full">
+                        <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/50">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <UploadCloud className="w-8 h-8 mb-4 text-muted-foreground" />
+                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click para cargar</span> o arrastrar y soltar</p>
+                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
+                            </div>
+                            <input id="file-upload" type="file" className="hidden" multiple onChange={handleFileChange} />
+                        </label>
+                    </div> 
+                    {filesToUpload.length > 0 && (
+                        <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Archivos para subir:</h4>
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {filesToUpload.map((file, index) => (
+                                <li key={index} className="flex items-center justify-between p-2 text-sm rounded-md bg-secondary">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <FileIcon className="h-4 w-4 shrink-0" />
+                                        <span className="truncate">{file.name}</span>
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveFile(index)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
                 
-                <Separator className="my-6" />
+                <Separator />
 
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium">Asistente de Récipe Médico</h3>

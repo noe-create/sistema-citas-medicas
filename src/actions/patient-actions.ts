@@ -592,10 +592,15 @@ export async function getPatientHistory(personaId: string): Promise<Consultation
                 'SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?',
                 row.id
             );
+             const documents = await db.all(
+                'SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC',
+                row.id
+            );
             return {
                 ...row,
                 consultationDate: new Date(row.consultationDate),
-                diagnoses: diagnoses,
+                diagnoses,
+                documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
             };
         })
     );
@@ -626,6 +631,14 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         }
         await diagnosisStmt.finalize();
 
+        if (data.documents && data.documents.length > 0) {
+            const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?)');
+            for (const doc of data.documents) {
+                await docStmt.run(generateId('doc'), consultationId, doc.fileName, doc.fileType, doc.fileData, new Date().toISOString());
+            }
+            await docStmt.finalize();
+        }
+
         await db.run('UPDATE waitlist SET status = ? WHERE id = ?', 'Completado', data.waitlistId);
 
         await db.exec('COMMIT');
@@ -638,6 +651,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
 
     revalidatePath('/dashboard');
     
+    const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
+
     return {
         id: consultationId,
         pacienteId: data.pacienteId,
@@ -646,6 +661,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         physicalExam: data.physicalExam,
         treatmentPlan: data.treatmentPlan,
         diagnoses: data.diagnoses,
+        documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
     };
 }
 

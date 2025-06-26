@@ -111,6 +111,16 @@ async function createTables(dbInstance: Database): Promise<void> {
             cie10Description TEXT NOT NULL,
             FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS consultation_documents (
+            id TEXT PRIMARY KEY,
+            consultationId TEXT NOT NULL,
+            fileName TEXT NOT NULL,
+            fileType TEXT NOT NULL,
+            fileData TEXT NOT NULL,
+            uploadedAt TEXT NOT NULL,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
+        );
         
         CREATE TABLE IF NOT EXISTS cie10_codes (
             code TEXT PRIMARY KEY,

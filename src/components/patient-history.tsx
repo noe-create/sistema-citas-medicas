@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
 import type { Consultation } from '@/lib/types';
-import { Loader2, Calendar, Stethoscope, ClipboardList, Pill } from 'lucide-react';
+import { Loader2, Calendar, Stethoscope, ClipboardList, Pill, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +93,25 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                 <h4 className="font-semibold mb-1 flex items-center gap-2"><Pill className="h-4 w-4" />Plan de Tratamiento</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{consultation.treatmentPlan || 'N/A'}</p>
             </div>
+            {consultation.documents && consultation.documents.length > 0 && (
+                <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" />Documentos Adjuntos</h4>
+                    <div className="flex flex-col gap-2">
+                        {consultation.documents.map(doc => (
+                            <a 
+                                key={doc.id}
+                                href={doc.fileData}
+                                download={doc.fileName}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline"
+                            >
+                                {doc.fileName}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
           </AccordionContent>
         </AccordionItem>
       ))}

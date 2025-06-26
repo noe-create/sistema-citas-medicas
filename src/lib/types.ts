@@ -95,6 +95,15 @@ export interface Diagnosis {
   cie10Description: string;
 }
 
+export interface ConsultationDocument {
+  id: string;
+  consultationId: string;
+  fileName: string;
+  fileType: string;
+  fileData: string; // as a data URI
+  uploadedAt: Date;
+}
+
 export interface Consultation {
   id: string;
   pacienteId: string;
@@ -103,6 +112,13 @@ export interface Consultation {
   physicalExam: string;
   treatmentPlan: string;
   diagnoses: Diagnosis[];
+  documents?: ConsultationDocument[];
+}
+
+export interface CreateConsultationDocumentInput {
+  fileName: string;
+  fileType: string;
+  fileData: string; // as a data URI
 }
 
 export interface CreateConsultationInput {
@@ -112,6 +128,7 @@ export interface CreateConsultationInput {
     physicalExam: string;
     treatmentPlan: string;
     diagnoses: Diagnosis[];
+    documents?: CreateConsultationDocumentInput[];
 }
 
 export interface PacienteConInfo extends Persona {
