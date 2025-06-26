@@ -7,7 +7,6 @@ import {
   Baby,
   FilePenLine,
   HeartPulse,
-  MoreHorizontal,
   Stethoscope,
   Clock,
   PlayCircle,
@@ -15,13 +14,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus } from '@/lib/types';
 import { ManagePatientSheet } from './manage-patient-sheet';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
 import { updatePatientStatus } from '@/actions/patient-actions';
@@ -61,21 +53,21 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
     }
   }
 
-  const handleStatusChange = async (patientId: string, status: PatientStatus) => {
-    try {
-        await updatePatientStatus(patientId, status);
-        toast({
-            title: 'Estado Actualizado',
-            description: `El paciente ha sido actualizado a "${status}".`
-        });
-        onListRefresh();
-    } catch(error) {
-        console.error("Error updating status:", error);
-        toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
+  const handleStartOrContinueConsultation = async (patient: Patient) => {
+    if (patient.status === 'Esperando') {
+        try {
+            await updatePatientStatus(patient.id, 'En Consulta');
+            toast({
+                title: 'Paciente en consulta',
+                description: `${patient.name} ha sido llamado.`,
+            });
+            onListRefresh();
+        } catch(error) {
+            console.error("Error updating status:", error);
+            toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
+            return;
+        }
     }
-  }
-
-  const handleManagePatient = (patient: Patient) => {
     setSelectedPatientId(patient.id);
     setIsSheetOpen(true);
   };
@@ -113,7 +105,7 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                         </div>
                     ) : (
                         groupedPatients[service].map((patient) => (
-                        <div key={patient.id} className={`p-3 rounded-lg border-l-4 ${statusColors[patient.status]} bg-card shadow-sm`}>
+                        <div key={patient.id} className={`flex flex-col gap-3 p-3 rounded-lg border-l-4 ${statusColors[patient.status]} bg-card shadow-sm`}>
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-semibold">{patient.name}</p>
@@ -121,36 +113,29 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                         {patient.accountType} &bull; {patient.kind === 'titular' ? 'Titular' : 'Beneficiario'}
                                     </p>
                                 </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Abrir menú</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
-                                            <FilePenLine className="mr-2 h-4 w-4" />
-                                            <span>Gestionar Paciente</span>
-                                        </DropdownMenuItem>
-                                        {patient.status === 'Esperando' && (
-                                            <DropdownMenuItem onClick={() => handleStatusChange(patient.id, 'En Consulta')}>
-                                                <PlayCircle className="mr-2 h-4 w-4" />
-                                                <span>Llamar a Consulta</span>
-                                            </DropdownMenuItem>
-                                        )}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <Badge variant={patient.status === 'En Consulta' ? 'default' : 'secondary'} className="capitalize">{patient.status}</Badge>
                             </div>
-                            <div className="flex justify-between items-center text-sm text-muted-foreground mt-2">
+                            <div className="flex justify-between items-center text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5" />
                                     <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <Badge variant={patient.status === 'En Consulta' ? 'default' : 'secondary'} className="capitalize">{patient.status}</Badge>
                                 <WaitTimeStopwatch startTime={patient.checkInTime} />
                             </div>
+                            {patient.status !== 'Completado' && (
+                                <Button 
+                                    onClick={() => handleStartOrContinueConsultation(patient)} 
+                                    size="sm" 
+                                    className="w-full mt-1"
+                                    variant={patient.status === 'En Consulta' ? 'secondary' : 'default'}
+                                >
+                                    {patient.status === 'Esperando' ? (
+                                        <><PlayCircle className="mr-2 h-4 w-4" /> Iniciar Consulta</>
+                                    ) : (
+                                        <><FilePenLine className="mr-2 h-4 w-4" /> Continuar Consulta</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                         ))
                     )}

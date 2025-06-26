@@ -15,7 +15,8 @@ import { searchCie10Codes, createConsultation } from '@/actions/patient-actions'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Badge } from './ui/badge';
-import { generatePrescription, type GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
+import { generatePrescription } from '@/ai/flows/generate-prescription';
+import type { GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
 import { PrescriptionDisplay } from './prescription-display';
 import { Separator } from './ui/separator';
 
@@ -118,68 +119,72 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
-                <CardTitle>Nueva Consulta</CardTitle>
+                <CardTitle>Formulario de Consulta</CardTitle>
                 <CardDescription>
                 Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="anamnesis"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Anamnesis</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="Motivo de consulta, historia de la enfermedad actual..." {...field} rows={4} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="physicalExam"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Examen Físico</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="Signos vitales, hallazgos por sistema..." {...field} rows={4} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                     <div className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="anamnesis"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Anamnesis</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Motivo de consulta, historia de la enfermedad actual..." {...field} rows={6} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="physicalExam"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Examen Físico</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Signos vitales, hallazgos por sistema..." {...field} rows={6} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                     </div>
+                     <div className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="diagnoses"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Diagnóstico(s) CIE-10</FormLabel>
+                                    <Cie10Autocomplete 
+                                        selected={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="treatmentPlan"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Plan de Tratamiento / Indicaciones</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={6} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                     </div>
+                </div>
                 
-                <FormField
-                    control={form.control}
-                    name="diagnoses"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Diagnóstico(s) CIE-10</FormLabel>
-                             <Cie10Autocomplete 
-                                selected={field.value}
-                                onChange={field.onChange}
-                             />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                 />
-
-                 <FormField
-                    control={form.control}
-                    name="treatmentPlan"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Plan de Tratamiento / Indicaciones</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={4} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
                 <Separator className="my-6" />
 
                 <div className="space-y-4">
@@ -251,9 +256,9 @@ function Cie10Autocomplete({ selected, onChange }: Cie10AutocompleteProps) {
     };
 
     return (
-        <div>
-            <div className="flex flex-wrap gap-2 mb-2 min-h-[2.5rem] p-2 border rounded-md bg-background">
-                {selected.length === 0 && <span className="text-sm text-muted-foreground">Ningún diagnóstico seleccionado</span>}
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-2 min-h-[4.5rem] p-2 border rounded-md bg-background">
+                {selected.length === 0 && <span className="text-sm text-muted-foreground flex items-center justify-center w-full h-full">Ningún diagnóstico seleccionado</span>}
                 {selected.map(diagnosis => (
                     <Badge key={diagnosis.cie10Code} variant="secondary">
                         {diagnosis.cie10Code}: {diagnosis.cie10Description}
