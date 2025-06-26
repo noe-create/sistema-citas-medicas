@@ -41,6 +41,8 @@ export function PatientManagement() {
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
+
   const refreshTitulares = React.useCallback(async (currentSearch: string) => {
     setIsLoading(true);
     try {
@@ -134,7 +136,7 @@ export function PatientManagement() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-            {(user.role === 'superuser' || user.role === 'administrator') && (
+            {canManage && (
               <Button onClick={() => handleOpenForm(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Añadir Titular
@@ -182,7 +184,7 @@ export function PatientManagement() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                    {(user.role === 'superuser' || user.role === 'administrator') && (
+                                    {canManage && (
                                         <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         <span>Editar</span>
@@ -192,7 +194,7 @@ export function PatientManagement() {
                                       <Users className="mr-2 h-4 w-4" />
                                       <span>Gestionar Beneficiarios</span>
                                     </DropdownMenuItem>
-                                    {(user.role === 'superuser' || user.role === 'administrator') && (
+                                    {canManage && (
                                         <>
                                             <DropdownMenuSeparator />
                                             <AlertDialogTrigger asChild>

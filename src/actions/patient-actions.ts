@@ -28,10 +28,17 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
 // --- Authorization Helpers ---
-async function ensureAdminOrSuperuser() {
+async function ensureAdminPermission() {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || (session.user.role !== 'superuser' && session.user.role !== 'administrator')) {
+    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator'].includes(session.user.role)) {
         throw new Error('Acción no autorizada. Se requiere rol de administrador o superusuario.');
+    }
+}
+
+async function ensureDataEntryPermission() {
+    const session = await getSession();
+    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator', 'asistencial'].includes(session.user.role)) {
+        throw new Error('Acción no autorizada. Se requiere permiso para ingreso de datos.');
     }
 }
 
@@ -184,7 +191,7 @@ export async function createTitular(data: {
     tipo: TitularType;
     empresaId?: string;
 }) {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     const titularId = generateId('t');
     
@@ -224,7 +231,7 @@ export async function createTitular(data: {
 }
 
 export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; tipo: TitularType; empresaId?: string }) {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
 
     try {
@@ -271,7 +278,7 @@ export async function updateTitular(titularId: string, personaId: string, data: 
 
 
 export async function deleteTitular(id: string): Promise<{ success: boolean }> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     const result = await db.run('DELETE FROM titulares WHERE id = ?', id);
     // The persona record is NOT deleted, only their role as a titular.
@@ -371,7 +378,7 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
 
 
 export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     const beneficiarioId = generateId('b');
     let personaId: string = '';
@@ -420,7 +427,7 @@ export async function createBeneficiario(titularId: string, data: { persona: Omi
 
 
 export async function updateBeneficiario(beneficiarioId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     
     await db.run(
@@ -450,7 +457,7 @@ export async function updateBeneficiario(beneficiarioId: string, personaId: stri
 }
 
 export async function deleteBeneficiario(id: string): Promise<{ success: boolean; titularId: string }> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     
     const beneficiario = await db.get('SELECT titularId FROM beneficiarios WHERE id = ?', id);
@@ -769,7 +776,7 @@ export async function getEmpresas(query?: string): Promise<Empresa[]> {
 }
 
 export async function createEmpresa(data: Omit<Empresa, 'id'>): Promise<Empresa> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     const newEmpresaData = { ...data, id: generateId('emp') };
     await db.run(
@@ -782,7 +789,7 @@ export async function createEmpresa(data: Omit<Empresa, 'id'>): Promise<Empresa>
 }
 
 export async function updateEmpresa(data: Empresa): Promise<Empresa> {
-    await ensureAdminOrSuperuser();
+    await ensureAdminPermission();
     const db = await getDb();
     const result = await db.run(
         'UPDATE empresas SET name = ?, rif = ?, telefono = ?, direccion = ? WHERE id = ?',
@@ -795,7 +802,7 @@ export async function updateEmpresa(data: Empresa): Promise<Empresa> {
 }
 
 export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
-    await ensureAdminOrSuperuser();
+    await ensureAdminPermission();
     const db = await getDb();
     const countResult = await db.get('SELECT COUNT(*) as count FROM titulares WHERE empresaId = ?', id);
     if (countResult.count > 0) {
@@ -811,7 +818,7 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 // --- Central Person Management Actions ---
 
 export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     
     const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
@@ -843,7 +850,7 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
 }
 
 export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
 
     const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
@@ -876,7 +883,7 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
 
 
 export async function deletePersona(personaId: string): Promise<{ success: boolean }> {
-    await ensureAdminOrSuperuser();
+    await ensureDataEntryPermission();
     const db = await getDb();
     
     // ON DELETE CASCADE will handle relationships in titulares, beneficiarios, pacientes, waitlist.
@@ -912,7 +919,7 @@ export async function getManagedCie10Codes(query?: string): Promise<Cie10Code[]>
 }
 
 export async function createCie10Code(data: Cie10Code): Promise<Cie10Code> {
-    await ensureAdminOrSuperuser();
+    await ensureAdminPermission();
     const db = await getDb();
     try {
         await db.run(
@@ -930,7 +937,7 @@ export async function createCie10Code(data: Cie10Code): Promise<Cie10Code> {
 }
 
 export async function updateCie10Code(code: string, data: { description: string }): Promise<Cie10Code> {
-    await ensureAdminOrSuperuser();
+    await ensureAdminPermission();
     const db = await getDb();
     const result = await db.run(
         'UPDATE cie10_codes SET description = ? WHERE code = ?',
@@ -942,7 +949,7 @@ export async function updateCie10Code(code: string, data: { description: string 
 }
 
 export async function deleteCie10Code(code: string): Promise<{ success: boolean }> {
-    await ensureAdminOrSuperuser();
+    await ensureAdminPermission();
     const db = await getDb();
     const usage = await db.get('SELECT COUNT(*) as count FROM consultation_diagnoses WHERE cie10Code = ?', code);
     if (usage.count > 0) {

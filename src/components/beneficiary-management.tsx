@@ -37,6 +37,8 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const [selectedBeneficiario, setSelectedBeneficiario] = React.useState<Beneficiario | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
+
   const refreshBeneficiarios = async () => {
     const freshData = await getBeneficiarios(titular.id);
     setBeneficiarios(freshData.map(b => ({...b, persona: { ...b.persona, fechaNacimiento: new Date(b.persona.fechaNacimiento)}})));
@@ -92,7 +94,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
         </CardHeader>
         <CardContent>
           <div className="flex justify-end items-center mb-4">
-            {(user.role === 'superuser' || user.role === 'administrator') && (
+            {canManage && (
               <Button onClick={() => handleOpenForm(null)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Añadir Beneficiario
@@ -118,7 +120,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                     <TableCell>{format(beneficiario.persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
                     <TableCell>{beneficiario.persona.genero}</TableCell>
                     <TableCell className="text-right">
-                      {(user.role === 'superuser' || user.role === 'administrator') && (
+                      {canManage && (
                         <AlertDialog>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

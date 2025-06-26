@@ -25,6 +25,8 @@ export function PeopleList() {
   const [personas, setPersonas] = React.useState<Persona[]>([]);
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
   
   const refreshPersonas = React.useCallback(async (currentSearch: string) => {
     setIsLoading(true);
@@ -102,7 +104,7 @@ export function PeopleList() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="max-w-sm"
             />
-            {(user.role === 'superuser' || user.role === 'administrator') && (
+            {canManage && (
               <Button onClick={() => handleOpenForm(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Crear Persona
@@ -135,7 +137,7 @@ export function PeopleList() {
                         <TableCell>{persona.genero}</TableCell>
                         <TableCell>{persona.email || 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                        {(user.role === 'superuser' || user.role === 'administrator') && (
+                        {canManage && (
                             <AlertDialog>
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
