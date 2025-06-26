@@ -276,7 +276,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel className="flex items-center gap-2"><UsersIcon className="h-4 w-4 text-muted-foreground" />Género</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un género" /></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="Masculino">Masculino</SelectItem>

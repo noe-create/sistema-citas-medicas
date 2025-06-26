@@ -249,7 +249,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Género</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isPersonaSelected}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isPersonaSelected}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccione un género" />
