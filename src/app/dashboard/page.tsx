@@ -132,7 +132,7 @@ export default function DashboardPage() {
           </Dialog>
         </div>
       </div>
-      <PatientQueue patients={patientQueue} setPatients={setPatientQueue} />
+      <PatientQueue patients={patientQueue} onListRefresh={fetchWaitlist} />
     </div>
   );
 }

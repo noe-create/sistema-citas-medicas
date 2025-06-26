@@ -11,8 +11,6 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import type { PatientStatus } from '@/lib/types';
-import { updatePatientStatus } from '@/actions/patient-actions';
 
 const notesSchema = z.object({
   symptoms: z.string().optional(),
@@ -41,28 +39,19 @@ export function ConsultationNotes({ patientId, onConsultationComplete }: Consult
         }
     });
 
-    async function onSubmit(values: z.infer<typeof notesSchema>) {
+    function onSubmit(values: z.infer<typeof notesSchema>) {
         setIsSubmitting(true);
-        console.log("Notas de consulta:", values);
+        console.log("Notas de consulta:", values); // Future: save these notes
 
-        try {
-            await updatePatientStatus(patientId, 'Completado');
-            toast({
-                title: 'Consulta Completada',
-                description: 'Las notas se han guardado y el paciente ha sido marcado como completado.',
-            });
-            onConsultationComplete();
-            form.reset();
-        } catch (error) {
-            console.error("Error al completar la consulta:", error);
-            toast({
-                title: 'Error',
-                description: 'No se pudo completar la consulta.',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        onConsultationComplete();
+        
+        toast({
+            title: 'Consulta Completada',
+            description: 'El paciente ha sido marcado como completado.',
+        });
+
+        form.reset();
+        setIsSubmitting(false);
     }
 
   return (

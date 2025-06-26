@@ -44,46 +44,55 @@ const statusColors: Record<PatientStatus, string> = {
 
 interface PatientQueueProps {
     patients: Patient[];
-    setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+    onListRefresh: () => void;
 }
 
-export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
+export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   const { toast } = useToast();
-  const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
-  const handleManagePatient = (patient: Patient) => {
-    if(patient.status === 'Esperando') {
-        handleStatusChange(patient.id, 'En Consulta');
-    }
-    setSelectedPatient(patient);
-    setIsSheetOpen(true);
-  };
-  
+  const selectedPatient = React.useMemo(
+    () => patients.find((p) => p.id === selectedPatientId) || null,
+    [patients, selectedPatientId]
+  );
+
   const handleSheetOpenChange = (open: boolean) => {
     setIsSheetOpen(open);
     if (!open) {
-      setSelectedPatient(null);
+      setSelectedPatientId(null);
     }
   }
 
   const handleStatusChange = async (patientId: string, status: PatientStatus) => {
-    // Optimistic UI update
-    setPatients(currentPatients =>
-      currentPatients.map(p => (p.id === patientId ? { ...p, status } : p))
-    );
     try {
         await updatePatientStatus(patientId, status);
         toast({
             title: 'Estado Actualizado',
             description: `El paciente ha sido actualizado a "${status}".`
         });
+        onListRefresh();
     } catch(error) {
         console.error("Error updating status:", error);
         toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
-        // Revert optimistic update on failure - refetching from polling will also correct this
     }
   }
+
+  const handleManagePatient = (patient: Patient) => {
+    if(patient.status === 'Esperando') {
+        handleStatusChange(patient.id, 'En Consulta');
+    }
+    setSelectedPatientId(patient.id);
+    setIsSheetOpen(true);
+  };
+  
+  const handleConsultationComplete = () => {
+    if (selectedPatient) {
+      handleStatusChange(selectedPatient.id, 'Completado');
+    }
+    setIsSheetOpen(false);
+    setSelectedPatientId(null);
+  };
 
   const services = Object.keys(serviceInfo) as ServiceType[];
   const groupedPatients = services.reduce((acc, service) => {
@@ -173,10 +182,7 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
           patient={selectedPatient}
           isOpen={isSheetOpen}
           onOpenChange={handleSheetOpenChange}
-          onConsultationComplete={() => {
-              setIsSheetOpen(false);
-              setSelectedPatient(null);
-          }}
+          onConsultationComplete={handleConsultationComplete}
         />
       )}
     </>
