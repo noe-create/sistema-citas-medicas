@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, KeyRound, User as UserIcon, Shield, Link2 } from 'lucide-react';
-import type { User, Role } from '@/lib/types';
+import type { User, Role, Persona } from '@/lib/types';
 import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
 
@@ -46,8 +46,7 @@ interface UserFormProps {
 
 export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [selectedPersona, setSelectedPersona] = React.useState<any>(null);
-
+  
   const form = useForm({
     resolver: zodResolver(user ? updateUserSchema : createUserSchema),
     defaultValues: {
@@ -58,12 +57,10 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
         confirmPassword: '',
     },
   });
-
-  React.useEffect(() => {
-    if (selectedPersona) {
-      form.setValue('personaId', selectedPersona.id, { shouldValidate: true });
-    }
-  }, [selectedPersona, form]);
+  
+  const handlePersonaSelect = (persona: Persona | null) => {
+      form.setValue('personaId', persona?.id || '', { shouldValidate: true });
+  }
 
   async function onSubmit(values: any) {
     setIsSubmitting(true);
@@ -144,7 +141,7 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
             <div className="md:col-span-2 space-y-2">
                  <Label className="flex items-center gap-2"><Link2 className="h-4 w-4 text-muted-foreground"/>Vincular a Persona (Opcional)</Label>
                  <PersonaSearch
-                    onPersonaSelect={setSelectedPersona}
+                    onPersonaSelect={handlePersonaSelect}
                     placeholder="Buscar persona para vincular..."
                  />
                  <FormField control={form.control} name="personaId" render={({field}) => <FormItem><FormControl><Input type="hidden" {...field} /></FormControl><FormMessage/></FormItem>}/>
