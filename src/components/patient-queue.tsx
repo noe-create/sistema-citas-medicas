@@ -113,17 +113,28 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const visibleServices = React.useMemo(() => {
     const allServices = Object.keys(serviceInfo) as ServiceType[];
     if (!user) return [];
-    if (user.role === 'superuser') {
-        return allServices;
+
+    // Superusers and assistants can see all queues
+    if (user.role === 'superuser' || user.role === 'asistencial') {
+      return allServices;
     }
+
+    // Doctors see queues based on their specialty
     if (user.role === 'doctor') {
-        if (user.specialty === 'medico pediatra') {
-            return allServices.filter(s => s === 'consulta pediatrica');
-        }
-        if (user.specialty === 'medico general') {
-            return allServices.filter(s => s === 'medicina general');
-        }
+      if (user.specialty === 'medico pediatra') {
+        return allServices.filter((s) => s === 'consulta pediatrica');
+      }
+      if (user.specialty === 'medico general') {
+        return allServices.filter((s) => s === 'medicina general');
+      }
     }
+    
+    // Nurses see the nursing service queue
+    if (user.role === 'enfermera') {
+      return allServices.filter((s) => s === 'servicio de enfermeria');
+    }
+
+    // Default to a more restricted view if role or specialty doesn't match
     return [];
   }, [user]);
 
