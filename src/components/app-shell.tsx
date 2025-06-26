@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import type { User as UserType } from '@/lib/types';
@@ -35,6 +35,7 @@ const allMenuOptions = [
   { href: '/dashboard/pacientes', icon: <Users />, title: 'Gestión de Titulares', section: 'admin' },
   { href: '/dashboard/beneficiarios', icon: <User />, title: 'Beneficiarios', section: 'admin' },
   { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', section: 'admin' },
+  { href: '/dashboard/usuarios', icon: <UserCog />, title: 'Gestión de Usuarios', section: 'admin' },
 ];
 
 const permissions = {
@@ -56,6 +57,15 @@ const permissions = {
   ],
 };
 
+const UserContext = React.createContext<UserType | null>(null);
+
+export function useUser() {
+    const context = React.useContext(UserContext);
+    if (!context) {
+        throw new Error('useUser must be used within a UserProvider provided by AppShell');
+    }
+    return context;
+}
 
 export function AppShell({ children, user }: { children: React.ReactNode, user: UserType }) {
   const pathname = usePathname();
@@ -63,86 +73,88 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
   const menuOptions = allMenuOptions.filter(opt => accessiblePaths.includes(opt.href));
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
-          <div className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
-            <div className="bg-primary/20 p-2 rounded-lg">
-              <Stethoscope className="h-6 w-6 text-primary" />
+    <UserContext.Provider value={user}>
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
+            <div className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
+              <div className="bg-primary/20 p-2 rounded-lg">
+                <Stethoscope className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <h2 className="text-lg font-semibold font-headline">CareFlow</h2>
+                <p className="text-sm text-muted-foreground">Central</p>
+              </div>
             </div>
-            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <h2 className="text-lg font-semibold font-headline">CareFlow</h2>
-              <p className="text-sm text-muted-foreground">Central</p>
-            </div>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {menuOptions.map(option => (
-               <SidebarMenuItem key={option.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(option.href)}
-                  tooltip={option.title}
-                >
-                  <Link href={option.href}>
-                    {option.icon}
-                    <span>{option.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="justify-start w-full px-2">
-                   <div className="flex justify-between items-center w-full">
-                    <div className="flex gap-2 items-center">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt={user.name} data-ai-hint="doctor portrait"/>
-                        <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                        <span className="text-sm font-medium">{user.name}</span>
-                        <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {menuOptions.map(option => (
+                <SidebarMenuItem key={option.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(option.href)}
+                    tooltip={option.title}
+                  >
+                    <Link href={option.href}>
+                      {option.icon}
+                      <span>{option.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="justify-start w-full px-2">
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex gap-2 items-center">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src="https://placehold.co/40x40.png" alt={user.name} data-ai-hint="doctor portrait"/>
+                          <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
+                          <span className="text-sm font-medium">{user.name}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 mb-2" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.username}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                  <form action={logout}>
-                     <DropdownMenuItem asChild>
-                        <button type="submit" className="w-full">
-                           <LogOut className="mr-2 h-4 w-4" />
-                           <span>Cerrar Sesión</span>
-                        </button>
-                    </DropdownMenuItem>
-                  </form>
-              </DropdownMenuContent>
-            </DropdownMenu>
-        </SidebarFooter>
-      </Sidebar>
-      <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
-          <SidebarTrigger />
-          <div className="flex-1">
-             {/* Header content can go here */}
-          </div>
-        </header>
-        {children}
-      </main>
-    </SidebarProvider>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 mb-2" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.username}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                    <form action={logout}>
+                      <DropdownMenuItem asChild>
+                          <button type="submit" className="w-full">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Cerrar Sesión</span>
+                          </button>
+                      </DropdownMenuItem>
+                    </form>
+                </DropdownMenuContent>
+              </DropdownMenu>
+          </SidebarFooter>
+        </Sidebar>
+        <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
+            <SidebarTrigger />
+            <div className="flex-1">
+              {/* Header content can go here */}
+            </div>
+          </header>
+          {children}
+        </main>
+      </SidebarProvider>
+    </UserContext.Provider>
   );
 }
