@@ -16,6 +16,7 @@ import { PlusCircle, RefreshCw } from 'lucide-react';
 import type { Patient, TitularType, AccountType, ServiceType, SearchResult, PatientKind } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getWaitlist, addPatientToWaitlist, getTitularTypeByTitularId } from '@/actions/patient-actions';
+import { useUser } from '@/components/app-shell';
 
 const titularTypeToAccountType = (titularType: TitularType): AccountType => {
   switch (titularType) {
@@ -31,6 +32,7 @@ export default function SalaDeEsperaPage() {
   const [patientQueue, setPatientQueue] = React.useState<Patient[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
+  const user = useUser();
 
   const fetchWaitlist = React.useCallback(async () => {
     setIsLoading(true);
@@ -151,7 +153,7 @@ export default function SalaDeEsperaPage() {
           </Dialog>
         </div>
       </div>
-      <PatientQueue patients={patientQueue} onListRefresh={fetchWaitlist} />
+      <PatientQueue user={user} patients={patientQueue} onListRefresh={fetchWaitlist} />
     </>
   );
 }

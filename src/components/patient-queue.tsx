@@ -53,11 +53,11 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   const statusOptionsForRole = React.useMemo(() => {
-    if (user.role === 'asistencial') {
+    if (user?.role === 'asistencial') {
       return ['Ausente', 'Pospuesto', 'Reevaluacion'];
     }
     return ['Esperando', 'En Consulta', 'En Tratamiento', 'Ausente', 'Pospuesto', 'Reevaluacion'];
-  }, [user.role]);
+  }, [user]);
 
   const selectedPatient = React.useMemo(
     () => patients.find((p) => p.id === selectedPatientId) || null,
@@ -200,7 +200,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                                     </div>
                                     <WaitTimeStopwatch startTime={patient.checkInTime} />
                                 </div>
-                                {(user.role === 'superuser' || user.role === 'doctor') &&
+                                {(user?.role === 'superuser' || user?.role === 'doctor') &&
                                     (patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
                                     <Button 
                                         onClick={() => handleStartOrContinueConsultation(patient)} 
