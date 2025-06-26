@@ -25,6 +25,10 @@ export function PersonaSearch({ onPersonaSelect, excludeIds = [], placeholder = 
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
 
+  // By stringifying the `excludeIds` array with useMemo, we create a stable dependency for the useEffect hook.
+  // This prevents the infinite re-render loop caused by the parent component creating a new array reference on every render.
+  const stableExcludeIds = React.useMemo(() => JSON.stringify(excludeIds.sort()), [excludeIds]);
+
   React.useEffect(() => {
     if (debouncedQuery.length < 1 && !isPopoverOpen) {
         setResults([]);
@@ -34,8 +38,9 @@ export function PersonaSearch({ onPersonaSelect, excludeIds = [], placeholder = 
     async function search() {
         setIsLoading(true);
         try {
+            const currentExcludeIds = JSON.parse(stableExcludeIds);
             const data = await getPersonas(debouncedQuery);
-            const filteredData = data.filter(p => !excludeIds.includes(p.id));
+            const filteredData = data.filter(p => !currentExcludeIds.includes(p.id));
             setResults(filteredData);
         } catch (e) {
             console.error("Error searching people:", e);
@@ -45,7 +50,7 @@ export function PersonaSearch({ onPersonaSelect, excludeIds = [], placeholder = 
         }
     }
     search();
-  }, [debouncedQuery, excludeIds, isPopoverOpen]);
+  }, [debouncedQuery, stableExcludeIds, isPopoverOpen]);
 
   const handleSelect = (persona: Persona | null) => {
     setSelectedPersona(persona);
