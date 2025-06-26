@@ -10,6 +10,8 @@ import {
   MoreHorizontal,
   Stethoscope,
   Clock,
+  CheckCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus } from '@/lib/types';
@@ -20,10 +22,13 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { WaitTimeStopwatch } from './wait-time-stopwatch';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import { updatePatientStatus } from '@/actions/patient-actions';
+import { useToast } from '@/hooks/use-toast';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
@@ -43,10 +48,14 @@ interface PatientQueueProps {
 }
 
 export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
+  const { toast } = useToast();
   const [selectedPatient, setSelectedPatient] = React.useState<Patient | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   const handleManagePatient = (patient: Patient) => {
+    if(patient.status === 'Esperando') {
+        handleStatusChange(patient.id, 'En Consulta');
+    }
     setSelectedPatient(patient);
     setIsSheetOpen(true);
   };
@@ -55,6 +64,24 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
     setIsSheetOpen(open);
     if (!open) {
       setSelectedPatient(null);
+    }
+  }
+
+  const handleStatusChange = async (patientId: string, status: PatientStatus) => {
+    // Optimistic UI update
+    setPatients(currentPatients =>
+      currentPatients.map(p => (p.id === patientId ? { ...p, status } : p))
+    );
+    try {
+        await updatePatientStatus(patientId, status);
+        toast({
+            title: 'Estado Actualizado',
+            description: `El paciente ha sido actualizado a "${status}".`
+        });
+    } catch(error) {
+        console.error("Error updating status:", error);
+        toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: 'destructive'});
+        // Revert optimistic update on failure - refetching from polling will also correct this
     }
   }
 
@@ -101,11 +128,24 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
                                     </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
-                                        <FilePenLine className="mr-2 h-4 w-4" />
-                                        <span>Gestionar Paciente</span>
-                                    </DropdownMenuItem>
+                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => handleManagePatient(patient)}>
+                                            <FilePenLine className="mr-2 h-4 w-4" />
+                                            <span>Gestionar Paciente</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        {patient.status === 'Esperando' && (
+                                            <DropdownMenuItem onClick={() => handleStatusChange(patient.id, 'En Consulta')}>
+                                                <PlayCircle className="mr-2 h-4 w-4" />
+                                                <span>Llamar a Consulta</span>
+                                            </DropdownMenuItem>
+                                        )}
+                                        {patient.status === 'En Consulta' && (
+                                            <DropdownMenuItem onClick={() => handleStatusChange(patient.id, 'Completado')}>
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                <span>Finalizar Consulta</span>
+                                            </DropdownMenuItem>
+                                        )}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -115,6 +155,7 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
                                     <Clock className="h-3.5 w-3.5" />
                                     <span>{new Date(patient.checkInTime).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
+                                <Badge variant={patient.status === 'En Consulta' ? 'default' : 'secondary'} className="capitalize">{patient.status}</Badge>
                                 <WaitTimeStopwatch startTime={patient.checkInTime} />
                             </div>
                         </div>
@@ -132,6 +173,10 @@ export function PatientQueue({ patients, setPatients }: PatientQueueProps) {
           patient={selectedPatient}
           isOpen={isSheetOpen}
           onOpenChange={handleSheetOpenChange}
+          onConsultationComplete={() => {
+              setIsSheetOpen(false);
+              setSelectedPatient(null);
+          }}
         />
       )}
     </>

@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     fetchWaitlist();
-    const intervalId = setInterval(fetchWaitlist, 10000); // Poll every 10 seconds
+    const intervalId = setInterval(fetchWaitlist, 30000); // Poll every 30 seconds
 
     return () => clearInterval(intervalId);
   }, [fetchWaitlist]);
@@ -86,11 +86,11 @@ export default function DashboardPage() {
           checkInTime: new Date(),
       };
       
-      const newPatient = await addPatientToWaitlist(newPatientData);
+      await addPatientToWaitlist(newPatientData);
 
       toast({
           title: '¡Paciente Registrado!',
-          description: `${newPatient.name} ha sido añadido a la cola.`,
+          description: `${newPatientData.name} ha sido añadido a la cola.`,
       });
       fetchWaitlist(); // Re-fetch immediately
       setIsDialogOpen(false);

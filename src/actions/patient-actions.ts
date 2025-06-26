@@ -74,11 +74,12 @@ export async function getEmpresas(query?: string): Promise<Empresa[]> {
     return db.all(selectQuery, ...params);
 }
 
-export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios' | 'empresaName'>) {
+export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios' | 'empresaName' | 'cedula'> & { nacionalidad: string, cedula: string }) {
     const db = await getDb();
     const newTitularData = {
         ...data,
         id: generateId(),
+        cedula: `${data.nacionalidad}-${data.cedula}`
     };
     
     await db.run(
@@ -102,7 +103,7 @@ export async function createTitular(data: Omit<Titular, 'id' | 'beneficiarios' |
     return newTitular;
 }
 
-export async function updateTitular(data: Omit<Titular, 'beneficiarios' | 'empresaName'>) {
+export async function updateTitular(data: Omit<Titular, 'beneficiarios' | 'empresaName' | 'cedula'> & { nacionalidad: string, cedula: string }) {
     const db = await getDb();
 
     const result = await db.run(
@@ -110,7 +111,7 @@ export async function updateTitular(data: Omit<Titular, 'beneficiarios' | 'empre
          SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ?, tipo = ?, empresaId = ?
          WHERE id = ?`,
         data.nombreCompleto,
-        data.cedula,
+        `${data.nacionalidad}-${data.cedula}`,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono,

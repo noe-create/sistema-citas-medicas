@@ -11,6 +11,8 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import type { PatientStatus } from '@/lib/types';
+import { updatePatientStatus } from '@/actions/patient-actions';
 
 const notesSchema = z.object({
   symptoms: z.string().optional(),
@@ -19,7 +21,13 @@ const notesSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function ConsultationNotes() {
+interface ConsultationNotesProps {
+    patientId: string;
+    onConsultationComplete: () => void;
+}
+
+
+export function ConsultationNotes({ patientId, onConsultationComplete }: ConsultationNotesProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     
@@ -33,18 +41,28 @@ export function ConsultationNotes() {
         }
     });
 
-    function onSubmit(values: z.infer<typeof notesSchema>) {
+    async function onSubmit(values: z.infer<typeof notesSchema>) {
         setIsSubmitting(true);
         console.log("Notas de consulta:", values);
 
-        setTimeout(() => {
+        try {
+            await updatePatientStatus(patientId, 'Completado');
             toast({
                 title: 'Consulta Completada',
-                description: 'Las notas se han guardado correctamente.',
+                description: 'Las notas se han guardado y el paciente ha sido marcado como completado.',
             });
-            setIsSubmitting(false);
+            onConsultationComplete();
             form.reset();
-        }, 1500);
+        } catch (error) {
+            console.error("Error al completar la consulta:", error);
+            toast({
+                title: 'Error',
+                description: 'No se pudo completar la consulta.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
   return (
@@ -52,7 +70,7 @@ export function ConsultationNotes() {
       <CardHeader>
         <CardTitle>Notas de Consulta</CardTitle>
         <CardDescription>
-          Registre los detalles de la consulta del paciente.
+          Registre los detalles de la consulta del paciente. Al completar, el paciente saldrá de la cola.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
