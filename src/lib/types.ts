@@ -95,11 +95,15 @@ export interface Diagnosis {
   cie10Description: string;
 }
 
+export type DocumentType = 'laboratorio' | 'imagenologia' | 'informe medico' | 'otro';
+
 export interface ConsultationDocument {
   id: string;
   consultationId: string;
   fileName: string;
   fileType: string;
+  documentType: DocumentType;
+  description: string;
   fileData: string; // as a data URI
   uploadedAt: Date;
 }
@@ -118,6 +122,8 @@ export interface Consultation {
 export interface CreateConsultationDocumentInput {
   fileName: string;
   fileType: string;
+  documentType: DocumentType;
+  description: string;
   fileData: string; // as a data URI
 }
 

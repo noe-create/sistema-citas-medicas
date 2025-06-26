@@ -117,6 +117,8 @@ async function createTables(dbInstance: Database): Promise<void> {
             consultationId TEXT NOT NULL,
             fileName TEXT NOT NULL,
             fileType TEXT NOT NULL,
+            documentType TEXT NOT NULL,
+            description TEXT,
             fileData TEXT NOT NULL,
             uploadedAt TEXT NOT NULL,
             FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE

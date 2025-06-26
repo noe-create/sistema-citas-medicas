@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
 import type { Consultation } from '@/lib/types';
-import { Loader2, Calendar, Stethoscope, ClipboardList, Pill, Paperclip } from 'lucide-react';
+import { Loader2, Calendar, Stethoscope, ClipboardList, Pill, Paperclip, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -96,18 +96,26 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             {consultation.documents && consultation.documents.length > 0 && (
                 <div>
                     <h4 className="font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" />Documentos Adjuntos</h4>
-                    <div className="flex flex-col gap-2">
+                     <div className="flex flex-col gap-3">
                         {consultation.documents.map(doc => (
-                            <a 
-                                key={doc.id}
-                                href={doc.fileData}
-                                download={doc.fileName}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:underline"
-                            >
-                                {doc.fileName}
-                            </a>
+                            <div key={doc.id} className="p-3 rounded-md border bg-secondary/50">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 font-medium text-primary">
+                                        <FileText className="h-4 w-4" />
+                                        <a 
+                                            href={doc.fileData}
+                                            download={doc.fileName}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:underline"
+                                        >
+                                            {doc.fileName}
+                                        </a>
+                                    </div>
+                                    <Badge variant="outline" className="capitalize">{doc.documentType}</Badge>
+                                </div>
+                                {doc.description && <p className="text-sm text-muted-foreground mt-1 pl-6">{doc.description}</p>}
+                            </div>
                         ))}
                     </div>
                 </div>

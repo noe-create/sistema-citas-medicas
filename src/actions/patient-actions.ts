@@ -632,9 +632,18 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         await diagnosisStmt.finalize();
 
         if (data.documents && data.documents.length > 0) {
-            const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?)');
+            const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, documentType, description, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
             for (const doc of data.documents) {
-                await docStmt.run(generateId('doc'), consultationId, doc.fileName, doc.fileType, doc.fileData, new Date().toISOString());
+                await docStmt.run(
+                    generateId('doc'), 
+                    consultationId, 
+                    doc.fileName, 
+                    doc.fileType,
+                    doc.documentType,
+                    doc.description,
+                    doc.fileData, 
+                    new Date().toISOString()
+                );
             }
             await docStmt.finalize();
         }

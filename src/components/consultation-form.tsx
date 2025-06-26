@@ -10,7 +10,7 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud } from 'lucide-react';
-import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput } from '@/lib/types';
+import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -19,6 +19,9 @@ import { generatePrescription } from '@/ai/flows/generate-prescription';
 import type { GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
 import { PrescriptionDisplay } from './prescription-display';
 import { Separator } from './ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 const consultationSchema = z.object({
   anamnesis: z.string().min(1, 'La anamnesis es obligatoria.'),
@@ -30,6 +33,15 @@ const consultationSchema = z.object({
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
 });
 
+const documentTypes = ['laboratorio', 'imagenologia', 'informe medico', 'otro'] as const;
+
+interface FileUploadState {
+    file: File;
+    documentType: DocumentType;
+    description: string;
+    id: string; // for stable keys in React
+}
+
 interface ConsultationFormProps {
     patient: Patient;
     onConsultationComplete: () => void;
@@ -40,7 +52,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
-    const [filesToUpload, setFilesToUpload] = React.useState<File[]>([]);
+    const [filesToUpload, setFilesToUpload] = React.useState<FileUploadState[]>([]);
 
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
@@ -60,12 +72,27 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            setFilesToUpload(prev => [...prev, ...Array.from(event.target.files!)]);
+            const newFiles = Array.from(event.target.files).map(file => ({
+                file,
+                documentType: 'laboratorio' as DocumentType,
+                description: '',
+                id: `${file.name}-${file.lastModified}-${Math.random()}`
+            }));
+            setFilesToUpload(prev => [...prev, ...newFiles]);
+            event.target.value = ''; // Allow selecting the same file again
         }
     };
 
-    const handleRemoveFile = (index: number) => {
-        setFilesToUpload(prev => prev.filter((_, i) => i !== index));
+    const handleFileMetadataChange = (id: string, field: 'documentType' | 'description', value: string) => {
+        setFilesToUpload(prev =>
+            prev.map(fileState =>
+                fileState.id === id ? { ...fileState, [field]: value } : fileState
+            )
+        );
+    };
+
+    const handleRemoveFile = (id: string) => {
+        setFilesToUpload(prev => prev.filter((f) => f.id !== id));
     };
 
 
@@ -74,13 +101,15 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
         try {
             const documentsData: CreateConsultationDocumentInput[] = await Promise.all(
-                filesToUpload.map(file => {
+                filesToUpload.map(fileState => {
                     return new Promise((resolve, reject) => {
                         const reader = new FileReader();
-                        reader.readAsDataURL(file);
+                        reader.readAsDataURL(fileState.file);
                         reader.onload = () => resolve({
-                            fileName: file.name,
-                            fileType: file.type,
+                            fileName: fileState.file.name,
+                            fileType: fileState.file.type,
+                            documentType: fileState.documentType,
+                            description: fileState.description,
                             fileData: reader.result as string,
                         });
                         reader.onerror = error => reject(error);
@@ -231,21 +260,48 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                         </label>
                     </div> 
                     {filesToUpload.length > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <h4 className="font-medium text-sm">Archivos para subir:</h4>
-                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {filesToUpload.map((file, index) => (
-                                <li key={index} className="flex items-center justify-between p-2 text-sm rounded-md bg-secondary">
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <FileIcon className="h-4 w-4 shrink-0" />
-                                        <span className="truncate">{file.name}</span>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {filesToUpload.map((fileState) => (
+                                <Card key={fileState.id} className="p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                            <span className="truncate font-medium text-sm">{fileState.file.name}</span>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveFile(fileState.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveFile(index)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </li>
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`docType-${fileState.id}`}>Tipo de Documento</Label>
+                                        <Select
+                                            value={fileState.documentType}
+                                            onValueChange={(value: DocumentType) => handleFileMetadataChange(fileState.id, 'documentType', value)}
+                                        >
+                                            <SelectTrigger id={`docType-${fileState.id}`}>
+                                                <SelectValue placeholder="Seleccionar tipo..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {documentTypes.map(type => (
+                                                    <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`desc-${fileState.id}`}>Descripción</Label>
+                                        <Input
+                                            id={`desc-${fileState.id}`}
+                                            value={fileState.description}
+                                            onChange={(e) => handleFileMetadataChange(fileState.id, 'description', e.target.value)}
+                                            placeholder="Ej. Rayos X de tórax"
+                                        />
+                                    </div>
+                                </Card>
                                 ))}
-                            </ul>
+                            </div>
                         </div>
                     )}
                 </div>
