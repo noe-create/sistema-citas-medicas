@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,12 +26,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="p-4">
-          <div className="flex items-center gap-3">
+        <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
+          <div className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
             <div className="bg-primary/20 p-2 rounded-lg">
               <Stethoscope className="h-6 w-6 text-primary" />
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
               <h2 className="text-lg font-semibold font-headline">CareFlow</h2>
               <p className="text-sm text-muted-foreground">Central</p>
             </div>
@@ -122,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <AvatarImage src="https://placehold.co/40x40.png" alt="Dr. Smith" data-ai-hint="doctor portrait"/>
                         <AvatarFallback>DS</AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col items-start">
+                      <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
                         <span className="text-sm font-medium">Dr. Smith</span>
                         <span className="text-xs text-muted-foreground">Médico</span>
                       </div>
