@@ -162,10 +162,11 @@ export async function updateUser(id: string, data: {
             throw new Error('Esta persona ya está asignada a otro usuario.');
         }
     }
-
+    
+    let result;
     if (data.password) {
         const hashedPassword = await bcrypt.hash(data.password, 10);
-        await db.run(
+        result = await db.run(
             'UPDATE users SET username = ?, password = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             hashedPassword,
@@ -175,7 +176,7 @@ export async function updateUser(id: string, data: {
             id
         );
     } else {
-        await db.run(
+        result = await db.run(
             'UPDATE users SET username = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             data.role,
@@ -184,7 +185,38 @@ export async function updateUser(id: string, data: {
             id
         );
     }
+
+    if (result.changes === 0) {
+        throw new Error('Usuario no encontrado para actualizar.');
+    }
+
     revalidatePath('/dashboard/usuarios');
+
+    // After updating the DB, check if the updated user is the current session user.
+    // If so, we need to update the session to reflect the changes immediately.
+    const session = await getSession();
+    if (session.isLoggedIn && session.user?.id === id) {
+        const userRow: any = await db.get(
+           `SELECT u.id, u.username, u.role, u.specialty, u.personaId, p.nombreCompleto as name
+            FROM users u
+            LEFT JOIN personas p ON u.personaId = p.id
+            WHERE u.id = ?`,
+           id
+        );
+        
+        if (userRow) {
+            session.user = {
+                id: userRow.id,
+                username: userRow.username,
+                role: userRow.role,
+                specialty: userRow.specialty,
+                personaId: userRow.personaId,
+                name: userRow.name || userRow.username,
+            };
+            await session.save();
+        }
+    }
+
     const updatedUser = await db.get('SELECT id, username, role, specialty, personaId FROM users WHERE id = ?', id);
     return updatedUser;
 }
