@@ -21,6 +21,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { useUser } from './app-shell';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
@@ -48,6 +49,7 @@ interface PatientQueueProps {
 
 export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   const { toast } = useToast();
+  const user = useUser();
   const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
@@ -169,7 +171,8 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
                                 </div>
                                 <WaitTimeStopwatch startTime={patient.checkInTime} />
                             </div>
-                            {(patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
+                            {(user.role === 'superuser' || user.role === 'doctor') &&
+                                (patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
                                 <Button 
                                     onClick={() => handleStartOrContinueConsultation(patient)} 
                                     size="sm" 
