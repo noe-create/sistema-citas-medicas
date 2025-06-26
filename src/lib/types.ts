@@ -140,3 +140,48 @@ export interface CreateConsultationInput {
 export interface PacienteConInfo extends Persona {
     roles: string[];
 }
+
+// For Treatment Log
+export interface TreatmentOrder {
+  id: string;
+  pacienteId: string;
+  procedureDescription: string;
+  frequency: string;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+  status: 'Activo' | 'Completado' | 'Cancelado';
+  createdAt: Date;
+  // Denormalized for display
+  pacienteNombre: string;
+  pacienteCedula: string;
+}
+
+export interface CreateTreatmentOrderInput {
+  pacienteId: string;
+  procedureDescription: string;
+  frequency: string;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+}
+
+export interface TreatmentExecution {
+  id: string;
+  treatmentOrderId: string;
+  executionTime: Date;
+  observations: string;
+  executedBy: string; // e.g., 'Dr. Smith'
+  // Denormalized
+  procedureDescription: string;
+  pacienteId: string;
+}
+
+export interface CreateTreatmentExecutionInput {
+  treatmentOrderId: string;
+  observations: string;
+}
+
+export type HistoryEntry =
+  | { type: 'consultation'; data: Consultation }
+  | { type: 'treatment_execution'; data: TreatmentExecution };

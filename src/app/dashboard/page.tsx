@@ -11,6 +11,7 @@ import {
   FileHeart,
   Contact,
   ClipboardList,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -32,6 +33,12 @@ const menuOptions = [
     icon: <FileHeart className="h-8 w-8 text-primary" />,
     title: 'Historia Clínica (HCE)',
     description: 'Busque y consulte el historial de los pacientes.',
+  },
+   {
+    href: '/dashboard/bitacora',
+    icon: <ClipboardCheck className="h-8 w-8 text-primary" />,
+    title: 'Bitácora de Tratamiento',
+    description: 'Cree y siga las órdenes de tratamiento.',
   },
   {
     href: '/dashboard/personas',

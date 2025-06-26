@@ -14,7 +14,12 @@ import type {
     SearchResult,
     TitularType,
     BeneficiarioConTitular,
-    PacienteConInfo
+    PacienteConInfo,
+    TreatmentOrder,
+    CreateTreatmentOrderInput,
+    CreateTreatmentExecutionInput,
+    TreatmentExecution,
+    HistoryEntry
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -575,37 +580,65 @@ export async function updatePatientStatus(id: string, status: PatientStatus): Pr
 
 // --- EHR Actions ---
 
-export async function getPatientHistory(personaId: string): Promise<Consultation[]> {
+export async function getPatientHistory(personaId: string): Promise<HistoryEntry[]> {
     const db = await getDb();
     
     const paciente = await db.get('SELECT id FROM pacientes WHERE personaId = ?', personaId);
-    if (!paciente) return []; // No patient record, so no history.
+    if (!paciente) return [];
 
     const consultationsRows = await db.all(
-        'SELECT * FROM consultations WHERE pacienteId = ? ORDER BY consultationDate DESC',
+        'SELECT * FROM consultations WHERE pacienteId = ?',
         paciente.id
     );
 
-    const consultations: Consultation[] = await Promise.all(
+    const consultations: HistoryEntry[] = await Promise.all(
         consultationsRows.map(async (row) => {
             const diagnoses = await db.all(
                 'SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?',
                 row.id
             );
-             const documents = await db.all(
+            const documents = await db.all(
                 'SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC',
                 row.id
             );
             return {
-                ...row,
-                consultationDate: new Date(row.consultationDate),
-                diagnoses,
-                documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+                type: 'consultation' as const,
+                data: {
+                    ...row,
+                    consultationDate: new Date(row.consultationDate),
+                    diagnoses,
+                    documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+                }
             };
         })
     );
-    return consultations;
+
+    const treatmentExecutionsRows = await db.all(`
+        SELECT te.*, tro.procedureDescription, tro.pacienteId
+        FROM treatment_executions te
+        JOIN treatment_orders tro ON te.treatmentOrderId = tro.id
+        WHERE tro.pacienteId = ?
+    `, paciente.id);
+
+    const treatmentExecutions: HistoryEntry[] = treatmentExecutionsRows.map(row => ({
+        type: 'treatment_execution' as const,
+        data: {
+            ...row,
+            executionTime: new Date(row.executionTime),
+        }
+    }));
+    
+    const allHistory = [...consultations, ...treatmentExecutions];
+    
+    allHistory.sort((a, b) => {
+        const dateA = a.type === 'consultation' ? a.data.consultationDate : a.data.executionTime;
+        const dateB = b.type === 'consultation' ? b.data.consultationDate : b.data.executionTime;
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    return allHistory;
 }
+
 
 export async function createConsultation(data: CreateConsultationInput): Promise<Consultation> {
     const db = await getDb();
@@ -659,6 +692,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     }
 
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/hce');
+
     
     const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
 
@@ -784,6 +819,8 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
     revalidatePath('/dashboard/pacientes'); // Titulares
     revalidatePath('/dashboard/beneficiarios');
     revalidatePath('/dashboard/lista-pacientes');
+    revalidatePath('/dashboard/bitacora');
+
 
     const updatedPersona = await db.get('SELECT * FROM personas WHERE id = ?', personaId);
     return { ...updatedPersona, fechaNacimiento: new Date(updatedPersona.fechaNacimiento) };
@@ -804,6 +841,8 @@ export async function deletePersona(personaId: string): Promise<{ success: boole
     revalidatePath('/dashboard/pacientes'); // Titulares
     revalidatePath('/dashboard/beneficiarios');
     revalidatePath('/dashboard/lista-pacientes');
+    revalidatePath('/dashboard/bitacora');
+
 
     return { success: true };
 }
@@ -872,4 +911,116 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
             roles: roles.length > 0 ? roles : ['Paciente'],
         };
     });
+}
+
+// --- Treatment Log Actions ---
+
+export async function getPacienteByPersonaId(personaId: string): Promise<{ id: string } | null> {
+    const db = await getDb();
+    const paciente = await db.get('SELECT id FROM pacientes WHERE personaId = ?', personaId);
+    return paciente;
+}
+
+export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder[]> {
+    const db = await getDb();
+    let selectQuery = `
+        SELECT
+            o.id, o.pacienteId, o.procedureDescription, o.frequency, o.startDate, o.endDate, o.notes, o.status, o.createdAt,
+            p.nombreCompleto as pacienteNombre,
+            p.cedula as pacienteCedula
+        FROM treatment_orders o
+        JOIN pacientes pac ON o.pacienteId = pac.id
+        JOIN personas p ON pac.personaId = p.id
+    `;
+    const params: any[] = [];
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        selectQuery += `
+            WHERE p.nombreCompleto LIKE ? OR p.cedula LIKE ? OR o.procedureDescription LIKE ?
+        `;
+        params.push(searchQuery, searchQuery, searchQuery);
+    }
+    selectQuery += ' ORDER BY o.createdAt DESC';
+    const rows = await db.all(selectQuery, ...params);
+    return rows.map((row: any) => ({
+        ...row,
+        startDate: new Date(row.startDate),
+        endDate: new Date(row.endDate),
+        createdAt: new Date(row.createdAt),
+    }));
+}
+
+export async function createTreatmentOrder(data: CreateTreatmentOrderInput): Promise<TreatmentOrder> {
+    const db = await getDb();
+    const orderId = generateId('to');
+    const createdAt = new Date();
+    
+    await db.run(
+        'INSERT INTO treatment_orders (id, pacienteId, procedureDescription, frequency, startDate, endDate, notes, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        orderId,
+        data.pacienteId,
+        data.procedureDescription,
+        data.frequency,
+        data.startDate.toISOString(),
+        data.endDate.toISOString(),
+        data.notes,
+        'Activo',
+        createdAt.toISOString()
+    );
+
+    revalidatePath('/dashboard/bitacora');
+
+    const patientInfo = await db.get('SELECT p.nombreCompleto, p.cedula FROM pacientes pac JOIN personas p ON pac.personaId = p.id WHERE pac.id = ?', data.pacienteId);
+
+    return {
+        id: orderId,
+        ...data,
+        status: 'Activo',
+        createdAt,
+        pacienteNombre: patientInfo.nombreCompleto,
+        pacienteCedula: patientInfo.cedula,
+    };
+}
+
+
+export async function createTreatmentExecution(data: CreateTreatmentExecutionInput): Promise<TreatmentExecution> {
+    const db = await getDb();
+    const executionId = generateId('te');
+    const executionTime = new Date();
+
+    await db.run(
+        'INSERT INTO treatment_executions (id, treatmentOrderId, executionTime, observations, executedBy) VALUES (?, ?, ?, ?, ?)',
+        executionId,
+        data.treatmentOrderId,
+        executionTime.toISOString(),
+        data.observations,
+        'Dr. Smith' // Hardcoded for now
+    );
+    
+    const orderInfo = await db.get('SELECT procedureDescription, pacienteId FROM treatment_orders WHERE id = ?', data.treatmentOrderId);
+    
+    revalidatePath('/dashboard/bitacora');
+    revalidatePath('/dashboard/hce');
+    
+    return {
+        id: executionId,
+        treatmentOrderId: data.treatmentOrderId,
+        executionTime,
+        observations: data.observations,
+        executedBy: 'Dr. Smith',
+        procedureDescription: orderInfo.procedureDescription,
+        pacienteId: orderInfo.pacienteId
+    };
+}
+
+export async function updateTreatmentOrderStatus(orderId: string, status: 'Activo' | 'Completado' | 'Cancelado'): Promise<{ success: boolean }> {
+    const db = await getDb();
+    const result = await db.run(
+        'UPDATE treatment_orders SET status = ? WHERE id = ?',
+        status,
+        orderId
+    );
+    if (result.changes === 0) throw new Error('Orden de tratamiento no encontrada');
+    revalidatePath('/dashboard/bitacora');
+    return { success: true };
 }

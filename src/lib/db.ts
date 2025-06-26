@@ -128,6 +128,28 @@ async function createTables(dbInstance: Database): Promise<void> {
             code TEXT PRIMARY KEY,
             description TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS treatment_orders (
+            id TEXT PRIMARY KEY,
+            pacienteId TEXT NOT NULL,
+            procedureDescription TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            startDate TEXT NOT NULL,
+            endDate TEXT NOT NULL,
+            notes TEXT,
+            status TEXT NOT NULL DEFAULT 'Activo',
+            createdAt TEXT NOT NULL,
+            FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS treatment_executions (
+            id TEXT PRIMARY KEY,
+            treatmentOrderId TEXT NOT NULL,
+            executionTime TEXT NOT NULL,
+            observations TEXT NOT NULL,
+            executedBy TEXT NOT NULL,
+            FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
+        );
     `);
 }
 
