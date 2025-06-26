@@ -19,7 +19,9 @@ import type {
     CreateTreatmentOrderInput,
     CreateTreatmentExecutionInput,
     TreatmentExecution,
-    HistoryEntry
+    HistoryEntry,
+    MorbidityReportRow,
+    OperationalReportData
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -651,9 +653,10 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         await db.exec('BEGIN TRANSACTION');
         
         await db.run(
-            'INSERT INTO consultations (id, pacienteId, consultationDate, anamnesis, physicalExam, treatmentPlan) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO consultations (id, pacienteId, waitlistId, consultationDate, anamnesis, physicalExam, treatmentPlan) VALUES (?, ?, ?, ?, ?, ?, ?)',
             consultationId,
             data.pacienteId,
+            data.waitlistId,
             consultationDate.toISOString(),
             data.anamnesis,
             data.physicalExam,
@@ -702,6 +705,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     return {
         id: consultationId,
         pacienteId: data.pacienteId,
+        waitlistId: data.waitlistId,
         consultationDate,
         anamnesis: data.anamnesis,
         physicalExam: data.physicalExam,
@@ -1080,4 +1084,88 @@ export async function updateTreatmentOrderStatus(orderId: string, status: 'Activ
     if (result.changes === 0) throw new Error('Orden de tratamiento no encontrada');
     revalidatePath('/dashboard/bitacora');
     return { success: true };
+}
+
+
+// --- Reports Actions ---
+
+export async function getMorbidityReport(filters: { from: Date; to: Date; accountType?: string; empresaId?: string; }): Promise<MorbidityReportRow[]> {
+    const db = await getDb();
+    const { from, to, accountType, empresaId } = filters;
+    
+    let query = `
+        SELECT
+            cd.cie10Code,
+            cd.cie10Description,
+            COUNT(cd.id) as frequency
+        FROM consultation_diagnoses cd
+        JOIN consultations c ON cd.consultationId = c.id
+    `;
+    const params: any[] = [];
+    const whereClauses: string[] = [];
+
+    whereClauses.push(`c.consultationDate BETWEEN ? AND ?`);
+    params.push(from.toISOString(), to.toISOString());
+
+    if (accountType || empresaId) {
+        query += ` JOIN waitlist w ON c.waitlistId = w.id `;
+        if (accountType) {
+            whereClauses.push(`w.accountType = ?`);
+            params.push(accountType);
+        }
+        if (empresaId) {
+            query += ` JOIN titulares t ON w.personaId = t.personaId `;
+            whereClauses.push(`t.empresaId = ?`);
+            params.push(empresaId);
+        }
+    }
+    
+    if (whereClauses.length > 0) {
+        query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    query += `
+        GROUP BY cd.cie10Code, cd.cie10Description
+        ORDER BY frequency DESC
+    `;
+    
+    const data = await db.all(query, ...params);
+    return data;
+}
+
+export async function getOperationalReport(filters: { from: Date, to: Date }): Promise<OperationalReportData> {
+    const db = await getDb();
+    const { from, to } = filters;
+
+    const fromISO = from.toISOString();
+    const toISO = to.toISOString();
+
+    const stayTimeResult = await db.get(`
+        SELECT AVG(strftime('%s', c.consultationDate) - strftime('%s', w.checkInTime)) as avgStaySeconds
+        FROM consultations c
+        JOIN waitlist w ON c.waitlistId = w.id
+        WHERE c.consultationDate BETWEEN ? AND ?
+    `, fromISO, toISO);
+
+    const patientsPerDay = await db.all(`
+        SELECT
+            DATE(consultationDate) as day,
+            COUNT(id) as patientCount
+        FROM consultations
+        WHERE consultationDate BETWEEN ? AND ?
+        GROUP BY day
+        ORDER BY day ASC
+    `, fromISO, toISO);
+
+    const totalPatientsResult = await db.get(`
+        SELECT COUNT(id) as total
+        FROM consultations
+        WHERE consultationDate BETWEEN ? AND ?
+    `, fromISO, toISO);
+
+    return {
+        avgStaySeconds: stayTimeResult?.avgStaySeconds || 0,
+        patientsPerDay,
+        totalPatients: totalPatientsResult?.total || 0,
+    };
 }

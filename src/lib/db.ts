@@ -97,6 +97,7 @@ async function createTables(dbInstance: Database): Promise<void> {
         CREATE TABLE IF NOT EXISTS consultations (
             id TEXT PRIMARY KEY,
             pacienteId TEXT NOT NULL,
+            waitlistId TEXT,
             consultationDate TEXT NOT NULL,
             anamnesis TEXT,
             physicalExam TEXT,

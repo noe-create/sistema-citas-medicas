@@ -120,6 +120,7 @@ export interface ConsultationDocument {
 export interface Consultation {
   id: string;
   pacienteId: string;
+  waitlistId?: string;
   consultationDate: Date;
   anamnesis: string;
   physicalExam: string;
@@ -194,3 +195,16 @@ export interface CreateTreatmentExecutionInput {
 export type HistoryEntry =
   | { type: 'consultation'; data: Consultation }
   | { type: 'treatment_execution'; data: TreatmentExecution };
+
+// For Reports
+export interface MorbidityReportRow {
+  cie10Code: string;
+  cie10Description: string;
+  frequency: number;
+}
+
+export interface OperationalReportData {
+  avgStaySeconds: number;
+  totalPatients: number;
+  patientsPerDay: { day: string; patientCount: number }[];
+}

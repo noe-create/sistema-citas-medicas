@@ -13,6 +13,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   Code2,
+  AreaChart,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -40,6 +41,12 @@ const menuOptions = [
     icon: <ClipboardCheck className="h-8 w-8 text-primary" />,
     title: 'Bitácora de Tratamiento',
     description: 'Cree y siga las órdenes de tratamiento.',
+  },
+  {
+    href: '/dashboard/reportes',
+    icon: <AreaChart className="h-8 w-8 text-primary" />,
+    title: 'Reportes',
+    description: 'Visualice métricas y reportes de morbilidad.',
   },
   {
     href: '/dashboard/cie10',
