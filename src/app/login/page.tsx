@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const [errorMessage, formAction] = useFormState(login, undefined);
+  const [errorMessage, formAction] = React.useActionState(login, undefined);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
