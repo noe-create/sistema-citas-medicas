@@ -141,6 +141,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
       const { codigo: codigoTelefono, numero: numeroTelefono } = parseTelefono(selectedPersona.telefono);
       const { codigo: codigoCelular, numero: numeroCelular } = parseTelefono(selectedPersona.telefonoCelular);
       form.reset({
+        ...form.getValues(),
         nombreCompleto: selectedPersona.nombreCompleto,
         nacionalidad,
         cedula,
@@ -151,11 +152,8 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
         codigoCelular,
         numeroCelular,
         email: selectedPersona.email || '',
-        tipo: form.getValues('tipo'),
-        empresaId: form.getValues('empresaId'),
       });
     } else if (titular) {
-        // If selection is cleared, go back to editing the titular
         const { nacionalidad, cedula } = parseCedula(titular.persona.cedula);
         const { codigo: codigoTelefono, numero: numeroTelefono } = parseTelefono(titular.persona.telefono);
         const { codigo: codigoCelular, numero: numeroCelular } = parseTelefono(titular.persona.telefonoCelular);
@@ -173,18 +171,8 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
           tipo: titular.tipo || undefined,
           empresaId: titular.empresaId || undefined,
         });
-    } else {
-        // Or clear the form for new creation
-        const currentTipo = form.getValues('tipo');
-        const currentEmpresaId = form.getValues('empresaId');
-        form.reset({
-            nombreCompleto: '', cedula: '', fechaNacimiento: undefined, genero: undefined,
-            codigoTelefono: undefined, numeroTelefono: '', codigoCelular: undefined, numeroCelular: '',
-            email: '', nacionalidad: 'V',
-            tipo: currentTipo, empresaId: currentEmpresaId,
-        });
     }
-  }, [selectedPersona, titular, form]);
+  }, [selectedPersona, titular, form.reset, form.getValues]);
 
 
   async function onSubmit(values: PatientFormValues) {

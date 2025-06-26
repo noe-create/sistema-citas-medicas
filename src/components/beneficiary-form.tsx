@@ -63,7 +63,9 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
   const isPersonaSelected = !!selectedPersona;
 
   React.useEffect(() => {
-    // Populate form if an existing person is selected
+    // This effect will run when `selectedPersona` or `beneficiario` changes.
+    // It prioritizes the `selectedPersona` to populate the form.
+    // If no persona is selected, it falls back to the `beneficiario` prop for editing.
     if (selectedPersona) {
       form.reset({
         nombreCompleto: selectedPersona.nombreCompleto,
@@ -74,23 +76,18 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
         telefono: selectedPersona.telefono || '',
         telefonoCelular: selectedPersona.telefonoCelular || '',
       });
+    } else if (beneficiario) {
+      form.reset({
+        nombreCompleto: beneficiario.persona.nombreCompleto,
+        cedula: beneficiario.persona.cedula,
+        fechaNacimiento: new Date(beneficiario.persona.fechaNacimiento),
+        genero: beneficiario.persona.genero,
+        email: beneficiario.persona.email || '',
+        telefono: beneficiario.persona.telefono || '',
+        telefonoCelular: beneficiario.persona.telefonoCelular || '',
+      });
     }
-  }, [selectedPersona, form]);
-  
-  React.useEffect(() => {
-    // Populate form if editing an existing beneficiary
-    if (beneficiario) {
-        form.reset({
-            nombreCompleto: beneficiario.persona.nombreCompleto,
-            cedula: beneficiario.persona.cedula,
-            fechaNacimiento: new Date(beneficiario.persona.fechaNacimiento),
-            genero: beneficiario.persona.genero,
-            email: beneficiario.persona.email || '',
-            telefono: beneficiario.persona.telefono || '',
-            telefonoCelular: beneficiario.persona.telefonoCelular || '',
-        });
-    }
-  }, [beneficiario, form]);
+  }, [selectedPersona, beneficiario, form.reset]);
 
   async function onSubmit(values: BeneficiaryFormValues) {
     setIsSubmitting(true);

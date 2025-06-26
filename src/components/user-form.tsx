@@ -58,9 +58,10 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
     },
   });
   
-  const handlePersonaSelect = (persona: Persona | null) => {
+  const handlePersonaSelect = React.useCallback((persona: Persona | null) => {
       form.setValue('personaId', persona?.id || '', { shouldValidate: true });
-  }
+  }, [form]);
+  
 
   async function onSubmit(values: any) {
     setIsSubmitting(true);
