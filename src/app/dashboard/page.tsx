@@ -10,7 +10,7 @@ import {
   Building,
   FileHeart,
   Contact,
-  ClipboardUser,
+  ClipboardList,
 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
@@ -41,7 +41,7 @@ const menuOptions = [
   },
   {
     href: '/dashboard/lista-pacientes',
-    icon: <ClipboardUser className="h-8 w-8 text-primary" />,
+    icon: <ClipboardList className="h-8 w-8 text-primary" />,
     title: 'Lista de Pacientes',
     description: 'Consulte los pacientes con historial médico.',
   },

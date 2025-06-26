@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardUser } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 tooltip="Lista de Pacientes"
               >
                 <Link href="/dashboard/lista-pacientes">
-                  <ClipboardUser />
+                  <ClipboardList />
                   <span>Lista de Pacientes</span>
                 </Link>
               </SidebarMenuButton>
