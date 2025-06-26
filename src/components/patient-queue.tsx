@@ -79,9 +79,6 @@ export function PatientQueue({ patients, onListRefresh }: PatientQueueProps) {
   }
 
   const handleManagePatient = (patient: Patient) => {
-    if(patient.status === 'Esperando') {
-        handleStatusChange(patient.id, 'En Consulta');
-    }
     setSelectedPatientId(patient.id);
     setIsSheetOpen(true);
   };

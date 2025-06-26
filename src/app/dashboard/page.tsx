@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     fetchWaitlist();
-    const intervalId = setInterval(fetchWaitlist, 30000); // Poll every 30 seconds
+    const intervalId = setInterval(fetchWaitlist, 10000); // Poll every 10 seconds
 
     return () => clearInterval(intervalId);
   }, [fetchWaitlist]);
