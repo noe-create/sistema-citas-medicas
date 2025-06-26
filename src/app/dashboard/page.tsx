@@ -56,7 +56,7 @@ export default function DashboardPage() {
           <Link href={option.href} key={option.href} className="flex">
             <Card className="flex flex-col w-full transition-colors hover:bg-muted/50">
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex items-center justify-between">
                     <div className="flex flex-col space-y-1.5">
                         <CardTitle className="text-xl font-bold">{option.title}</CardTitle>
                         <CardDescription className="text-sm text-muted-foreground">{option.description}</CardDescription>
