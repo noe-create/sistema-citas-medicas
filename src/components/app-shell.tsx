@@ -16,7 +16,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, LogOut, Stethoscope, Users, User, Building, ClipboardPlus } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarInset>
           <SidebarHeader className="p-4">
             <div className="flex items-center gap-3">
@@ -44,10 +44,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === '/dashboard'}
-                  tooltip="Sala de Espera"
+                  tooltip="Dashboard"
                 >
                   <Link href="/dashboard">
-                    <LayoutGrid />
+                    <LayoutDashboard />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith('/dashboard/sala-de-espera')}
+                  tooltip="Sala de Espera"
+                >
+                  <Link href="/dashboard/sala-de-espera">
+                    <Clock />
                     <span>Sala de Espera</span>
                   </Link>
                 </SidebarMenuButton>
@@ -141,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
-          <SidebarTrigger className="md:hidden" />
+          <SidebarTrigger />
           <div className="flex-1">
              {/* Header content can go here */}
           </div>
