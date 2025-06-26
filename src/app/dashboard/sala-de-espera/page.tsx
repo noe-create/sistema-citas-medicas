@@ -11,9 +11,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { PatientQueue } from '@/components/patient-queue';
-import { PatientCheckinForm, type CheckinData } from '@/components/patient-checkin-form';
+import { PatientCheckinForm, type RegistrationData } from '@/components/patient-checkin-form';
 import { PlusCircle, RefreshCw } from 'lucide-react';
-import type { Patient, TitularType, AccountType, ServiceType, SearchResult } from '@/lib/types';
+import type { Patient, TitularType, AccountType, ServiceType, SearchResult, PatientKind } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getWaitlist, addPatientToWaitlist, getTitularTypeByTitularId } from '@/actions/patient-actions';
 
@@ -57,11 +57,14 @@ export default function SalaDeEsperaPage() {
   }, [fetchWaitlist]);
 
 
-  const handleCheckinSubmit = async (data: CheckinData) => {
-    if (patientQueue.some(p => p.personaId === data.persona.id && p.status !== 'Completado')) {
+  const handleRegistrationSubmit = async (data: RegistrationData) => {
+    const { searchResult, serviceType } = data;
+    const persona = searchResult.persona;
+
+    if (patientQueue.some(p => p.personaId === persona.id && p.status !== 'Completado')) {
       toast({
         title: 'Paciente ya en cola',
-        description: `${data.persona.nombreCompleto} ya se encuentra en la cola de espera.`,
+        description: `${persona.nombreCompleto} ya se encuentra en la cola de espera.`,
         variant: 'destructive',
       });
       return;
@@ -69,21 +72,33 @@ export default function SalaDeEsperaPage() {
 
     try {
       let accountType: AccountType;
+      let kind: PatientKind;
 
-      if (data.checkinAs === 'titular') {
-          const titularType = data.searchResult.titularInfo!.tipo;
-          accountType = titularTypeToAccountType(titularType);
-      } else { // beneficiary
-          const titularType = await getTitularTypeByTitularId(data.checkinAs.titularId);
+      // Prioritize Titular role
+      if (searchResult.titularInfo) {
+          kind = 'titular';
+          accountType = titularTypeToAccountType(searchResult.titularInfo.tipo);
+      } else if (searchResult.beneficiarioDe && searchResult.beneficiarioDe.length > 0) {
+          kind = 'beneficiario';
+          // If beneficiary of multiple, pick the first one to determine account type.
+          const titularId = searchResult.beneficiarioDe[0].titularId;
+          const titularType = await getTitularTypeByTitularId(titularId);
           if (!titularType) throw new Error("No se pudo determinar el tipo de cuenta del titular.");
           accountType = titularTypeToAccountType(titularType);
+      } else {
+           toast({
+            title: 'No se puede registrar',
+            description: `${persona.nombreCompleto} no es un miembro válido (titular o beneficiario).`,
+            variant: 'destructive',
+          });
+          return;
       }
 
       const newPatientData: Omit<Patient, 'id' | 'pacienteId'> = {
-          personaId: data.persona.id,
-          name: data.persona.nombreCompleto,
-          kind: data.checkinAs === 'titular' ? 'titular' : 'beneficiario',
-          serviceType: data.serviceType,
+          personaId: persona.id,
+          name: persona.nombreCompleto,
+          kind: kind,
+          serviceType: serviceType,
           accountType: accountType,
           status: 'Esperando',
           checkInTime: new Date(),
@@ -111,7 +126,7 @@ export default function SalaDeEsperaPage() {
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="font-headline text-3xl font-bold tracking-tight">Sala de Espera y Check-in</h2>
+        <h2 className="font-headline text-3xl font-bold tracking-tight">Sala de Espera y Registro</h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={fetchWaitlist} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -120,17 +135,17 @@ export default function SalaDeEsperaPage() {
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Realizar Check-in
+                Registrar Paciente
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-xl">
               <DialogHeader>
-                <DialogTitle>Check-in de Paciente</DialogTitle>
+                <DialogTitle>Registro de Paciente</DialogTitle>
                 <DialogDescription>
-                  Busque una persona y seleccione el rol y servicio para añadirlo a la cola.
+                  Busque una persona y seleccione el servicio para añadirla a la cola.
                 </DialogDescription>
               </DialogHeader>
-              <PatientCheckinForm onSubmitted={handleCheckinSubmit} />
+              <PatientCheckinForm onSubmitted={handleRegistrationSubmit} />
             </DialogContent>
           </Dialog>
         </div>
