@@ -258,10 +258,10 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
             p.telefonoCelular, 
             p.email,
             p_titular.nombreCompleto as titularNombre
-        FROM beneficiarios AS b
-        JOIN personas AS p ON b.personaId = p.id
-        JOIN titulares AS t ON b.titularId = t.id
-        JOIN personas AS p_titular ON t.personaId = p_titular.id
+        FROM beneficiarios b
+        JOIN personas p ON b.personaId = p.id
+        JOIN titulares t ON b.titularId = t.id
+        JOIN personas p_titular ON t.personaId = p_titular.id
     `;
     const params: any[] = [];
     
