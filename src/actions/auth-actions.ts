@@ -184,10 +184,9 @@ export async function updateUser(id: string, data: {
 }
 
 export async function deleteUser(id: string) {
+    await ensureSuperuser();
+    
     const session = await getSession();
-    if (session.user?.role !== 'superuser') {
-        throw new Error('Acción no autorizada. Se requiere rol de superusuario.');
-    }
     if (session.user?.id === id) {
         throw new Error('No puede eliminar su propio usuario.');
     }

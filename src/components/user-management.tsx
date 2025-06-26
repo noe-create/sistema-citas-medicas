@@ -39,9 +39,9 @@ export function UserManagement() {
       try {
         const data = await getUsers(currentSearch);
         setUsers(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching users:", error);
-        toast({ title: 'Error', description: 'No se pudieron cargar los usuarios.', variant: 'destructive' });
+        toast({ title: 'Error de Permiso', description: error.message || 'No se pudieron cargar los usuarios.', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }

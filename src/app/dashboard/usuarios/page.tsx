@@ -1,14 +1,10 @@
 import { UserManagement } from '@/components/user-management';
-import { getSession } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 
 export default async function UsuariosPage() {
-  const session = await getSession();
-  // Authorization is now handled in the page component and the server actions.
-  // The link to this page is only shown to superusers in app-shell.
-  if (session.user?.role !== 'superuser') {
-    redirect('/dashboard');
-  }
+  // La autorización ahora se maneja en dos niveles:
+  // 1. La interfaz de usuario (menú lateral) solo muestra el enlace a los superusuarios.
+  // 2. Las Server Actions (getUsers, createUser, etc.) lanzan un error si el rol no es 'superuser'.
+  // Esta comprobación a nivel de página era redundante y causaba problemas de sesión.
 
   return (
     <div className="flex-1 space-y-4">
