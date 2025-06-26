@@ -23,7 +23,7 @@ export function BeneficiaryList() {
       setIsLoading(true);
       try {
         const data = await getAllBeneficiarios(search);
-        setBeneficiarios(data.map(b => ({...b, fechaNacimiento: new Date(b.fechaNacimiento)})));
+        setBeneficiarios(data);
       } catch (error) {
         console.error("Error al buscar beneficiarios:", error);
         toast({ title: 'Error', description: 'No se pudieron cargar los beneficiarios.', variant: 'destructive' });
@@ -72,10 +72,10 @@ export function BeneficiaryList() {
                 {beneficiarios.length > 0 ? (
                 beneficiarios.map((beneficiario) => (
                     <TableRow key={beneficiario.id}>
-                    <TableCell className="font-medium">{beneficiario.nombreCompleto}</TableCell>
-                    <TableCell>{beneficiario.cedula}</TableCell>
-                    <TableCell>{format(beneficiario.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
-                    <TableCell>{beneficiario.genero}</TableCell>
+                    <TableCell className="font-medium">{beneficiario.persona.nombreCompleto}</TableCell>
+                    <TableCell>{beneficiario.persona.cedula}</TableCell>
+                    <TableCell>{format(beneficiario.persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
+                    <TableCell>{beneficiario.persona.genero}</TableCell>
                     <TableCell>
                         <Badge variant="secondary">{beneficiario.titularNombre}</Badge>
                     </TableCell>

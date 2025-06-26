@@ -248,7 +248,7 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
     let selectQuery = `
         SELECT 
             b.id, b.personaId, b.titularId,
-            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero,
+            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email,
             pt.nombreCompleto as titularNombre
         FROM beneficiarios b
         JOIN personas p ON b.personaId = p.id
@@ -270,16 +270,21 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
     selectQuery += ' ORDER BY p.nombreCompleto';
     
     const rows = await db.all(selectQuery, ...params);
-    // This function return type is a bit of a legacy, let's adapt
     return rows.map((row: any) => ({
         id: row.id,
         personaId: row.personaId,
         titularId: row.titularId,
-        nombreCompleto: row.nombreCompleto,
-        cedula: row.cedula,
-        fechaNacimiento: new Date(row.fechaNacimiento),
-        genero: row.genero,
         titularNombre: row.titularNombre,
+        persona: {
+            id: row.personaId,
+            nombreCompleto: row.nombreCompleto,
+            cedula: row.cedula,
+            fechaNacimiento: new Date(row.fechaNacimiento),
+            genero: row.genero,
+            telefono: row.telefono,
+            telefonoCelular: row.telefonoCelular,
+            email: row.email,
+        }
     }));
 }
 
