@@ -54,7 +54,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             genero TEXT NOT NULL,
             telefono TEXT,
             telefonoCelular TEXT,
-            email TEXT UNIQUE
+            email TEXT
         );
 
         CREATE TABLE IF NOT EXISTS pacientes (
@@ -154,11 +154,20 @@ async function createTables(dbInstance: Database): Promise<void> {
         );
     `);
 
+    // Simple migration block to ensure older DBs have new columns
+    try {
+        await dbInstance.exec('ALTER TABLE users ADD COLUMN personaId TEXT');
+    } catch (error: any) {
+        if (!error.message.includes('duplicate column name')) {
+             console.error("An unexpected error occurred during database migration (users.personaId):", error);
+        }
+    }
+
     try {
         await dbInstance.exec('ALTER TABLE consultations ADD COLUMN waitlistId TEXT');
     } catch (error: any) {
         if (!error.message.includes('duplicate column name')) {
-             console.error("An unexpected error occurred during database migration:", error);
+             console.error("An unexpected error occurred during database migration (consultations.waitlistId):", error);
         }
     }
 }
