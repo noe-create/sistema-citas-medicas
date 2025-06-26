@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ChevronsUpDown, Loader2, UserCheck, Users } from 'lucide-react';
 import { searchPeopleForCheckin } from '@/actions/patient-actions';
 import type { Persona, SearchResult, ServiceType } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, calculateAge } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 
@@ -62,6 +62,21 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
     return !!selectedResult.titularInfo || (!!selectedResult.beneficiarioDe && selectedResult.beneficiarioDe.length > 0);
   }, [selectedResult]);
 
+  const age = selectedResult ? calculateAge(new Date(selectedResult.persona.fechaNacimiento)) : null;
+
+  const availableServices = React.useMemo(() => {
+    const services: { value: ServiceType; label: string }[] = [];
+    if (age === null) return services;
+    
+    if (age < 18) {
+        services.push({ value: 'consulta pediatrica', label: 'Consulta Pediátrica' });
+    } else {
+        services.push({ value: 'medicina general', label: 'Medicina General' });
+    }
+    services.push({ value: 'servicio de enfermeria', label: 'Servicio de Enfermería' });
+    
+    return services;
+  }, [age]);
 
   async function onSubmit(values: FormValues) {
     if (!selectedResult || !isPersonValid) return;
@@ -94,16 +109,16 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
                       render={({ field }) => (
                       <FormItem>
                           <FormLabel>Tipo de Servicio</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!isPersonValid || availableServices.length === 0}>
                           <FormControl>
                               <SelectTrigger>
                               <SelectValue placeholder="Seleccione un servicio" />
                               </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              <SelectItem value="medicina general" className="capitalize">Medicina General</SelectItem>
-                              <SelectItem value="consulta pediatrica" className="capitalize">Consulta Pediátrica</SelectItem>
-                              <SelectItem value="servicio de enfermeria" className="capitalize">Servicio de Enfermería</SelectItem>
+                              {availableServices.map(service => (
+                                <SelectItem key={service.value} value={service.value} className="capitalize">{service.label}</SelectItem>
+                              ))}
                           </SelectContent>
                           </Select>
                           <FormMessage />
