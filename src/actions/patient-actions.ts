@@ -247,35 +247,35 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
     const db = await getDb();
     let selectQuery = `
         SELECT 
-            ben.id, 
-            ben.personaId, 
-            ben.titularId,
-            p_ben.nombreCompleto, 
-            p_ben.cedula, 
-            p_ben.fechaNacimiento, 
-            p_ben.genero, 
-            p_ben.telefono, 
-            p_ben.telefonoCelular, 
-            p_ben.email,
-            p_tit.nombreCompleto as titularNombre
-        FROM beneficiarios AS ben
-        JOIN personas AS p_ben ON ben.personaId = p_ben.id
-        JOIN titulares AS t ON ben.titularId = t.id
-        JOIN personas AS p_tit ON t.personaId = p_tit.id
+            b.id, 
+            b.personaId, 
+            b.titularId,
+            p.nombreCompleto, 
+            p.cedula, 
+            p.fechaNacimiento, 
+            p.genero, 
+            p.telefono, 
+            p.telefonoCelular, 
+            p.email,
+            p_titular.nombreCompleto as titularNombre
+        FROM beneficiarios AS b
+        JOIN personas AS p ON b.personaId = p.id
+        JOIN titulares AS t ON b.titularId = t.id
+        JOIN personas AS p_titular ON t.personaId = p_titular.id
     `;
     const params: any[] = [];
     
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p_ben.nombreCompleto LIKE ? 
-            OR p_ben.cedula LIKE ? 
-            OR p_tit.nombreCompleto LIKE ?
+            WHERE p.nombreCompleto LIKE ? 
+            OR p.cedula LIKE ? 
+            OR p_titular.nombreCompleto LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
     
-    selectQuery += ' ORDER BY p_ben.nombreCompleto';
+    selectQuery += ' ORDER BY p.nombreCompleto';
     
     const rows = await db.all(selectQuery, ...params);
     return rows.map((row: any) => ({
