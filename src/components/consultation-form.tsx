@@ -9,12 +9,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2 } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Badge } from './ui/badge';
+import { generatePrescription, type GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
+import { PrescriptionDisplay } from './prescription-display';
+import { Separator } from './ui/separator';
 
 const consultationSchema = z.object({
   anamnesis: z.string().min(1, 'La anamnesis es obligatoria.'),
@@ -34,7 +37,9 @@ interface ConsultationFormProps {
 export function ConsultationForm({ patient, onConsultationComplete }: ConsultationFormProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
-    
+    const [isGenerating, setIsGenerating] = React.useState(false);
+    const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
+
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
         defaultValues: {
@@ -44,6 +49,12 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             diagnoses: [],
         }
     });
+
+    const { watch } = form;
+    const diagnoses = watch('diagnoses');
+    const treatmentPlan = watch('treatmentPlan');
+
+    const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan.trim().length > 0;
 
     async function onSubmit(values: z.infer<typeof consultationSchema>) {
         setIsSubmitting(true);
@@ -73,17 +84,45 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             setIsSubmitting(false);
         }
     }
+    
+    const handleGeneratePrescription = async () => {
+        setIsGenerating(true);
+        setPrescription(null);
+        try {
+            const formData = form.getValues();
+            const result = await generatePrescription({
+                patientName: patient.name,
+                diagnoses: formData.diagnoses,
+                treatmentPlan: formData.treatmentPlan,
+            });
+            setPrescription(result);
+             toast({
+                title: 'Récipe Generado',
+                description: 'El récipe médico ha sido generado por la IA.',
+            });
+        } catch (e) {
+            console.error(e);
+            toast({
+                title: 'Error al Generar Récipe',
+                description: 'No se pudo generar la receta. Por favor, intente de nuevo.',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Nueva Consulta</CardTitle>
-        <CardDescription>
-          Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
-        </CardDescription>
-      </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+                <CardTitle>Nueva Consulta</CardTitle>
+                <CardDescription>
+                Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
+                </CardDescription>
+            </CardHeader>
             <CardContent className="space-y-4">
                 <FormField
                     control={form.control}
@@ -132,7 +171,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                     name="treatmentPlan"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Plan de Tratamiento</FormLabel>
+                        <FormLabel>Plan de Tratamiento / Indicaciones</FormLabel>
                         <FormControl>
                             <Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={4} />
                         </FormControl>
@@ -140,8 +179,29 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                         </FormItem>
                     )}
                 />
+
+                <Separator className="my-6" />
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Asistente de Récipe Médico</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Use la IA para generar una receta médica formal basada en el plan de tratamiento.
+                    </p>
+                    <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                             <Wand2 className="mr-2 h-4 w-4" />
+                        )}
+                        Generar Récipe con IA
+                    </Button>
+                    {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan de tratamiento.</p>}
+
+                    {prescription && <PrescriptionDisplay prescription={prescription} />}
+                </div>
+
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-4">
                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Guardar y Completar Consulta

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  .prose {
+    @apply text-foreground;
+  }
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -84,5 +90,32 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-prescription, .printable-prescription * {
+    visibility: visible;
+  }
+  .printable-prescription {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    border: none;
+    box-shadow: none;
+    background: white !important;
+    color: black !important;
+  }
+  .printable-prescription .text-muted-foreground {
+    color: #555 !important;
+  }
+  .no-print {
+    display: none !important;
   }
 }
