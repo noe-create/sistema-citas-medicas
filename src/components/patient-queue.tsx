@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -57,10 +56,11 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const [patientToReschedule, setPatientToReschedule] = React.useState<Patient | null>(null);
 
   const statusOptionsForRole = React.useMemo(() => {
+    const baseOptions = ['Ausente', 'Pospuesto', 'Reevaluacion'];
     if (user?.role === 'asistencial') {
-      return ['Ausente', 'Pospuesto', 'Reevaluacion'];
+      return baseOptions;
     }
-    return ['Esperando', 'En Consulta', 'En Tratamiento', 'Ausente', 'Pospuesto', 'Reevaluacion'];
+    return ['Esperando', 'En Consulta', 'En Tratamiento', ...baseOptions];
   }, [user]);
 
   const selectedPatient = React.useMemo(
@@ -160,14 +160,26 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     return [];
   }, [user]);
 
-  const groupedPatients = visibleServices.reduce((acc, service) => {
+  const groupedPatients = (visibleServices || []).reduce((acc, service) => {
     acc[service] = (patients || []).filter(p => p.serviceType === service);
     return acc;
   }, {} as Record<ServiceType, Patient[]>);
 
+  const gridColsClass = React.useMemo(() => {
+    const count = visibleServices.length;
+    if (count === 1) {
+      return 'md:grid-cols-1';
+    }
+    if (count === 2) {
+      return 'md:grid-cols-2';
+    }
+    return 'md:grid-cols-3';
+  }, [visibleServices.length]);
+
+
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${gridColsClass} gap-6`}>
         {visibleServices.map((service) => (
           <Card key={service} className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
