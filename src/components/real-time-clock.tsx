@@ -23,19 +23,19 @@ export function RealTimeClock({ className }: RealTimeClockProps) {
     };
   }, []);
 
-  // e.g., "25 de mayo de 2024"
-  const formattedDate = format(time, "PPP", { locale: es });
+  // e.g., "sábado, 25 de mayo de 2024"
+  const formattedDate = format(time, "PPPP", { locale: es });
   // e.g., "12:00:30 p. m."
   const formattedTime = format(time, "pp", { locale: es });
 
   return (
-    <div className={cn("flex items-center gap-4 text-base text-muted-foreground font-mono mt-1", className)}>
+    <div className={cn("flex items-center gap-4 text-lg text-muted-foreground font-mono mt-1", className)}>
         <div className="flex items-center gap-1.5">
-            <Calendar className="h-5 w-5"/>
+            <Calendar className="h-6 w-6"/>
             <span className="capitalize">{formattedDate}</span>
         </div>
         <div className="flex items-center gap-1.5">
-            <Clock className="h-5 w-5"/>
+            <Clock className="h-6 w-6"/>
             <span>{formattedTime}</span>
         </div>
     </div>
