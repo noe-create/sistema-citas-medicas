@@ -17,6 +17,7 @@ import type { Patient, TitularType, AccountType, ServiceType, SearchResult, Pati
 import { useToast } from '@/hooks/use-toast';
 import { getWaitlist, addPatientToWaitlist, getTitularTypeByTitularId } from '@/actions/patient-actions';
 import { useUser } from '@/components/app-shell';
+import { RealTimeClock } from '@/components/real-time-clock';
 
 const titularTypeToAccountType = (titularType: TitularType): AccountType => {
   switch (titularType) {
@@ -129,8 +130,11 @@ export default function SalaDeEsperaPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="font-headline text-3xl font-bold tracking-tight">Sala de Espera y Registro</h2>
+      <div className="flex items-start justify-between space-y-2">
+        <div>
+          <h2 className="font-headline text-3xl font-bold tracking-tight">Sala de Espera y Registro</h2>
+          <RealTimeClock />
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={fetchWaitlist} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
