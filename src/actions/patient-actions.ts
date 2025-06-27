@@ -22,7 +22,8 @@ import type {
     TreatmentExecution,
     HistoryEntry,
     MorbidityReportRow,
-    OperationalReportData
+    OperationalReportData,
+    LabOrder
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -699,11 +700,38 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
         }
     }));
     
-    const allHistory = [...consultations, ...treatmentExecutions];
+    const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ?', paciente.id);
+    const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
+        const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
+        const persona = await db.get('SELECT * FROM personas JOIN pacientes ON personas.id = pacientes.personaId WHERE pacientes.id = ?', order.pacienteId);
+        return {
+            type: 'lab_order' as const,
+            data: {
+                ...order,
+                orderDate: new Date(order.orderDate),
+                tests: items.map(i => i.testName),
+                paciente: {
+                    ...persona,
+                    fechaNacimiento: new Date(persona.fechaNacimiento)
+                }
+            }
+        };
+    }));
+
+
+    const allHistory = [...consultations, ...treatmentExecutions, ...labOrders];
     
     allHistory.sort((a, b) => {
-        const dateA = a.type === 'consultation' ? a.data.consultationDate : a.data.executionTime;
-        const dateB = b.type === 'consultation' ? b.data.consultationDate : b.data.executionTime;
+        let dateA: Date;
+        if (a.type === 'consultation') dateA = a.data.consultationDate;
+        else if (a.type === 'treatment_execution') dateA = a.data.executionTime;
+        else dateA = a.data.orderDate;
+
+        let dateB: Date;
+        if (b.type === 'consultation') dateB = b.data.consultationDate;
+        else if (b.type === 'treatment_execution') dateB = b.data.executionTime;
+        else dateB = b.data.orderDate;
+        
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -1278,5 +1306,59 @@ export async function getOperationalReport(filters: { from: Date, to: Date }): P
         avgStaySeconds: stayTimeResult?.avgStaySeconds || 0,
         patientsPerDay,
         totalPatients: totalPatientsResult?.total || 0,
+    };
+}
+
+
+// --- Lab Order Actions ---
+export async function createLabOrder(consultationId: string, pacienteId: string, tests: string[]): Promise<LabOrder> {
+    const session = await getSession();
+    if (!session.isLoggedIn || !session.user || !['superuser', 'doctor'].includes(session.user.role.id)) {
+        throw new Error('Acción no autorizada.');
+    }
+    const db = await getDb();
+    const orderId = generateId('lab');
+    const orderDate = new Date();
+
+    try {
+        await db.exec('BEGIN TRANSACTION');
+
+        await db.run(
+            'INSERT INTO lab_orders (id, pacienteId, consultationId, orderDate, status) VALUES (?, ?, ?, ?, ?)',
+            orderId,
+            pacienteId,
+            consultationId,
+            orderDate.toISOString(),
+            'Pendiente'
+        );
+
+        const itemStmt = await db.prepare('INSERT INTO lab_order_items (id, labOrderId, testName) VALUES (?, ?, ?)');
+        for (const testName of tests) {
+            await itemStmt.run(generateId('lab_item'), orderId, testName);
+        }
+        await itemStmt.finalize();
+        
+        await db.exec('COMMIT');
+    } catch (error) {
+        await db.exec('ROLLBACK');
+        console.error("Error creating lab order:", error);
+        throw new Error('No se pudo guardar la orden de laboratorio.');
+    }
+
+    revalidatePath('/dashboard/hce');
+    
+    const persona = await db.get('SELECT * FROM personas JOIN pacientes ON personas.id = pacientes.personaId WHERE pacientes.id = ?', pacienteId);
+
+    return {
+        id: orderId,
+        pacienteId,
+        consultationId,
+        orderDate,
+        status: 'Pendiente',
+        tests,
+        paciente: {
+            ...persona,
+            fechaNacimiento: new Date(persona.fechaNacimiento),
+        }
     };
 }

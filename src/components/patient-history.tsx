@@ -4,14 +4,15 @@
 
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
-import type { HistoryEntry, SignosVitales } from '@/lib/types';
-import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit } from 'lucide-react';
+import type { HistoryEntry, SignosVitales, LabOrder } from '@/lib/types';
+import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit, Beaker } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { LabOrderDisplay } from './lab-order-display';
 
 interface PatientHistoryProps {
   personaId: string;
@@ -61,9 +62,17 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     );
   }
 
+  const getEntryId = (entry: HistoryEntry) => {
+    if (entry.type === 'consultation') return entry.data.id;
+    if (entry.type === 'treatment_execution') return entry.data.id;
+    if (entry.type === 'lab_order') return entry.data.id;
+    return Math.random().toString();
+  };
+
   return (
-    <Accordion type="single" collapsible className="w-full" defaultValue={history[0]?.data.id}>
+    <Accordion type="single" collapsible className="w-full" defaultValue={getEntryId(history[0])}>
       {history.map((entry) => {
+        const entryId = getEntryId(entry);
         if (entry.type === 'consultation') {
             const consultation = entry.data;
             return (
@@ -186,6 +195,23 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                         <HistoryDetail label="Procedimiento" value={execution.procedureDescription} />
                         <HistoryDetail label="Observaciones" value={execution.observations} />
                         <HistoryDetail label="Ejecutado por" value={execution.executedBy} />
+                    </AccordionContent>
+                </AccordionItem>
+            )
+        } else if (entry.type === 'lab_order') {
+            const labOrder = entry.data;
+            return (
+                <AccordionItem value={labOrder.id} key={labOrder.id}>
+                    <AccordionTrigger>
+                         <div className="flex items-center gap-2 text-left">
+                            <Beaker className="h-4 w-4" />
+                            <span className="font-semibold">
+                                Orden de Laboratorio: {format(labOrder.orderDate, "PPP 'a las' p", { locale: es })}
+                            </span>
+                         </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pl-2">
+                        <LabOrderDisplay order={labOrder} />
                     </AccordionContent>
                 </AccordionItem>
             )

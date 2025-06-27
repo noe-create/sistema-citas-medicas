@@ -13,7 +13,7 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos } from '@/lib/types';
-import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
+import { searchCie10Codes, createConsultation, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Badge } from './ui/badge';
@@ -142,6 +142,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [currentStep, setCurrentStep] = React.useState(0);
+    const [selectedLabTests, setSelectedLabTests] = React.useState<string[]>([]);
     
     const age = React.useMemo(() => calculateAge(new Date(patient.fechaNacimiento)), [patient.fechaNacimiento]);
     const isFemale = patient.genero === 'Femenino';
@@ -195,23 +196,31 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step - 1);
+            setCurrentStep(step => step + 1);
         }
     };
     
     async function onSubmit(values: z.infer<typeof consultationSchema>) {
         setIsSubmitting(true);
-        // This is a placeholder for file upload logic, which would be in a different step now.
-        // For simplicity, we'll keep it here but disabled for now.
+        // This is a placeholder for file upload logic.
         const documentsData: CreateConsultationDocumentInput[] = []; 
 
         try {
-            await createConsultation({
+            const createdConsultation = await createConsultation({
                 ...values,
                 waitlistId: patient.id,
                 pacienteId: patient.pacienteId,
                 documents: documentsData,
             });
+
+            if (createdConsultation && selectedLabTests.length > 0) {
+                await createLabOrder(createdConsultation.id, createdConsultation.pacienteId, selectedLabTests);
+                toast({
+                    variant: 'info',
+                    title: 'Orden de Laboratorio Creada',
+                    description: 'La orden ha sido guardada en el historial del paciente.',
+                });
+            }
             
             toast({
                 title: 'Consulta Guardada y Completada',
@@ -270,7 +279,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 {currentStep === 0 && <StepAnamnesis form={form} />}
                 {currentStep === 1 && <StepAntecedentes form={form} isFemale={isFemale} isPediatric={isPediatric} />}
                 {currentStep === 2 && <StepExamenFisico form={form} />}
-                {currentStep === 3 && <StepDiagnosticoPlan form={form} patient={patient} />}
+                {currentStep === 3 && <StepDiagnosticoPlan form={form} patient={patient} onLabOrderChange={setSelectedLabTests} />}
             </CardContent>
             <CardFooter className="flex justify-between gap-4">
                  <Button type="button" variant="outline" onClick={handlePrev} disabled={currentStep === 0}>
@@ -595,7 +604,7 @@ const StepExamenFisico = ({ form }: { form: any }) => {
 };
 
 
-const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient }) => {
+const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; patient: Patient, onLabOrderChange: (tests: string[]) => void }) => {
     const { toast } = useToast();
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
@@ -635,12 +644,10 @@ const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient })
 
     const handleLabOrderSubmit = (selectedTests: string[]) => {
         if (selectedTests.length > 0) {
-            const currentPlan = form.getValues('treatmentPlan') || '';
-            const labOrderText = `\n\n--- ORDEN DE LABORATORIO ---\n* ${selectedTests.join('\n* ')}`;
-            form.setValue('treatmentPlan', (currentPlan + labOrderText).trim(), { shouldValidate: true });
+            onLabOrderChange(selectedTests);
             toast({
-                title: 'Exámenes Añadidos',
-                description: `${selectedTests.length} exámenes de laboratorio han sido añadidos al plan de tratamiento.`,
+                title: 'Exámenes Seleccionados',
+                description: `${selectedTests.length} exámenes de laboratorio han sido seleccionados. Se guardarán al completar la consulta.`,
             });
         }
         setIsLabOrderOpen(false);
@@ -656,10 +663,10 @@ const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient })
                     </FormItem>
                 )} />
             </FormSection>
-            <FormSection title="Plan de Tratamiento">
+            <FormSection title="Plan de Tratamiento y Órdenes">
                  <FormField control={form.control} name="treatmentPlan" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Indicaciones Médicas</FormLabel>
+                        <FormLabel>Indicaciones Médicas y Plan</FormLabel>
                         <FormControl><Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={6} /></FormControl>
                         <FormMessage />
                     </FormItem>

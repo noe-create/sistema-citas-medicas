@@ -176,6 +176,23 @@ async function createTables(dbInstance: Database): Promise<void> {
             executedBy TEXT NOT NULL,
             FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS lab_orders (
+            id TEXT PRIMARY KEY,
+            pacienteId TEXT NOT NULL,
+            consultationId TEXT NOT NULL,
+            orderDate TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pendiente',
+            FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS lab_order_items (
+            id TEXT PRIMARY KEY,
+            labOrderId TEXT NOT NULL,
+            testName TEXT NOT NULL,
+            FOREIGN KEY (labOrderId) REFERENCES lab_orders(id) ON DELETE CASCADE
+        );
     `);
 }
 

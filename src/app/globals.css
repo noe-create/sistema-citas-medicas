@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,10 +98,11 @@ body {
   body * {
     visibility: hidden;
   }
-  .printable-prescription, .printable-prescription * {
+  .printable-prescription, .printable-prescription *,
+  .printable-lab-order, .printable-lab-order * {
     visibility: visible;
   }
-  .printable-prescription {
+  .printable-prescription, .printable-lab-order {
     position: absolute;
     left: 0;
     top: 0;
@@ -112,7 +114,8 @@ body {
     background: white !important;
     color: black !important;
   }
-  .printable-prescription .text-muted-foreground {
+  .printable-prescription .text-muted-foreground,
+  .printable-lab-order .text-muted-foreground {
     color: #555 !important;
   }
   .no-print {

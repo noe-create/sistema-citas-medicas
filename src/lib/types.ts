@@ -277,9 +277,23 @@ export interface CreateTreatmentExecutionInput {
   observations: string;
 }
 
+// --- Lab Orders ---
+export interface LabOrder {
+    id: string;
+    pacienteId: string;
+    consultationId: string;
+    orderDate: Date;
+    status: 'Pendiente' | 'Completado';
+    tests: string[];
+    // Denormalized for display
+    paciente: Persona;
+}
+
+
 export type HistoryEntry =
   | { type: 'consultation'; data: Consultation }
-  | { type: 'treatment_execution'; data: TreatmentExecution };
+  | { type: 'treatment_execution'; data: TreatmentExecution }
+  | { type: 'lab_order'; data: LabOrder };
 
 // For Reports
 export interface MorbidityReportRow {
