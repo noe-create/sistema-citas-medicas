@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import type { User as UserType } from '@/lib/types';
 import { logout } from '@/actions/auth-actions';
+import { ThemeToggle } from './theme-toggle';
 
 const allMenuOptions = [
   { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', section: 'main' },
@@ -153,6 +154,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
             <div className="flex-1">
               {/* Header content can go here */}
             </div>
+            <ThemeToggle />
           </header>
           {children}
         </main>
