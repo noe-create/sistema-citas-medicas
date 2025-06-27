@@ -62,7 +62,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     const baseOptions: PatientStatus[] = ['Ausente', 'Pospuesto', 'Reevaluacion'];
     
     if (user.role === 'asistencial' || user.role === 'administrator') {
-      return baseOptions;
+      return ['Esperando', ...baseOptions];
     }
     
     if (user.role === 'enfermera') {
@@ -170,10 +170,12 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     return [];
   }, [user]);
 
-  const groupedPatients = (visibleServices || []).reduce((acc, service) => {
-    acc[service] = (patients || []).filter(p => p.serviceType === service);
-    return acc;
-  }, {} as Record<ServiceType, Patient[]>);
+  const groupedPatients = React.useMemo(() => {
+    return (visibleServices || []).reduce((acc, service) => {
+        acc[service] = (patients || []).filter(p => p.serviceType === service);
+        return acc;
+    }, {} as Record<ServiceType, Patient[]>);
+  }, [visibleServices, patients]);
 
   const gridColsClass = React.useMemo(() => {
     const count = visibleServices.length;
@@ -220,49 +222,46 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                    {canManageStatus ? (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Badge
-                                            variant={statusInfo[patient.status].badgeVariant}
-                                            className="capitalize cursor-pointer transition-all hover:ring-2 hover:ring-ring hover:ring-offset-1"
-                                          >
-                                            {statusInfo[patient.status].label}
-                                          </Badge>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
-                                          <DropdownMenuSeparator />
-                                          {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
-                                              <DropdownMenuItem 
-                                                  key={status} 
-                                                  onSelect={() => {
-                                                      if (status === 'Pospuesto') {
-                                                          handleOpenRescheduleDialog(patient);
-                                                      } else {
-                                                          handleChangeStatus(patient.id, status as PatientStatus);
-                                                      }
-                                                  }}
-                                              >
-                                                  {statusInfo[status as PatientStatus].label}
-                                              </DropdownMenuItem>
-                                          ))}
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem 
-                                              className="text-destructive focus:text-destructive" 
-                                              onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}
-                                              disabled={patient.status === 'En Consulta' || patient.status === 'En Tratamiento'}
-                                          >
-                                              <XCircle className="mr-2 h-4 w-4" />
-                                              <span>Cancelar Cita</span>
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    ) : (
                                       <Badge variant={statusInfo[patient.status].badgeVariant} className="capitalize">
                                         {statusInfo[patient.status].label}
                                       </Badge>
-                                    )}
+                                      {canManageStatus ? (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                                              <span className="sr-only">Cambiar Estado</span>
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
+                                                <DropdownMenuItem 
+                                                    key={status} 
+                                                    onSelect={() => {
+                                                        if (status === 'Pospuesto') {
+                                                            handleOpenRescheduleDialog(patient);
+                                                        } else {
+                                                            handleChangeStatus(patient.id, status as PatientStatus);
+                                                        }
+                                                    }}
+                                                >
+                                                    {statusInfo[status as PatientStatus].label}
+                                                </DropdownMenuItem>
+                                            ))}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem 
+                                                className="text-destructive focus:text-destructive" 
+                                                onSelect={() => handleChangeStatus(patient.id, 'Cancelado')}
+                                                disabled={patient.status === 'En Consulta' || patient.status === 'En Tratamiento'}
+                                            >
+                                                <XCircle className="mr-2 h-4 w-4" />
+                                                <span>Cancelar Cita</span>
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      ) : null}
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center text-sm text-muted-foreground">
