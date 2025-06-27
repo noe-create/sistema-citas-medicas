@@ -43,7 +43,8 @@ const permissions = {
   superuser: allMenuOptions.map(opt => opt.href),
   administrator: [
     '/dashboard', '/dashboard/reportes', '/dashboard/cie10', '/dashboard/personas', 
-    '/dashboard/lista-pacientes', '/dashboard/pacientes', '/dashboard/beneficiarios', '/dashboard/empresas'
+    '/dashboard/lista-pacientes', '/dashboard/pacientes', '/dashboard/beneficiarios', '/dashboard/empresas',
+    '/dashboard/sala-de-espera'
   ],
   asistencial: [
     '/dashboard', '/dashboard/sala-de-espera', '/dashboard/pacientes', 
@@ -120,8 +121,10 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="https://placehold.co/40x40.png" alt={user.name} data-ai-hint="doctor portrait"/>
-                      <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>
+                        <span className="sr-only">{user.name}</span>
+                        <User className="h-5 w-5" />
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
