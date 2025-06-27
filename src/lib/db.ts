@@ -1,5 +1,5 @@
 
-'server-only';
+'use server';
 
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
@@ -21,6 +21,13 @@ async function initializeDb(): Promise<Database> {
 
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
     await createTables(dbInstance);
+
+    // Simple migration: check for hasSpecialty column in roles table
+    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')");
+    if (!rolesCols.some(col => col.name === 'hasSpecialty')) {
+        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
+    }
+    
     await seedDb(dbInstance);
 
     return dbInstance;
