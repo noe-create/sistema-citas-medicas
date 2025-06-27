@@ -200,12 +200,17 @@ export interface AntecedentesPediatricos {
   desarrolloPsicomotor?: string;
 }
 
+export interface MotivoConsulta {
+  sintomas: string[];
+  otros?: string;
+}
+
 export interface Consultation {
   id: string;
   pacienteId: string;
   waitlistId?: string;
   consultationDate: Date;
-  motivoConsulta?: string;
+  motivoConsulta?: MotivoConsulta;
   enfermedadActual?: string;
   revisionPorSistemas?: string;
   antecedentesPersonales?: AntecedentesPersonales;
@@ -228,7 +233,8 @@ export interface CreateConsultationDocumentInput {
   fileData: string; // as a data URI
 }
 
-export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents'> {
+export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'motivoConsulta'> {
+    motivoConsulta: MotivoConsulta;
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
 }

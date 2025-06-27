@@ -55,10 +55,31 @@ const habitosOptions = [
   { id: 'dieta_balanceada', label: 'Dieta Balanceada' },
 ];
 
+const sintomasComunes = [
+  { id: 'fiebre', label: 'Fiebre' },
+  { id: 'tos', label: 'Tos' },
+  { id: 'dolor_garganta', label: 'Dolor de garganta' },
+  { id: 'dolor_cabeza', label: 'Dolor de cabeza' },
+  { id: 'congestion_nasal', label: 'Congestión nasal' },
+  { id: 'dificultad_respirar', label: 'Dificultad para respirar' },
+  { id: 'dolor_abdominal', label: 'Dolor abdominal' },
+  { id: 'nauseas_vomitos', label: 'Náuseas/Vómitos' },
+  { id: 'diarrea', label: 'Diarrea' },
+  { id: 'fatiga_cansancio', label: 'Fatiga/Cansancio' },
+  { id: 'dolor_muscular', label: 'Dolor muscular' },
+  { id: 'mareos', label: 'Mareos' },
+];
+
 
 const consultationSchema = z.object({
   // Step 1: Anamnesis
-  motivoConsulta: z.string().min(1, 'El motivo de consulta es obligatorio.'),
+  motivoConsulta: z.object({
+    sintomas: z.array(z.string()),
+    otros: z.string().optional(),
+  }).refine(data => data.sintomas.length > 0 || (!!data.otros && data.otros.trim().length > 0), {
+    message: "Debe seleccionar al menos un síntoma o describir otro.",
+    path: ["otros"], 
+  }),
   enfermedadActual: z.string().min(1, 'La historia de la enfermedad actual es obligatoria.'),
   revisionPorSistemas: z.string().optional(),
 
@@ -161,7 +182,10 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
         defaultValues: {
-            motivoConsulta: '',
+            motivoConsulta: {
+                sintomas: [],
+                otros: ''
+            },
             enfermedadActual: '',
             diagnoses: [],
             treatmentPlan: '',
@@ -318,12 +342,63 @@ const FormSection = ({ title, children }: { title: string, children: React.React
 const StepAnamnesis = ({ form }: { form: any }) => (
     <div className="space-y-6">
         <FormSection title="Motivo de Consulta">
-            <FormField control={form.control} name="motivoConsulta" render={({ field }) => (
+             <FormField
+              control={form.control}
+              name="motivoConsulta"
+              render={() => (
                 <FormItem>
-                    <FormControl><Textarea placeholder="Describa la razón principal de la visita..." {...field} rows={3} /></FormControl>
-                    <FormMessage />
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
+                    {sintomasComunes.map((item) => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name="motivoConsulta.sintomas"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={item.id}
+                              className="flex flex-row items-center space-x-2 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(item.label)}
+                                  onCheckedChange={(checked) => {
+                                    const currentValue = field.value || [];
+                                    return checked
+                                      ? field.onChange([...currentValue, item.label])
+                                      : field.onChange(
+                                          currentValue.filter(
+                                            (value: string) => value !== item.label
+                                          )
+                                        )
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                {item.label}
+                              </FormLabel>
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    ))}
+                  </div>
+                   <FormField
+                    control={form.control}
+                    name="motivoConsulta.otros"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Otros síntomas</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Describa otros síntomas no listados..." {...field} />
+                        </FormControl>
+                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </FormItem>
-            )} />
+              )}
+            />
         </FormSection>
         <FormSection title="Enfermedad Actual">
             <FormField control={form.control} name="enfermedadActual" render={({ field }) => (

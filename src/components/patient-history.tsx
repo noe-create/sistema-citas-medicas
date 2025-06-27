@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
-import type { HistoryEntry, SignosVitales, LabOrder } from '@/lib/types';
+import type { HistoryEntry, SignosVitales, LabOrder, MotivoConsulta } from '@/lib/types';
 import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit, Beaker } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -88,7 +88,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                     <AccordionContent className="space-y-4 pl-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <HistorySection icon={<HeartPulse/>} title="Anamnesis">
-                                <HistoryDetail label="Motivo de Consulta" value={consultation.motivoConsulta} />
+                                <MotivoConsultaDisplay motivo={consultation.motivoConsulta} />
                                 <HistoryDetail label="Enfermedad Actual" value={consultation.enfermedadActual} />
                                 <HistoryDetail label="Revisión por Sistemas" value={consultation.revisionPorSistemas} />
                             </HistorySection>
@@ -262,6 +262,30 @@ const HistoryDetailList = ({ label, values, otherValue }: { label: string, value
             <ul className="list-disc list-inside text-sm text-muted-foreground">
                 {allItems.map((item, index) => <li key={index}>{item}</li>)}
             </ul>
+        </div>
+    );
+};
+
+const MotivoConsultaDisplay = ({ motivo }: { motivo?: MotivoConsulta }) => {
+    if (!motivo) {
+        return <HistoryDetail label="Motivo de Consulta" value="N/A" />;
+    }
+    const { sintomas, otros } = motivo;
+    if (sintomas.length === 0 && !otros) {
+        return <HistoryDetail label="Motivo de Consulta" value="N/A" />;
+    }
+
+    return (
+        <div>
+            <h4 className="font-semibold text-sm">Motivo de Consulta</h4>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {sintomas.length > 0 && (
+                    <p>Síntomas: {sintomas.join(', ')}</p>
+                )}
+                {otros && (
+                    <p>Otros: {otros}</p>
+                )}
+            </div>
         </div>
     );
 };

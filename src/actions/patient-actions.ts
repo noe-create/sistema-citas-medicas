@@ -23,7 +23,8 @@ import type {
     HistoryEntry,
     MorbidityReportRow,
     OperationalReportData,
-    LabOrder
+    LabOrder,
+    MotivoConsulta
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -643,6 +644,7 @@ function parseConsultation(row: any) {
     return {
         ...row,
         consultationDate: new Date(row.consultationDate),
+        motivoConsulta: row.motivoConsulta ? JSON.parse(row.motivoConsulta) : undefined,
         signosVitales: row.signosVitales ? JSON.parse(row.signosVitales) : undefined,
         antecedentesPersonales: row.antecedentesPersonales ? JSON.parse(row.antecedentesPersonales) : undefined,
         antecedentesGinecoObstetricos: row.antecedentesGinecoObstetricos ? { ...restOfGineco, fum: fum ? new Date(fum) : undefined } : undefined,
@@ -763,7 +765,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             data.pacienteId,
             data.waitlistId,
             consultationDate.toISOString(),
-            data.motivoConsulta,
+            data.motivoConsulta ? JSON.stringify(data.motivoConsulta) : null,
             data.enfermedadActual,
             data.revisionPorSistemas || null,
             data.antecedentesPersonales ? JSON.stringify(data.antecedentesPersonales) : null,
