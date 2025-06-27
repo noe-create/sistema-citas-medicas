@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
-import type { HistoryEntry } from '@/lib/types';
+import type { HistoryEntry, SignosVitales } from '@/lib/types';
 import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -83,36 +84,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                 <HistoryDetail label="Revisión por Sistemas" value={consultation.revisionPorSistemas} />
                             </HistorySection>
 
-                             <HistorySection icon={<HeartPulse/>} title="Examen Físico">
-                                {consultation.signosVitales && (
-                                    <div className="mb-2">
-                                        <h4 className="font-semibold mb-1 text-sm">Signos Vitales</h4>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>TA</TableHead>
-                                                    <TableHead>FC</TableHead>
-                                                    <TableHead>FR</TableHead>
-                                                    <TableHead>T°</TableHead>
-                                                    <TableHead>Peso</TableHead>
-                                                    <TableHead>Talla</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                <TableRow>
-                                                    <TableCell>{consultation.signosVitales.ta || 'N/A'}</TableCell>
-                                                    <TableCell>{consultation.signosVitales.fc || 'N/A'}</TableCell>
-                                                    <TableCell>{consultation.signosVitales.fr || 'N/A'}</TableCell>
-                                                    <TableCell>{consultation.signosVitales.temp || 'N/A'}</TableCell>
-                                                    <TableCell>{consultation.signosVitales.peso || 'N/A'}</TableCell>
-                                                    <TableCell>{consultation.signosVitales.talla || 'N/A'}</TableCell>
-                                                </TableRow>
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                )}
-                                <HistoryDetail label="Examen General" value={consultation.examenFisicoGeneral} />
-                            </HistorySection>
+                            <VitalSignsDisplay sv={consultation.signosVitales} />
 
                             <HistorySection icon={<User/>} title="Antecedentes Personales">
                                 <HistoryDetail label="Patológicos" value={consultation.antecedentesPersonales?.patologicos} />
@@ -128,14 +100,16 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
 
                             {consultation.antecedentesGinecoObstetricos &&
                                 <HistorySection icon={<Stethoscope/>} title="Antecedentes Gineco-Obstétricos">
-                                    <HistoryDetail label="Menarquia" value={consultation.antecedentesGinecoObstetricos.menarquia} />
-                                    <HistoryDetail label="Ciclos" value={consultation.antecedentesGinecoObstetricos.ciclos} />
-                                    <HistoryDetail label="FUM" value={consultation.antecedentesGinecoObstetricos.fum ? format(new Date(consultation.antecedentesGinecoObstetricos.fum), 'PPP', {locale: es}) : 'N/A'} />
-                                    <HistoryDetail label="G" value={consultation.antecedentesGinecoObstetricos.g} />
-                                    <HistoryDetail label="P" value={consultation.antecedentesGinecoObstetricos.p} />
-                                    <HistoryDetail label="A" value={consultation.antecedentesGinecoObstetricos.a} />
-                                    <HistoryDetail label="C" value={consultation.antecedentesGinecoObstetricos.c} />
-                                    <HistoryDetail label="MAC" value={consultation.antecedentesGinecoObstetricos.metodoAnticonceptivo} />
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        <HistoryDetail label="Menarquia" value={consultation.antecedentesGinecoObstetricos.menarquia} />
+                                        <HistoryDetail label="Ciclos" value={consultation.antecedentesGinecoObstetricos.ciclos} />
+                                        <HistoryDetail label="FUM" value={consultation.antecedentesGinecoObstetricos.fum ? format(new Date(consultation.antecedentesGinecoObstetricos.fum), 'PPP', {locale: es}) : 'N/A'} />
+                                        <HistoryDetail label="G" value={consultation.antecedentesGinecoObstetricos.g} />
+                                        <HistoryDetail label="P" value={consultation.antecedentesGinecoObstetricos.p} />
+                                        <HistoryDetail label="A" value={consultation.antecedentesGinecoObstetricos.a} />
+                                        <HistoryDetail label="C" value={consultation.antecedentesGinecoObstetricos.c} />
+                                        <HistoryDetail label="MAC" value={consultation.antecedentesGinecoObstetricos.metodoAnticonceptivo} />
+                                    </div>
                                 </HistorySection>
                             }
 
@@ -148,6 +122,9 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                     <HistoryDetail label="Desarrollo Psicomotor" value={consultation.antecedentesPediatricos.desarrolloPsicomotor} />
                                 </HistorySection>
                             }
+                             <HistorySection icon={<HeartPulse/>} title="Examen Físico">
+                                <HistoryDetail label="Examen General" value={consultation.examenFisicoGeneral} />
+                            </HistorySection>
                         </div>
 
                         <HistorySection icon={<BrainCircuit/>} title="Impresión Diagnóstica">
@@ -261,4 +238,53 @@ const HistoryDetailList = ({ label, values, otherValue }: { label: string, value
             </ul>
         </div>
     );
+};
+
+const VitalSignsDisplay = ({ sv }: { sv?: SignosVitales }) => {
+  if (!sv) {
+    return (
+      <HistorySection icon={<HeartPulse />} title="Signos Vitales">
+        <p className="text-sm text-muted-foreground">No registrados.</p>
+      </HistorySection>
+    );
+  }
+
+  const formatTA = () => {
+    if (!sv.taSistolica || !sv.taDiastolica) return 'N/A';
+    const brazo = sv.taBrazo ? `, ${sv.taBrazo.charAt(0).toUpperCase() + sv.taBrazo.slice(1)}` : '';
+    const pos = sv.taPosicion ? `, ${sv.taPosicion.charAt(0).toUpperCase() + sv.taPosicion.slice(1)}` : '';
+    return `${sv.taSistolica}/${sv.taDiastolica} mmHg (${brazo}${pos})`;
+  };
+
+  const formatFC = () => {
+    if (!sv.fc) return 'N/A';
+    return `${sv.fc} lpm${sv.fcRitmo ? ` (${sv.fcRitmo})` : ''}`;
+  };
+
+  const formatTemp = () => {
+    if (!sv.temp) return 'N/A';
+    return `${sv.temp} °${sv.tempUnidad || 'C'}${sv.tempSitio ? ` (${sv.tempSitio})` : ''}`;
+  };
+  
+  const formatSatO2 = () => {
+    if (!sv.satO2) return 'N/A';
+    const ambiente = sv.satO2Ambiente ? 'Aire Ambiente' : `O₂ a ${sv.satO2Flujo || '?'} L/min`;
+    return `${sv.satO2}% (${ambiente})`;
+  }
+
+  return (
+    <HistorySection icon={<HeartPulse />} title="Signos Vitales">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <HistoryDetail label="Tensión Arterial" value={formatTA()} />
+        <HistoryDetail label="Frec. Cardíaca" value={formatFC()} />
+        <HistoryDetail label="Frec. Resp." value={sv.fr ? `${sv.fr} rpm` : 'N/A'} />
+        <HistoryDetail label="Temperatura" value={formatTemp()} />
+        <HistoryDetail label="Peso" value={sv.peso ? `${sv.peso} ${sv.pesoUnidad || 'kg'}` : 'N/A'} />
+        <HistoryDetail label="Talla" value={sv.talla ? `${sv.talla} ${sv.tallaUnidad || 'cm'}` : 'N/A'} />
+        <HistoryDetail label="IMC" value={sv.imc ? `${sv.imc} kg/m²` : 'N/A'} />
+        <HistoryDetail label="SatO₂" value={formatSatO2()} />
+        <HistoryDetail label="Dolor (0-10)" value={sv.dolor ?? 'N/A'} />
+      </div>
+    </HistorySection>
+  );
 };

@@ -1,4 +1,5 @@
 
+
 export type Genero = 'Masculino' | 'Femenino' | 'Otro';
 export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
@@ -147,14 +148,27 @@ export interface ConsultationDocument {
 }
 
 export interface SignosVitales {
-  ta?: string;
+  taSistolica?: number;
+  taDiastolica?: number;
+  taBrazo?: 'izquierdo' | 'derecho';
+  taPosicion?: 'sentado' | 'acostado';
   fc?: number;
+  fcRitmo?: 'regular' | 'irregular';
   fr?: number;
   temp?: number;
+  tempUnidad?: 'C' | 'F';
+  tempSitio?: 'oral' | 'axilar' | 'rectal' | 'timpanica';
   peso?: number;
+  pesoUnidad?: 'kg' | 'lb';
   talla?: number;
+  tallaUnidad?: 'cm' | 'in';
   imc?: number;
+  satO2?: number;
+  satO2Ambiente?: boolean; // true for aire ambiente, false for O2 supplement
+  satO2Flujo?: number; // L/min if satO2Ambiente is false
+  dolor?: number; // Scale 0-10
 }
+
 
 export interface AntecedentesPersonales {
   patologicos?: string;
