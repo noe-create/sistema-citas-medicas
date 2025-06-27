@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -43,20 +44,25 @@ interface RoleFormProps {
   onCancel: () => void;
 }
 
-// Simple display component for the item being dragged in the overlay
-const PermissionOverlayItem = ({ permission }: { permission: Permission }) => (
-    <Card className="p-3 bg-card shadow-xl">
-        <div className="flex items-start gap-2">
-            <div className="p-1 cursor-grabbing">
-                <GripVertical className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-                <p className="font-semibold text-sm">{permission.name}</p>
-                <p className="text-xs text-muted-foreground">{permission.description}</p>
-            </div>
+// Moved outside the main component to prevent re-renders and for better organization.
+// This is the visual "ghost" item that appears while dragging.
+const PermissionOverlayItem = ({ permission, width }: { permission: Permission; width: number | null }) => {
+  if (!permission) return null;
+
+  return (
+    <Card className="p-3 bg-card shadow-xl" style={{ width: width ? `${width}px` : 'auto' }}>
+      <div className="flex items-start gap-2">
+        <div className="p-1 cursor-grabbing">
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
+        <div className="flex-1">
+          <p className="font-semibold text-sm">{permission.name}</p>
+          <p className="text-xs text-muted-foreground">{permission.description}</p>
+        </div>
+      </div>
     </Card>
-);
+  );
+};
 
 const SortablePermission = ({ permission }: { permission: Permission }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: permission.id });
@@ -114,6 +120,7 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
     assigned: [],
   });
   const [activePermission, setActivePermission] = React.useState<Permission | null>(null);
+  const [activePermissionWidth, setActivePermissionWidth] = React.useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -149,6 +156,7 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
     const permission = allPermissions.find(p => p.id === activeId);
     if (permission) {
       setActivePermission(permission);
+      setActivePermissionWidth(active.rect.current.initial?.width || null);
     }
   };
 
@@ -162,6 +170,7 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActivePermission(null);
+    setActivePermissionWidth(null);
 
     if (!over) {
       return;
@@ -264,7 +273,12 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
                     <PermissionColumn id="assigned" title="Asignados" permissions={containers.assigned} />
                 </div>
                 <DragOverlay>
-                  {activePermission ? <PermissionOverlayItem permission={activePermission} /> : null}
+                  {activePermission ? (
+                    <PermissionOverlayItem
+                      permission={activePermission}
+                      width={activePermissionWidth}
+                    />
+                  ) : null}
                 </DragOverlay>
              </DndContext>
              <FormField control={form.control} name="permissions" render={() => <FormMessage />} />
