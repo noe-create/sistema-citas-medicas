@@ -765,9 +765,9 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             consultationDate.toISOString(),
             data.motivoConsulta,
             data.enfermedadActual,
-            data.revisionPorSistemas,
+            data.revisionPorSistemas || null,
             data.antecedentesPersonales ? JSON.stringify(data.antecedentesPersonales) : null,
-            data.antecedentesFamiliares,
+            data.antecedentesFamiliares || null,
             data.antecedentesGinecoObstetricos ? JSON.stringify(data.antecedentesGinecoObstetricos) : null,
             data.antecedentesPediatricos ? JSON.stringify(data.antecedentesPediatricos) : null,
             data.signosVitales ? JSON.stringify(data.signosVitales) : null,
@@ -820,6 +820,9 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     const createdConsultationRaw = await db.get('SELECT * from consultations WHERE id = ?', consultationId);
     const createdConsultation = parseConsultation(createdConsultationRaw);
 
+    if (!createdConsultation) {
+        throw new Error('Failed to retrieve the created consultation after saving.');
+    }
 
     return {
         ...createdConsultation,
