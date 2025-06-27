@@ -238,3 +238,38 @@ export async function deleteUser(id: string) {
     revalidatePath('/dashboard/usuarios');
     return { success: true };
 }
+
+export async function changePasswordForCurrentUser(data: { currentPassword: string; newPassword: string; }) {
+    const session = await getSession();
+    if (!session.isLoggedIn || !session.user) {
+        throw new Error('Acción no autorizada. Debe iniciar sesión.');
+    }
+
+    const { currentPassword, newPassword } = data;
+    const db = await getDb();
+
+    const userRow: any = await db.get('SELECT password FROM users WHERE id = ?', session.user.id);
+    if (!userRow) {
+        // This case should ideally not be reachable if the session is valid
+        throw new Error('Usuario no encontrado en la base de datos.');
+    }
+
+    const passwordMatch = await bcrypt.compare(currentPassword, userRow.password);
+    if (!passwordMatch) {
+        throw new Error('La contraseña actual es incorrecta.');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    const result = await db.run(
+        'UPDATE users SET password = ? WHERE id = ?',
+        hashedNewPassword,
+        session.user.id
+    );
+
+    if (result.changes === 0) {
+        throw new Error('No se pudo actualizar la contraseña.');
+    }
+
+    return { success: true, message: 'Contraseña actualizada correctamente.' };
+}

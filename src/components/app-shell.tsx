@@ -14,12 +14,14 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import type { User as UserType } from '@/lib/types';
 import { logout } from '@/actions/auth-actions';
 import { ThemeToggle } from './theme-toggle';
+import { ChangePasswordForm } from './change-password-form';
 
 const allMenuOptions = [
   { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', section: 'main' },
@@ -70,6 +72,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
   const pathname = usePathname();
   const accessiblePaths = permissions[user.role] || [];
   const menuOptions = allMenuOptions.filter(opt => accessiblePaths.includes(opt.href));
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
 
   return (
     <UserContext.Provider value={user}>
@@ -132,6 +135,11 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setIsChangePasswordOpen(true)}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    <span>Cambiar Contraseña</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                     <form action={logout}>
                       <DropdownMenuItem asChild>
                           <button type="submit" className="w-full">
@@ -147,6 +155,18 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
           {children}
         </main>
       </SidebarProvider>
+
+       <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Para proteger su cuenta, introduzca su contraseña actual y luego la nueva.
+            </DialogDescription>
+          </DialogHeader>
+          <ChangePasswordForm onFinished={() => setIsChangePasswordOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </UserContext.Provider>
   );
 }
