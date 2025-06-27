@@ -12,9 +12,14 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarTrigger,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -22,44 +27,45 @@ import type { User as UserType } from '@/lib/types';
 import { logout } from '@/actions/auth-actions';
 import { ThemeToggle } from './theme-toggle';
 import { ChangePasswordForm } from './change-password-form';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const allMenuOptions = [
-  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', section: 'main' },
-  { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', section: 'main' },
-  { href: '/dashboard/consulta', icon: <ClipboardPlus />, title: 'Consulta', section: 'main' },
-  { href: '/dashboard/hce', icon: <FileHeart />, title: 'HCE', section: 'main' },
-  { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', section: 'main' },
-  { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', section: 'admin' },
-  { href: '/dashboard/cie10', icon: <Code2 />, title: 'Catálogo CIE-10', section: 'admin' },
-  { href: '/dashboard/personas', icon: <Contact />, title: 'Personas', section: 'admin' },
-  { href: '/dashboard/lista-pacientes', icon: <ClipboardList />, title: 'Lista de Pacientes', section: 'admin' },
-  { href: '/dashboard/pacientes', icon: <Users />, title: 'Gestión de Titulares', section: 'admin' },
-  { href: '/dashboard/beneficiarios', icon: <UserIcon />, title: 'Beneficiarios', section: 'admin' },
-  { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', section: 'admin' },
-  { href: '/dashboard/usuarios', icon: <UserCog />, title: 'Gestión de Usuarios', section: 'admin' },
+interface MenuItem {
+    href: string;
+    icon: React.ReactNode;
+    title: string;
+    permission: string;
+    subItems?: MenuItem[];
+    group?: string;
+}
+
+const allMenuOptions: MenuItem[] = [
+  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', permission: '*', group: 'Principal' },
+  { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
+  { href: '/dashboard/consulta', icon: <ClipboardPlus />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
+  { href: '/dashboard/hce', icon: <FileHeart />, title: 'HCE', permission: 'hce.view', group: 'Atención' },
+  { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
+  { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Principal' },
+  
+  { href: '/dashboard/personas', icon: <Contact />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
+  { href: '/dashboard/lista-pacientes', icon: <ClipboardList />, title: 'Lista de Pacientes', permission: 'patientlist.view', group: 'Admisión' },
+  { href: '/dashboard/pacientes', icon: <Users />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
+  { href: '/dashboard/beneficiarios', icon: <UserIcon />, title: 'Beneficiarios', permission: 'beneficiaries.manage', group: 'Admisión' },
+  
+  { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
+  { href: '/dashboard/cie10', icon: <Code2 />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
+
+  { href: '/dashboard/seguridad/usuarios', icon: <UserCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
+  { href: '/dashboard/seguridad/roles', icon: <Shield />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
 ];
 
-const permissions = {
-  superuser: allMenuOptions.map(opt => opt.href),
-  administrator: [
-    '/dashboard', '/dashboard/reportes', '/dashboard/cie10', '/dashboard/personas', 
-    '/dashboard/lista-pacientes', '/dashboard/pacientes', '/dashboard/beneficiarios', '/dashboard/empresas',
-    '/dashboard/sala-de-espera'
-  ],
-  asistencial: [
-    '/dashboard', '/dashboard/sala-de-espera', '/dashboard/pacientes', 
-    '/dashboard/beneficiarios', '/dashboard/personas', '/dashboard/lista-pacientes'
-  ],
-  doctor: [
-    '/dashboard', '/dashboard/sala-de-espera', '/dashboard/consulta', 
-    '/dashboard/hce', '/dashboard/bitacora', '/dashboard/reportes'
-  ],
-  enfermera: [
-    '/dashboard', '/dashboard/bitacora', '/dashboard/sala-de-espera'
-  ],
-};
+const menuGroups = ['Principal', 'Atención', 'Admisión', 'Parametrización', 'Seguridad'];
 
-const UserContext = React.createContext<UserType | null>(null);
+interface UserContextValue extends UserType {
+    permissions: string[];
+}
+const UserContext = React.createContext<UserContextValue | null>(null);
 
 export function useUser() {
     const context = React.useContext(UserContext);
@@ -69,14 +75,27 @@ export function useUser() {
     return context;
 }
 
-export function AppShell({ children, user }: { children: React.ReactNode, user: UserType }) {
+export function AppShell({ children, user, permissions }: { children: React.ReactNode, user: UserType, permissions: string[] }) {
   const pathname = usePathname();
-  const accessiblePaths = permissions[user.role] || [];
-  const menuOptions = allMenuOptions.filter(opt => accessiblePaths.includes(opt.href));
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+  const userWithPermissions = { ...user, permissions };
+  
+  const hasPermission = (permission: string) => {
+    if (permission === '*') return true;
+    if (user.role.name === 'Superusuario') return true;
+    return permissions.includes(permission);
+  };
+
+  const visibleMenuOptions = allMenuOptions.filter(opt => hasPermission(opt.permission));
+  
+  const groupedMenu = menuGroups.map(group => ({
+    name: group,
+    items: visibleMenuOptions.filter(item => item.group === group),
+  })).filter(group => group.items.length > 0);
+
 
   return (
-    <UserContext.Provider value={user}>
+    <UserContext.Provider value={userWithPermissions}>
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
@@ -91,20 +110,27 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              {menuOptions.map(option => (
-                <SidebarMenuItem key={option.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(option.href)}
-                    tooltip={option.title}
-                  >
-                    <Link href={option.href}>
-                      {option.icon}
-                      <span>{option.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+               {groupedMenu.map((group) => (
+                    <SidebarGroup key={group.name}>
+                        <SidebarGroupLabel className="group-data-[collapsible=icon]:justify-center">
+                            {group.name}
+                        </SidebarGroupLabel>
+                        {group.items.map(option => (
+                            <SidebarMenuItem key={option.href}>
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={pathname.startsWith(option.href)}
+                                    tooltip={option.title}
+                                >
+                                    <Link href={option.href}>
+                                        {option.icon}
+                                        <span>{option.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarGroup>
+                ))}
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
@@ -112,7 +138,6 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
             <SidebarTrigger />
             <div className="flex-1">
-              {/* Header content can go here */}
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
@@ -132,7 +157,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.username}
+                        {user.username} ({user.role.name})
                       </p>
                     </div>
                   </DropdownMenuLabel>

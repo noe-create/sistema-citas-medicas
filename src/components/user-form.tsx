@@ -13,7 +13,6 @@ import type { User, Role, Persona, DoctorSpecialty } from '@/lib/types';
 import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
 
-const roles: Role[] = ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'];
 const specialties: { value: DoctorSpecialty; label: string }[] = [
     { value: 'medico general', label: 'Médico General' },
     { value: 'medico pediatra', label: 'Médico Pediatra' },
@@ -21,7 +20,7 @@ const specialties: { value: DoctorSpecialty; label: string }[] = [
 
 const baseSchema = z.object({
   username: z.string().min(3, { message: 'El nombre de usuario es requerido (mínimo 3 caracteres).' }),
-  role: z.enum(roles, { required_error: 'El rol es requerido.' }),
+  roleId: z.string({ required_error: 'El rol es requerido.' }),
   specialty: z.enum(['medico general', 'medico pediatra']).optional(),
   personaId: z.string().optional(),
 });
@@ -32,14 +31,6 @@ const createUserSchema = baseSchema.extend({
 }).refine(data => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
-}).refine(data => {
-    if (data.role === 'doctor') {
-        return !!data.specialty;
-    }
-    return true;
-}, {
-    message: "La especialidad es requerida para el rol de doctor.",
-    path: ["specialty"],
 });
 
 const updateUserSchema = baseSchema.extend({
@@ -48,31 +39,24 @@ const updateUserSchema = baseSchema.extend({
 }).refine(data => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden.",
     path: ["confirmPassword"],
-}).refine(data => {
-    if (data.role === 'doctor') {
-        return !!data.specialty;
-    }
-    return true;
-}, {
-    message: "La especialidad es requerida para el rol de doctor.",
-    path: ["specialty"],
 });
 
 
 interface UserFormProps {
   user: User | null;
+  roles: Role[];
   onSubmitted: (values: any) => Promise<void>;
   onCancel: () => void;
 }
 
-export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
+export function UserForm({ user, roles, onSubmitted, onCancel }: UserFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const form = useForm({
     resolver: zodResolver(user ? updateUserSchema : createUserSchema),
     defaultValues: {
         username: user?.username || '',
-        role: user?.role,
+        roleId: user?.role.id,
         specialty: user?.specialty,
         personaId: user?.personaId || '',
         password: '',
@@ -84,7 +68,8 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
       form.setValue('personaId', persona?.id || '', { shouldValidate: true });
   }, [form]);
   
-  const role = form.watch('role');
+  const roleId = form.watch('roleId');
+  const selectedRoleName = roles.find(r => r.id === roleId)?.name;
 
   async function onSubmit(values: any) {
     setIsSubmitting(true);
@@ -116,7 +101,7 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
             />
             <FormField
               control={form.control}
-              name="role"
+              name="roleId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2"><Shield className="h-4 w-4 text-muted-foreground"/>Rol</FormLabel>
@@ -128,7 +113,9 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
                     </FormControl>
                     <SelectContent>
                       {roles.map(role => (
-                        <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                        <SelectItem key={role.id} value={role.id} disabled={role.name === 'Superusuario' && user?.role.name !== 'Superusuario'}>
+                          {role.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -137,7 +124,7 @@ export function UserForm({ user, onSubmitted, onCancel }: UserFormProps) {
               )}
             />
 
-            {role === 'doctor' && (
+            {selectedRoleName === 'Doctor' && (
                 <FormField
                     control={form.control}
                     name="specialty"

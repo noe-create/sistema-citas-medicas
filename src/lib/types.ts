@@ -1,13 +1,28 @@
 export type Genero = 'Masculino' | 'Femenino' | 'Otro';
 export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
-export type Role = 'superuser' | 'administrator' | 'asistencial' | 'doctor' | 'enfermera';
 export type DoctorSpecialty = 'medico general' | 'medico pediatra';
+
+// --- NEW RBAC (Role-Based Access Control) Types ---
+export interface Permission {
+  id: string; // e.g., 'users.create'
+  name: string; // e.g., 'Create Users'
+  description: string;
+  module: string; // e.g., 'Usuarios'
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions?: Permission[]; // Populated when fetching a specific role
+}
+// --- End RBAC Types ---
 
 export interface User {
   id: string;
   username: string;
-  role: Role;
+  role: { id: string, name: string };
   specialty?: DoctorSpecialty;
   personaId?: string;
   name?: string; 

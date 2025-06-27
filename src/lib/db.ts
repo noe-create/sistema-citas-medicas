@@ -2,10 +2,11 @@
 
 import sqlite3 from 'sqlite3';
 import { open, type Database } from 'sqlite';
-import type { Empresa } from './types';
+import type { Empresa, Permission } from './types';
 import path from 'path';
 import fs from 'fs/promises';
 import bcrypt from 'bcryptjs';
+import { ALL_PERMISSIONS } from './permissions';
 
 let db: Database | null = null;
 
@@ -17,8 +18,8 @@ async function initializeDb(): Promise<Database> {
         driver: sqlite3.Database
     });
 
-    // createTables is called within seedDb, and both are idempotent.
-    // This ensures tables and seed data are always present.
+    await dbInstance.exec('PRAGMA foreign_keys = ON;');
+    await createTables(dbInstance);
     await seedDb(dbInstance);
 
     return dbInstance;
@@ -27,15 +28,29 @@ async function initializeDb(): Promise<Database> {
 
 async function createTables(dbInstance: Database): Promise<void> {
      await dbInstance.exec(`
-        PRAGMA foreign_keys = ON;
+        -- RBAC Tables
+        CREATE TABLE IF NOT EXISTS roles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT
+        );
 
+        CREATE TABLE IF NOT EXISTS role_permissions (
+            roleId TEXT NOT NULL,
+            permissionId TEXT NOT NULL,
+            PRIMARY KEY (roleId, permissionId),
+            FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE CASCADE
+        );
+
+        -- Main Application Tables
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            role TEXT NOT NULL,
+            roleId TEXT NOT NULL,
             specialty TEXT,
             personaId TEXT,
+            FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE RESTRICT,
             FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE SET NULL
         );
 
@@ -154,35 +169,40 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
         );
     `);
-
-    // Simple migration block to ensure older DBs have new columns
-    try {
-        await dbInstance.exec('ALTER TABLE users ADD COLUMN personaId TEXT');
-    } catch (error: any) {
-        if (!error.message.includes('duplicate column name')) {
-             console.error("An unexpected error occurred during database migration (users.personaId):", error);
-        }
-    }
-    try {
-        await dbInstance.exec('ALTER TABLE users ADD COLUMN specialty TEXT');
-    } catch (error: any) {
-        if (!error.message.includes('duplicate column name')) {
-             console.error("An unexpected error occurred during database migration (users.specialty):", error);
-        }
-    }
-
-    try {
-        await dbInstance.exec('ALTER TABLE consultations ADD COLUMN waitlistId TEXT');
-    } catch (error: any) {
-        if (!error.message.includes('duplicate column name')) {
-             console.error("An unexpected error occurred during database migration (consultations.waitlistId):", error);
-        }
-    }
 }
 
 
 async function seedDb(dbInstance: Database): Promise<void> {
-    await createTables(dbInstance);
+    const roleCount = await dbInstance.get('SELECT COUNT(*) as count FROM roles');
+    if (roleCount.count === 0) {
+        const roles = [
+            { id: 'superuser', name: 'Superusuario', description: 'Acceso total a todas las funciones del sistema.' },
+            { id: 'administrator', name: 'Administrador', description: 'Gestiona la parametrización del sistema como empresas y catálogos.' },
+            { id: 'asistencial', name: 'Asistencial', description: 'Personal de recepción encargado de la admisión de pacientes.' },
+            { id: 'doctor', name: 'Doctor', description: 'Personal médico que realiza consultas.' },
+            { id: 'enfermera', name: 'Enfermera', description: 'Personal de enfermería que aplica tratamientos.' },
+        ];
+        const stmt = await dbInstance.prepare('INSERT INTO roles (id, name, description) VALUES (?, ?, ?)');
+        for (const role of roles) {
+            await stmt.run(role.id, role.name, role.description);
+        }
+        await stmt.finalize();
+
+        const rolePermissions = {
+            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage'],
+            asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
+            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage'],
+            enfermera: ['treatmentlog.manage', 'waitlist.manage'],
+        };
+
+        const permStmt = await dbInstance.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');
+        for (const [roleId, permissions] of Object.entries(rolePermissions)) {
+            for (const permissionId of permissions) {
+                await permStmt.run(roleId, permissionId);
+            }
+        }
+        await permStmt.finalize();
+    }
 
     const empresaCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM empresas');
     if (empresaCountResult.count === 0) {
@@ -246,17 +266,17 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const userCount = await dbInstance.get('SELECT COUNT(*) as count FROM users');
     if (userCount.count === 0) {
         const users = [
-            { id: 'usr-super', username: 'superuser', password: 'password123', role: 'superuser', specialty: null, personaId: null, name: 'Super Usuario' },
-            { id: 'usr-admin', username: 'admin', password: 'password123', role: 'administrator', specialty: null, personaId: null, name: 'Administrador' },
-            { id: 'usr-assist', username: 'asistente', password: 'password123', role: 'asistencial', specialty: null, personaId: 'p4', name: 'Sofia Gomez' },
-            { id: 'usr-doctor', username: 'drsmith', password: 'password123', role: 'doctor', specialty: 'medico pediatra', personaId: 'p2', name: 'Ana Martinez' },
-            { id: 'usr-nurse', username: 'enfermera', password: 'password123', role: 'enfermera', specialty: null, personaId: null, name: 'Enfermera Jefa' },
+            { id: 'usr-super', username: 'superuser', password: 'password123', roleId: 'superuser', specialty: null, personaId: null, name: 'Super Usuario' },
+            { id: 'usr-admin', username: 'admin', password: 'password123', roleId: 'administrator', specialty: null, personaId: null, name: 'Administrador' },
+            { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: 'p4', name: 'Sofia Gomez' },
+            { id: 'usr-doctor', username: 'pediatra', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p2', name: 'Ana Martinez' },
+            { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null, name: 'Enfermera Jefa' },
         ];
 
-        const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, role, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)');
+        const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, roleId, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)');
         for (const u of users) {
             const hashedPassword = await bcrypt.hash(u.password, 10);
-            await userStmt.run(u.id, u.username, hashedPassword, u.role, u.specialty, u.personaId);
+            await userStmt.run(u.id, u.username, hashedPassword, u.roleId, u.specialty, u.personaId);
         }
         await userStmt.finalize();
     }

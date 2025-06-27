@@ -2,15 +2,18 @@
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
+import { getDb } from './db';
 
 export type SessionData = {
   user?: User;
   isLoggedIn: boolean;
+  permissions?: string[];
 };
 
 export const defaultSession: SessionData = {
   user: undefined,
   isLoggedIn: false,
+  permissions: [],
 };
 
 if (!process.env.SECRET_COOKIE_PASSWORD || process.env.SECRET_COOKIE_PASSWORD.length < 32) {
@@ -19,7 +22,7 @@ if (!process.env.SECRET_COOKIE_PASSWORD || process.env.SECRET_COOKIE_PASSWORD.le
 
 export const sessionOptions = {
   password: process.env.SECRET_COOKIE_PASSWORD,
-  cookieName: 'careflow-session',
+  cookieName: 'medihub-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
   },
@@ -32,7 +35,25 @@ export async function getSession() {
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;
     session.user = defaultSession.user;
+    session.permissions = defaultSession.permissions;
   }
   
   return session;
+}
+
+export async function authorize(permissionId: string) {
+    const session = await getSession();
+    if (!session.isLoggedIn || !session.user || !session.permissions) {
+        throw new Error('Acción no autorizada. Debe iniciar sesión.');
+    }
+
+    // Superuser always has all permissions
+    if (session.user.role.name === 'Superusuario') {
+        return;
+    }
+
+    if (!session.permissions.includes(permissionId)) {
+        console.warn(`Authorization failed for user ${session.user.username} (role: ${session.user.role.name}). Missing permission: ${permissionId}`);
+        throw new Error('No tiene permiso para realizar esta acción.');
+    }
 }

@@ -5,8 +5,8 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
-import { sessionOptions, type SessionData, getSession } from '@/lib/auth';
-import type { User, Role, DoctorSpecialty } from '@/lib/types';
+import { sessionOptions, type SessionData, getSession, authorize } from '@/lib/auth';
+import type { User, DoctorSpecialty, Role } from '@/lib/types';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 
@@ -24,9 +24,13 @@ export async function login(
 
   try {
     const userRow: any = await db.get(
-        `SELECT u.id, u.username, u.password, u.role, u.specialty, u.personaId, p.nombreCompleto as name
+        `SELECT 
+          u.id, u.username, u.password, u.specialty, u.personaId, 
+          p.nombreCompleto as name,
+          r.id as roleId, r.name as roleName
          FROM users u
          LEFT JOIN personas p ON u.personaId = p.id
+         JOIN roles r ON u.roleId = r.id
          WHERE u.username = ?`,
         username
     );
@@ -42,16 +46,23 @@ export async function login(
     }
 
     const session = await getIronSession<SessionData>(cookies(), sessionOptions);
-
+    
+    const permissions = await db.all<{permissionId: string}>(
+        'SELECT permissionId FROM role_permissions WHERE roleId = ?',
+        userRow.roleId
+    );
+    
     session.isLoggedIn = true;
     session.user = {
       id: userRow.id,
       username: userRow.username,
-      role: userRow.role,
+      role: { id: userRow.roleId, name: userRow.roleName },
       specialty: userRow.specialty,
       personaId: userRow.personaId,
       name: userRow.name || userRow.username,
     };
+    session.permissions = permissions.map(p => p.permissionId);
+
     await session.save();
     
   } catch (error) {
@@ -71,20 +82,16 @@ export async function logout() {
 
 // --- User Management Actions ---
 
-async function ensureSuperuser() {
-    const session = await getSession();
-    if (!session.isLoggedIn || !session.user || session.user.role !== 'superuser') {
-        throw new Error('Acción no autorizada. Se requiere rol de superusuario.');
-    }
-}
-
-export async function getUsers(query?: string): Promise<User[]> {
-    await ensureSuperuser();
+export async function getUsers(query?: string): Promise<(User & {roleName: string})[]> {
+    await authorize('users.manage');
     const db = await getDb();
     let selectQuery = `
-        SELECT u.id, u.username, u.role, u.specialty, u.personaId, p.nombreCompleto as name
+        SELECT 
+          u.id, u.username, u.roleId, r.name as roleName, u.specialty, 
+          u.personaId, p.nombreCompleto as name
         FROM users u
         LEFT JOIN personas p ON u.personaId = p.id
+        JOIN roles r ON u.roleId = r.id
     `;
     const params: any[] = [];
     if (query && query.trim().length > 1) {
@@ -94,17 +101,25 @@ export async function getUsers(query?: string): Promise<User[]> {
     }
     selectQuery += ' ORDER BY u.username';
     const rows = await db.all(selectQuery, ...params);
-    return rows;
+    return rows.map(row => ({
+        id: row.id,
+        username: row.username,
+        role: { id: row.roleId, name: row.roleName },
+        roleName: row.roleName,
+        specialty: row.specialty,
+        personaId: row.personaId,
+        name: row.name,
+    }));
 }
 
 export async function createUser(data: {
     username: string;
     password?: string;
-    role: Role;
+    roleId: string;
     specialty?: DoctorSpecialty;
     personaId?: string;
 }) {
-    await ensureSuperuser();
+    await authorize('users.manage');
     const db = await getDb();
 
     if (!data.password) {
@@ -122,33 +137,35 @@ export async function createUser(data: {
             throw new Error('Esta persona ya está asignada a otro usuario.');
         }
     }
+    
+    const role = await db.get('SELECT name FROM roles WHERE id = ?', data.roleId);
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const userId = `usr-${Date.now()}`;
 
     await db.run(
-        'INSERT INTO users (id, username, password, role, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO users (id, username, password, roleId, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)',
         userId,
         data.username,
         hashedPassword,
-        data.role,
-        data.role === 'doctor' ? data.specialty : null,
+        data.roleId,
+        role?.name === 'Doctor' ? data.specialty : null,
         data.personaId || null
     );
 
     revalidatePath('/dashboard/usuarios');
-    const newUser = await db.get('SELECT id, username, role, specialty, personaId FROM users WHERE id = ?', userId);
+    const newUser = await db.get('SELECT id, username, roleId, specialty, personaId FROM users WHERE id = ?', userId);
     return newUser;
 }
 
 export async function updateUser(id: string, data: {
     username: string;
     password?: string;
-    role: Role;
+    roleId: string;
     specialty?: DoctorSpecialty;
     personaId?: string;
 }) {
-    await ensureSuperuser();
+    await authorize('users.manage');
     const db = await getDb();
     
     const existingUser = await db.get('SELECT id FROM users WHERE username = ? AND id != ?', data.username, id);
@@ -162,25 +179,27 @@ export async function updateUser(id: string, data: {
             throw new Error('Esta persona ya está asignada a otro usuario.');
         }
     }
+
+    const role = await db.get('SELECT name FROM roles WHERE id = ?', data.roleId);
     
     let result;
     if (data.password) {
         const hashedPassword = await bcrypt.hash(data.password, 10);
         result = await db.run(
-            'UPDATE users SET username = ?, password = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
+            'UPDATE users SET username = ?, password = ?, roleId = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             hashedPassword,
-            data.role,
-            data.role === 'doctor' ? data.specialty : null,
+            data.roleId,
+            role?.name === 'Doctor' ? data.specialty : null,
             data.personaId || null,
             id
         );
     } else {
         result = await db.run(
-            'UPDATE users SET username = ?, role = ?, specialty = ?, personaId = ? WHERE id = ?',
+            'UPDATE users SET username = ?, roleId = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
-            data.role,
-            data.role === 'doctor' ? data.specialty : null,
+            data.roleId,
+            role?.name === 'Doctor' ? data.specialty : null,
             data.personaId || null,
             id
         );
@@ -192,14 +211,16 @@ export async function updateUser(id: string, data: {
 
     revalidatePath('/dashboard/usuarios');
 
-    // After updating the DB, check if the updated user is the current session user.
-    // If so, we need to update the session to reflect the changes immediately.
     const session = await getSession();
     if (session.isLoggedIn && session.user?.id === id) {
         const userRow: any = await db.get(
-           `SELECT u.id, u.username, u.role, u.specialty, u.personaId, p.nombreCompleto as name
+           `SELECT 
+              u.id, u.username, u.specialty, u.personaId, 
+              p.nombreCompleto as name,
+              r.id as roleId, r.name as roleName
             FROM users u
             LEFT JOIN personas p ON u.personaId = p.id
+            JOIN roles r ON u.roleId = r.id
             WHERE u.id = ?`,
            id
         );
@@ -208,21 +229,26 @@ export async function updateUser(id: string, data: {
             session.user = {
                 id: userRow.id,
                 username: userRow.username,
-                role: userRow.role,
+                role: { id: userRow.roleId, name: userRow.roleName },
                 specialty: userRow.specialty,
                 personaId: userRow.personaId,
                 name: userRow.name || userRow.username,
             };
+            const permissions = await db.all<{permissionId: string}>(
+                'SELECT permissionId FROM role_permissions WHERE roleId = ?',
+                userRow.roleId
+            );
+            session.permissions = permissions.map(p => p.permissionId);
             await session.save();
         }
     }
 
-    const updatedUser = await db.get('SELECT id, username, role, specialty, personaId FROM users WHERE id = ?', id);
+    const updatedUser = await db.get('SELECT id, username, roleId, specialty, personaId FROM users WHERE id = ?', id);
     return updatedUser;
 }
 
 export async function deleteUser(id: string) {
-    await ensureSuperuser();
+    await authorize('users.manage');
     
     const session = await getSession();
     if (session.user?.id === id) {
@@ -250,7 +276,6 @@ export async function changePasswordForCurrentUser(data: { currentPassword: stri
 
     const userRow: any = await db.get('SELECT password FROM users WHERE id = ?', session.user.id);
     if (!userRow) {
-        // This case should ideally not be reachable if the session is valid
         throw new Error('Usuario no encontrado en la base de datos.');
     }
 

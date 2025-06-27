@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import type { User } from '@/lib/types';
+import type { User, Role } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,13 +24,17 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { UserForm } from './user-form';
 import { useUser } from './app-shell';
 
-export function UserManagement() {
+interface UserManagementProps {
+    roles: Role[];
+}
+
+export function UserManagement({ roles }: UserManagementProps) {
   const { toast } = useToast();
   const currentUser = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const [users, setUsers] = React.useState<User[]>([]);
+  const [users, setUsers] = React.useState<(User & {roleName: string})[]>([]);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
@@ -129,7 +133,7 @@ export function UserManagement() {
                     <TableRow key={user.id}>
                     <TableCell className="font-mono">{user.username}</TableCell>
                     <TableCell>{user.name || <span className="text-muted-foreground">N/A</span>}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="capitalize">{user.roleName}</Badge></TableCell>
                     <TableCell className="text-right">
                         <AlertDialog>
                             <DropdownMenu>
@@ -192,6 +196,7 @@ export function UserManagement() {
                 </DialogHeader>
                 <UserForm
                     user={selectedUser}
+                    roles={roles}
                     onSubmitted={handleFormSubmitted}
                     onCancel={handleCloseDialog}
                  />
