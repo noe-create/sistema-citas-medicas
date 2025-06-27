@@ -187,22 +187,57 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 otros: ''
             },
             enfermedadActual: '',
+            revisionPorSistemas: '',
             diagnoses: [],
             treatmentPlan: '',
             examenFisicoGeneral: '',
+            antecedentesFamiliares: '',
             antecedentesPersonales: {
+              patologicos: '',
+              quirurgicos: '',
               alergicos: [],
+              alergicosOtros: '',
+              medicamentos: '',
               habitos: [],
+              habitosOtros: '',
+            },
+            antecedentesGinecoObstetricos: {
+                menarquia: undefined,
+                ciclos: '',
+                fum: undefined,
+                g: undefined,
+                p: undefined,
+                a: undefined,
+                c: undefined,
+                metodoAnticonceptivo: '',
+            },
+            antecedentesPediatricos: {
+                prenatales: '',
+                natales: '',
+                postnatales: '',
+                inmunizaciones: '',
+                desarrolloPsicomotor: '',
             },
             signosVitales: {
-                tempUnidad: 'C',
-                pesoUnidad: 'kg',
-                tallaUnidad: 'cm',
-                satO2Ambiente: true,
+                taSistolica: undefined,
+                taDiastolica: undefined,
                 taBrazo: 'izquierdo',
                 taPosicion: 'sentado',
+                fc: undefined,
                 fcRitmo: 'regular',
-                tempSitio: 'oral'
+                fr: undefined,
+                temp: undefined,
+                tempUnidad: 'C',
+                tempSitio: 'oral',
+                peso: undefined,
+                pesoUnidad: 'kg',
+                talla: undefined,
+                tallaUnidad: 'cm',
+                imc: undefined,
+                satO2: undefined,
+                satO2Ambiente: true,
+                satO2Flujo: undefined,
+                dolor: 0,
             }
         }
     });
@@ -865,3 +900,4 @@ function Cie10Autocomplete({ selected, onChange }: Cie10AutocompleteProps) {
         </div>
     );
 }
+
