@@ -23,6 +23,8 @@ import { updatePatientStatus } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { calculateAge } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { RescheduleForm } from './reschedule-form';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
@@ -51,6 +53,8 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
+  const [patientToReschedule, setPatientToReschedule] = React.useState<Patient | null>(null);
 
   const statusOptionsForRole = React.useMemo(() => {
     if (user?.role === 'asistencial') {
@@ -85,6 +89,28 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     }
   };
 
+  const handleOpenRescheduleDialog = (patient: Patient) => {
+    setPatientToReschedule(patient);
+    setIsRescheduleOpen(true);
+  };
+  
+  const handleRescheduleSubmit = async (newDateTime: Date) => {
+    if (!patientToReschedule) return;
+    try {
+        await updatePatientStatus(patientToReschedule.id, 'Pospuesto', newDateTime);
+        toast({
+            title: 'Cita Pospuesta',
+            description: `La cita de ${patientToReschedule.name} ha sido reprogramada.`,
+        });
+        onListRefresh();
+        setIsRescheduleOpen(false);
+        setPatientToReschedule(null);
+    } catch (error: any) {
+        console.error('Error rescheduling appointment:', error);
+        toast({ title: 'Error', description: error.message || 'No se pudo reprogramar la cita.', variant: 'destructive' });
+    }
+  };
+
   const handleStartOrContinueConsultation = async (patient: Patient) => {
     if (patient.status === 'Esperando' || patient.status === 'Reevaluacion') {
         try {
@@ -114,12 +140,10 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     const allServices = Object.keys(serviceInfo) as ServiceType[];
     if (!user) return [];
 
-    // Superusers and assistants can see all queues
     if (user.role === 'superuser' || user.role === 'asistencial') {
       return allServices;
     }
 
-    // Doctors see queues based on their specialty
     if (user.role === 'doctor') {
       if (user.specialty === 'medico pediatra') {
         return allServices.filter((s) => s === 'consulta pediatrica');
@@ -129,12 +153,10 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
       }
     }
     
-    // Nurses see the nursing service queue
     if (user.role === 'enfermera') {
       return allServices.filter((s) => s === 'servicio de enfermeria');
     }
 
-    // Default to a more restricted view if role or specialty doesn't match
     return [];
   }, [user]);
 
@@ -187,7 +209,16 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                                                 <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 {statusOptionsForRole.filter(s => s !== patient.status).map(status => (
-                                                    <DropdownMenuItem key={status} onSelect={() => handleChangeStatus(patient.id, status as PatientStatus)}>
+                                                    <DropdownMenuItem 
+                                                        key={status} 
+                                                        onSelect={() => {
+                                                            if (status === 'Pospuesto') {
+                                                                handleOpenRescheduleDialog(patient);
+                                                            } else {
+                                                                handleChangeStatus(patient.id, status as PatientStatus);
+                                                            }
+                                                        }}
+                                                    >
                                                         {statusInfo[status as PatientStatus].label}
                                                     </DropdownMenuItem>
                                                 ))}
@@ -246,6 +277,20 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
           onOpenChange={handleSheetOpenChange}
           onConsultationComplete={handleConsultationComplete}
         />
+      )}
+
+      {patientToReschedule && (
+          <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
+              <DialogContent>
+                  <DialogHeader>
+                      <DialogTitle>Reprogramar Cita</DialogTitle>
+                      <DialogDescription>
+                         Seleccione la nueva fecha y hora para {patientToReschedule.name}.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <RescheduleForm onSubmit={handleRescheduleSubmit} />
+              </DialogContent>
+          </Dialog>
       )}
     </>
   );

@@ -595,7 +595,11 @@ export async function addPatientToWaitlist(data: Omit<Patient, 'id'| 'pacienteId
     return newPatient;
 }
 
-export async function updatePatientStatus(id: string, status: PatientStatus): Promise<{ success: boolean }> {
+export async function updatePatientStatus(
+    id: string,
+    status: PatientStatus,
+    rescheduledDateTime?: Date
+): Promise<{ success: boolean }> {
     const db = await getDb();
 
     if (status === 'Cancelado') {
@@ -607,11 +611,19 @@ export async function updatePatientStatus(id: string, status: PatientStatus): Pr
         }
     }
 
-    const result = await db.run(
-        'UPDATE waitlist SET status = ? WHERE id = ?',
-        status,
-        id
-    );
+    let query = 'UPDATE waitlist SET status = ?';
+    const params: any[] = [status];
+
+    if (status === 'Pospuesto' && rescheduledDateTime) {
+        query += ', checkInTime = ?';
+        params.push(rescheduledDateTime.toISOString());
+    }
+    
+    query += ' WHERE id = ?';
+    params.push(id);
+
+    const result = await db.run(query, ...params);
+
     if (result.changes === 0) throw new Error('Paciente en lista de espera no encontrado');
 
     revalidatePath('/dashboard');
