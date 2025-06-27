@@ -84,7 +84,7 @@ type PatientFormValues = z.infer<typeof patientSchema>;
 interface PatientFormProps {
   titular: Titular | null;
   empresas: Empresa[];
-  onSubmitted: (values: any) => Promise<void>;
+  onSubmitted: (...args: any[]) => Promise<void>;
   onCancel: () => void;
   excludeIds?: string[];
 }
