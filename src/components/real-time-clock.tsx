@@ -29,13 +29,13 @@ export function RealTimeClock({ className }: RealTimeClockProps) {
   const formattedTime = format(time, "pp", { locale: es });
 
   return (
-    <div className={cn("flex items-center gap-4 text-sm text-muted-foreground font-mono mt-1", className)}>
+    <div className={cn("flex items-center gap-4 text-base text-muted-foreground font-mono mt-1", className)}>
         <div className="flex items-center gap-1.5">
-            <Calendar className="h-4 w-4"/>
+            <Calendar className="h-5 w-5"/>
             <span className="capitalize">{formattedDate}</span>
         </div>
         <div className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4"/>
+            <Clock className="h-5 w-5"/>
             <span>{formattedTime}</span>
         </div>
     </div>
