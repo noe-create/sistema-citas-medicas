@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,8 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud } from 'lucide-react';
-import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType } from '@/lib/types';
+import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -22,10 +23,56 @@ import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { calculateAge } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
+// --- Zod Schema Definition ---
 const consultationSchema = z.object({
-  anamnesis: z.string().min(1, 'La anamnesis es obligatoria.'),
-  physicalExam: z.string().min(1, 'El examen físico es obligatorio.'),
+  // Step 1: Anamnesis
+  motivoConsulta: z.string().min(1, 'El motivo de consulta es obligatorio.'),
+  enfermedadActual: z.string().min(1, 'La historia de la enfermedad actual es obligatoria.'),
+  revisionPorSistemas: z.string().optional(),
+
+  // Step 2: Antecedentes
+  antecedentesPersonales: z.object({
+    patologicos: z.string().optional(),
+    quirurgicos: z.string().optional(),
+    alergicos: z.string().optional(),
+    medicamentos: z.string().optional(),
+    habitos: z.string().optional(),
+  }).optional(),
+  antecedentesFamiliares: z.string().optional(),
+  antecedentesGinecoObstetricos: z.object({
+    menarquia: z.coerce.number().optional(),
+    ciclos: z.string().optional(),
+    fum: z.date().optional(),
+    g: z.coerce.number().optional(),
+    p: z.coerce.number().optional(),
+    a: z.coerce.number().optional(),
+    c: z.coerce.number().optional(),
+    metodoAnticonceptivo: z.string().optional(),
+  }).optional(),
+  antecedentesPediatricos: z.object({
+    prenatales: z.string().optional(),
+    natales: z.string().optional(),
+    postnatales: z.string().optional(),
+    inmunizaciones: z.string().optional(),
+    desarrolloPsicomotor: z.string().optional(),
+  }).optional(),
+
+  // Step 3: Examen Físico
+  signosVitales: z.object({
+    ta: z.string().optional(),
+    fc: z.coerce.number().optional(),
+    fr: z.coerce.number().optional(),
+    temp: z.coerce.number().optional(),
+    peso: z.coerce.number().optional(),
+    talla: z.coerce.number().optional(),
+    imc: z.coerce.number().optional(),
+  }).optional(),
+  examenFisicoGeneral: z.string().min(1, 'El examen físico es obligatorio.'),
+
+  // Step 4: Diagnóstico y Plan
   diagnoses: z.array(z.object({
     cie10Code: z.string(),
     cie10Description: z.string(),
@@ -39,7 +86,7 @@ interface FileUploadState {
     file: File;
     documentType: DocumentType;
     description: string;
-    id: string; // for stable keys in React
+    id: string;
 }
 
 interface ConsultationFormProps {
@@ -47,76 +94,61 @@ interface ConsultationFormProps {
     onConsultationComplete: () => void;
 }
 
+// --- Main Form Component ---
 export function ConsultationForm({ patient, onConsultationComplete }: ConsultationFormProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [isGenerating, setIsGenerating] = React.useState(false);
-    const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
-    const [filesToUpload, setFilesToUpload] = React.useState<FileUploadState[]>([]);
+    const [currentStep, setCurrentStep] = React.useState(0);
+    
+    const age = React.useMemo(() => calculateAge(new Date(patient.fechaNacimiento)), [patient.fechaNacimiento]);
+    const isFemale = patient.genero === 'Femenino';
+    const isPediatric = age < 18;
+
+    const steps = React.useMemo(() => {
+        const baseSteps = [
+            { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
+            { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
+            { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan'] },
+        ];
+        return baseSteps;
+    }, []);
 
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
         defaultValues: {
-            anamnesis: '',
-            physicalExam: '',
-            treatmentPlan: '',
+            motivoConsulta: '',
+            enfermedadActual: '',
             diagnoses: [],
+            treatmentPlan: '',
+            examenFisicoGeneral: '',
         }
     });
 
-    const { watch } = form;
-    const diagnoses = watch('diagnoses');
-    const treatmentPlan = watch('treatmentPlan');
+    const handleNext = async () => {
+        const fields = steps[currentStep].fields;
+        const output = await form.trigger(fields as any, { shouldFocus: true });
 
-    const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan.trim().length > 0;
+        if (!output) return;
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            const newFiles = Array.from(event.target.files).map(file => ({
-                file,
-                documentType: 'laboratorio' as DocumentType,
-                description: '',
-                id: `${file.name}-${file.lastModified}-${Math.random()}`
-            }));
-            setFilesToUpload(prev => [...prev, ...newFiles]);
-            event.target.value = ''; // Allow selecting the same file again
+        if (currentStep < steps.length - 1) {
+            setCurrentStep(step => step + 1);
         }
     };
 
-    const handleFileMetadataChange = (id: string, field: 'documentType' | 'description', value: string) => {
-        setFilesToUpload(prev =>
-            prev.map(fileState =>
-                fileState.id === id ? { ...fileState, [field]: value } : fileState
-            )
-        );
+    const handlePrev = () => {
+        if (currentStep > 0) {
+            setCurrentStep(step => step - 1);
+        }
     };
-
-    const handleRemoveFile = (id: string) => {
-        setFilesToUpload(prev => prev.filter((f) => f.id !== id));
-    };
-
-
+    
     async function onSubmit(values: z.infer<typeof consultationSchema>) {
         setIsSubmitting(true);
+        // This is a placeholder for file upload logic, which would be in a different step now.
+        // For simplicity, we'll keep it here but disabled for now.
+        const documentsData: CreateConsultationDocumentInput[] = []; 
 
         try {
-            const documentsData: CreateConsultationDocumentInput[] = await Promise.all(
-                filesToUpload.map(fileState => {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.readAsDataURL(fileState.file);
-                        reader.onload = () => resolve({
-                            fileName: fileState.file.name,
-                            fileType: fileState.file.type,
-                            documentType: fileState.documentType,
-                            description: fileState.description,
-                            fileData: reader.result as string,
-                        });
-                        reader.onerror = error => reject(error);
-                    });
-                })
-            );
-
             await createConsultation({
                 ...values,
                 waitlistId: patient.id,
@@ -143,7 +175,188 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             setIsSubmitting(false);
         }
     }
-    
+
+  return (
+    <Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+                <CardTitle>Formulario de Consulta</CardTitle>
+                <CardDescription>
+                Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
+                </CardDescription>
+                 {/* Stepper Indicator */}
+                <div className="flex items-center justify-center pt-2">
+                    {steps.map((step, index) => (
+                        <React.Fragment key={step.id}>
+                            <div className="flex flex-col items-center">
+                                <div
+                                    className={cn(
+                                        'w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors',
+                                        currentStep === index ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground',
+                                        currentStep > index && 'bg-primary/50 text-primary-foreground'
+                                    )}
+                                >
+                                    {index + 1}
+                                </div>
+                                <p className="text-xs mt-1 text-center">{step.name}</p>
+                            </div>
+                            {index < steps.length - 1 && (
+                                <div className={cn("flex-auto border-t-2 transition-colors", currentStep > index ? 'border-primary/50' : 'border-secondary')}></div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-6 min-h-[400px]">
+                {/* Step Content */}
+                {currentStep === 0 && <StepAnamnesis form={form} />}
+                {currentStep === 1 && <StepAntecedentes form={form} isFemale={isFemale} isPediatric={isPediatric} />}
+                {currentStep === 2 && <StepExamenFisico form={form} />}
+                {currentStep === 3 && <StepDiagnosticoPlan form={form} patient={patient} />}
+            </CardContent>
+            <CardFooter className="flex justify-between gap-4">
+                 <Button type="button" variant="outline" onClick={handlePrev} disabled={currentStep === 0}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Anterior
+                 </Button>
+
+                 {currentStep < steps.length - 1 && (
+                    <Button type="button" onClick={handleNext}>
+                        Siguiente <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                 )}
+
+                 {currentStep === steps.length - 1 && (
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Guardar y Completar Consulta
+                    </Button>
+                 )}
+            </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
+
+
+// --- Step Sub-components ---
+
+const FormSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <div className="space-y-4 rounded-lg border p-4">
+        <h3 className="text-lg font-medium leading-none">{title}</h3>
+        <div className="space-y-4">{children}</div>
+    </div>
+);
+
+const StepAnamnesis = ({ form }: { form: any }) => (
+    <div className="space-y-6">
+        <FormSection title="Motivo de Consulta">
+            <FormField control={form.control} name="motivoConsulta" render={({ field }) => (
+                <FormItem>
+                    <FormControl><Textarea placeholder="Describa la razón principal de la visita..." {...field} rows={3} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+        </FormSection>
+        <FormSection title="Enfermedad Actual">
+            <FormField control={form.control} name="enfermedadActual" render={({ field }) => (
+                <FormItem>
+                    <FormControl><Textarea placeholder="Detalle la cronología y características de los síntomas..." {...field} rows={6} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+        </FormSection>
+        <FormSection title="Revisión por Sistemas">
+            <FormField control={form.control} name="revisionPorSistemas" render={({ field }) => (
+                <FormItem>
+                    <FormControl><Textarea placeholder="Detalle cualquier otro síntoma por sistema corporal..." {...field} rows={4} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+        </FormSection>
+    </div>
+);
+
+const StepAntecedentes = ({ form, isFemale, isPediatric }: { form: any, isFemale: boolean, isPediatric: boolean }) => (
+     <div className="space-y-6">
+        <FormSection title="Antecedentes Personales">
+            <FormField control={form.control} name="antecedentesPersonales.patologicos" render={({ field }) => ( <FormItem><FormLabel>Patológicos</FormLabel><FormControl><Textarea placeholder="Enfermedades crónicas, previas..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="antecedentesPersonales.quirurgicos" render={({ field }) => ( <FormItem><FormLabel>Quirúrgicos</FormLabel><FormControl><Textarea placeholder="Cirugías anteriores..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="antecedentesPersonales.alergicos" render={({ field }) => ( <FormItem><FormLabel>Alérgicos</FormLabel><FormControl><Textarea placeholder="Alergias a medicamentos, alimentos, etc." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="antecedentesPersonales.medicamentos" render={({ field }) => ( <FormItem><FormLabel>Medicamentos Actuales</FormLabel><FormControl><Textarea placeholder="Medicamentos que toma regularmente..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="antecedentesPersonales.habitos" render={({ field }) => ( <FormItem><FormLabel>Hábitos Psicobiológicos</FormLabel><FormControl><Textarea placeholder="Tabaco, alcohol, drogas, actividad física, dieta..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+        </FormSection>
+        
+        <FormSection title="Antecedentes Familiares">
+             <FormField control={form.control} name="antecedentesFamiliares" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Enfermedades importantes en familiares directos..." {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+        </FormSection>
+        
+        {isFemale && <StepGineco form={form} />}
+        {isPediatric && <StepPediatrico form={form} />}
+    </div>
+);
+
+const StepGineco = ({ form }: { form: any }) => (
+    <FormSection title="Antecedentes Gineco-Obstétricos">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.menarquia" render={({ field }) => ( <FormItem><FormLabel>Menarquia (edad)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.ciclos" render={({ field }) => ( <FormItem><FormLabel>Ciclos (días/duración)</FormLabel><FormControl><Input placeholder="28/5" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.fum" render={({ field }) => ( <FormItem><FormLabel>FUM</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(field.value, 'PPP', {locale: es})) : (<span>Seleccione fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.g" render={({ field }) => ( <FormItem><FormLabel>Gestas</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.p" render={({ field }) => ( <FormItem><FormLabel>Partos</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.a" render={({ field }) => ( <FormItem><FormLabel>Abortos</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.c" render={({ field }) => ( <FormItem><FormLabel>Cesáreas</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+        </div>
+        <FormField control={form.control} name="antecedentesGinecoObstetricos.metodoAnticonceptivo" render={({ field }) => ( <FormItem><FormLabel>Método Anticonceptivo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+    </FormSection>
+);
+
+const StepPediatrico = ({ form }: { form: any }) => (
+     <FormSection title="Antecedentes Pediátricos">
+        <FormField control={form.control} name="antecedentesPediatricos.prenatales" render={({ field }) => ( <FormItem><FormLabel>Prenatales</FormLabel><FormControl><Textarea placeholder="Control del embarazo, complicaciones..." {...field} rows={2} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="antecedentesPediatricos.natales" render={({ field }) => ( <FormItem><FormLabel>Natales</FormLabel><FormControl><Textarea placeholder="Tipo de parto, peso/talla al nacer..." {...field} rows={2} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="antecedentesPediatricos.postnatales" render={({ field }) => ( <FormItem><FormLabel>Postnatales</FormLabel><FormControl><Textarea placeholder="Complicaciones neonatales, lactancia..." {...field} rows={2} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="antecedentesPediatricos.inmunizaciones" render={({ field }) => ( <FormItem><FormLabel>Inmunizaciones</FormLabel><FormControl><Textarea placeholder="Esquema de vacunación, vacunas pendientes..." {...field} rows={2} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="antecedentesPediatricos.desarrolloPsicomotor" render={({ field }) => ( <FormItem><FormLabel>Desarrollo Psicomotor</FormLabel><FormControl><Textarea placeholder="Hitos del desarrollo, lenguaje, socialización..." {...field} rows={2} /></FormControl></FormItem> )} />
+    </FormSection>
+);
+
+
+const StepExamenFisico = ({ form }: { form: any }) => (
+    <div className="space-y-6">
+        <FormSection title="Signos Vitales">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <FormField control={form.control} name="signosVitales.ta" render={({ field }) => ( <FormItem><FormLabel>T.A. (mmHg)</FormLabel><FormControl><Input placeholder="120/80" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="signosVitales.fc" render={({ field }) => ( <FormItem><FormLabel>F.C. (lpm)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="signosVitales.fr" render={({ field }) => ( <FormItem><FormLabel>F.R. (rpm)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="signosVitales.temp" render={({ field }) => ( <FormItem><FormLabel>Temp (°C)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="signosVitales.peso" render={({ field }) => ( <FormItem><FormLabel>Peso (kg)</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="signosVitales.talla" render={({ field }) => ( <FormItem><FormLabel>Talla (cm)</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem> )} />
+            </div>
+        </FormSection>
+        <FormSection title="Examen Físico General">
+             <FormField control={form.control} name="examenFisicoGeneral" render={({ field }) => (
+                <FormItem>
+                    <FormControl><Textarea placeholder="Descripción del examen físico por sistemas (cabeza, cuello, tórax, etc.)..." {...field} rows={8} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+        </FormSection>
+    </div>
+);
+
+
+const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient }) => {
+    const { toast } = useToast();
+    const [isGenerating, setIsGenerating] = React.useState(false);
+    const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
+
+    const { watch } = form;
+    const diagnoses = watch('diagnoses');
+    const treatmentPlan = watch('treatmentPlan');
+    const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan?.trim().length > 0;
+
     const handleGeneratePrescription = async () => {
         setIsGenerating(true);
         setPrescription(null);
@@ -171,173 +384,37 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
         }
     };
 
+    return (
+        <div className="space-y-6">
+            <FormSection title="Diagnósticos">
+                <FormField control={form.control} name="diagnoses" render={({ field }) => (
+                    <FormItem>
+                        <Cie10Autocomplete selected={field.value} onChange={field.onChange} />
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </FormSection>
+            <FormSection title="Plan de Tratamiento">
+                 <FormField control={form.control} name="treatmentPlan" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Indicaciones Médicas</FormLabel>
+                        <FormControl><Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={6} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </FormSection>
+            <FormSection title="Asistente de Récipe Médico con IA">
+                <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                    Generar Récipe con IA
+                </Button>
+                {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan de tratamiento.</p>}
+                {prescription && <PrescriptionDisplay prescription={prescription} />}
+            </FormSection>
+        </div>
+    );
+};
 
-  return (
-    <Card>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardHeader>
-                <CardTitle>Formulario de Consulta</CardTitle>
-                <CardDescription>
-                Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                     <div className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="anamnesis"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Anamnesis</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Motivo de consulta, historia de la enfermedad actual..." {...field} rows={6} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="physicalExam"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Examen Físico</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Signos vitales, hallazgos por sistema..." {...field} rows={6} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                     </div>
-                     <div className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="diagnoses"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Diagnóstico(s) CIE-10</FormLabel>
-                                    <Cie10Autocomplete 
-                                        selected={field.value}
-                                        onChange={field.onChange}
-                                    />
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="treatmentPlan"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Plan de Tratamiento / Indicaciones</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={6} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                     </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium flex items-center gap-2">
-                        <Paperclip className="h-5 w-5" /> Documentos Adjuntos
-                    </h3>
-                     <div className="flex items-center justify-center w-full">
-                        <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/50">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <UploadCloud className="w-8 h-8 mb-4 text-muted-foreground" />
-                                <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click para cargar</span> o arrastrar y soltar</p>
-                                <p className="text-xs text-muted-foreground">PDF, PNG, JPG, etc.</p>
-                            </div>
-                            <input id="file-upload" type="file" className="hidden" multiple onChange={handleFileChange} />
-                        </label>
-                    </div> 
-                    {filesToUpload.length > 0 && (
-                        <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Archivos para subir:</h4>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {filesToUpload.map((fileState) => (
-                                <Card key={fileState.id} className="p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                            <span className="truncate font-medium text-sm">{fileState.file.name}</span>
-                                        </div>
-                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveFile(fileState.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`docType-${fileState.id}`}>Tipo de Documento</Label>
-                                        <Select
-                                            value={fileState.documentType}
-                                            onValueChange={(value: DocumentType) => handleFileMetadataChange(fileState.id, 'documentType', value)}
-                                        >
-                                            <SelectTrigger id={`docType-${fileState.id}`}>
-                                                <SelectValue placeholder="Seleccionar tipo..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {documentTypes.map(type => (
-                                                    <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`desc-${fileState.id}`}>Descripción</Label>
-                                        <Input
-                                            id={`desc-${fileState.id}`}
-                                            value={fileState.description}
-                                            onChange={(e) => handleFileMetadataChange(fileState.id, 'description', e.target.value)}
-                                            placeholder="Ej. Rayos X de tórax"
-                                        />
-                                    </div>
-                                </Card>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-                
-                <Separator />
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Asistente de Récipe Médico</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Use la IA para generar una receta médica formal basada en el plan de tratamiento.
-                    </p>
-                    <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
-                        {isGenerating ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                             <Wand2 className="mr-2 h-4 w-4" />
-                        )}
-                        Generar Récipe con IA
-                    </Button>
-                    {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan de tratamiento.</p>}
-
-                    {prescription && <PrescriptionDisplay prescription={prescription} />}
-                </div>
-
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Guardar y Completar Consulta
-                 </Button>
-            </CardFooter>
-        </form>
-      </Form>
-    </Card>
-  );
-}
 
 // Sub-component for CIE-10 Autocomplete
 interface Cie10AutocompleteProps {

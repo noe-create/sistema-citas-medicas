@@ -1,14 +1,16 @@
+
 'use client';
 
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
 import type { HistoryEntry } from '@/lib/types';
-import { Loader2, Calendar, Stethoscope, ClipboardList, Pill, Paperclip, FileText, ClipboardCheck } from 'lucide-react';
+import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 interface PatientHistoryProps {
   personaId: string;
@@ -51,7 +53,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   if (history.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-secondary/50 rounded-lg">
-        <ClipboardList className="h-10 w-10 mb-2" />
+        <ClipboardCheck className="h-10 w-10 mb-2" />
         <p className="font-semibold">No hay historial clínico</p>
         <p className="text-sm">Esta es la primera visita del paciente.</p>
       </div>
@@ -59,7 +61,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   }
 
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="single" collapsible className="w-full" defaultValue={history[0]?.data.id}>
       {history.map((entry) => {
         if (entry.type === 'consultation') {
             const consultation = entry.data;
@@ -74,31 +76,96 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="space-y-4 pl-2">
-                        <div>
-                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Stethoscope className="h-4 w-4" />Diagnósticos</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {consultation.diagnoses.length > 0 ? consultation.diagnoses.map((dx) => (
-                            <Badge key={dx.cie10Code} variant="secondary">
-                                {dx.cie10Code}: {dx.cie10Description}
-                            </Badge>
-                            )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <HistorySection icon={<HeartPulse/>} title="Anamnesis">
+                                <HistoryDetail label="Motivo de Consulta" value={consultation.motivoConsulta} />
+                                <HistoryDetail label="Enfermedad Actual" value={consultation.enfermedadActual} />
+                                <HistoryDetail label="Revisión por Sistemas" value={consultation.revisionPorSistemas} />
+                            </HistorySection>
+
+                             <HistorySection icon={<HeartPulse/>} title="Examen Físico">
+                                {consultation.signosVitales && (
+                                    <div className="mb-2">
+                                        <h4 className="font-semibold mb-1 text-sm">Signos Vitales</h4>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>TA</TableHead>
+                                                    <TableHead>FC</TableHead>
+                                                    <TableHead>FR</TableHead>
+                                                    <TableHead>T°</TableHead>
+                                                    <TableHead>Peso</TableHead>
+                                                    <TableHead>Talla</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                <TableRow>
+                                                    <TableCell>{consultation.signosVitales.ta || 'N/A'}</TableCell>
+                                                    <TableCell>{consultation.signosVitales.fc || 'N/A'}</TableCell>
+                                                    <TableCell>{consultation.signosVitales.fr || 'N/A'}</TableCell>
+                                                    <TableCell>{consultation.signosVitales.temp || 'N/A'}</TableCell>
+                                                    <TableCell>{consultation.signosVitales.peso || 'N/A'}</TableCell>
+                                                    <TableCell>{consultation.signosVitales.talla || 'N/A'}</TableCell>
+                                                </TableRow>
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                                <HistoryDetail label="Examen General" value={consultation.examenFisicoGeneral} />
+                            </HistorySection>
+
+                            <HistorySection icon={<User/>} title="Antecedentes Personales">
+                                <HistoryDetail label="Patológicos" value={consultation.antecedentesPersonales?.patologicos} />
+                                <HistoryDetail label="Quirúrgicos" value={consultation.antecedentesPersonales?.quirurgicos} />
+                                <HistoryDetail label="Alérgicos" value={consultation.antecedentesPersonales?.alergicos} />
+                                <HistoryDetail label="Medicamentos" value={consultation.antecedentesPersonales?.medicamentos} />
+                                <HistoryDetail label="Hábitos" value={consultation.antecedentesPersonales?.habitos} />
+                            </HistorySection>
+                            
+                            <HistorySection icon={<Users/>} title="Antecedentes Familiares">
+                                <HistoryDetail value={consultation.antecedentesFamiliares} />
+                            </HistorySection>
+
+                            {consultation.antecedentesGinecoObstetricos &&
+                                <HistorySection icon={<Stethoscope/>} title="Antecedentes Gineco-Obstétricos">
+                                    <HistoryDetail label="Menarquia" value={consultation.antecedentesGinecoObstetricos.menarquia} />
+                                    <HistoryDetail label="Ciclos" value={consultation.antecedentesGinecoObstetricos.ciclos} />
+                                    <HistoryDetail label="FUM" value={consultation.antecedentesGinecoObstetricos.fum ? format(new Date(consultation.antecedentesGinecoObstetricos.fum), 'PPP', {locale: es}) : 'N/A'} />
+                                    <HistoryDetail label="G" value={consultation.antecedentesGinecoObstetricos.g} />
+                                    <HistoryDetail label="P" value={consultation.antecedentesGinecoObstetricos.p} />
+                                    <HistoryDetail label="A" value={consultation.antecedentesGinecoObstetricos.a} />
+                                    <HistoryDetail label="C" value={consultation.antecedentesGinecoObstetricos.c} />
+                                    <HistoryDetail label="MAC" value={consultation.antecedentesGinecoObstetricos.metodoAnticonceptivo} />
+                                </HistorySection>
+                            }
+
+                            {consultation.antecedentesPediatricos &&
+                                <HistorySection icon={<Baby/>} title="Antecedentes Pediátricos">
+                                    <HistoryDetail label="Prenatales" value={consultation.antecedentesPediatricos.prenatales} />
+                                    <HistoryDetail label="Natales" value={consultation.antecedentesPediatricos.natales} />
+                                    <HistoryDetail label="Postnatales" value={consultation.antecedentesPediatricos.postnatales} />
+                                    <HistoryDetail label="Inmunizaciones" value={consultation.antecedentesPediatricos.inmunizaciones} />
+                                    <HistoryDetail label="Desarrollo Psicomotor" value={consultation.antecedentesPediatricos.desarrolloPsicomotor} />
+                                </HistorySection>
+                            }
                         </div>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-1">Anamnesis</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{consultation.anamnesis || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-1">Examen Físico</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{consultation.physicalExam || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-1 flex items-center gap-2"><Pill className="h-4 w-4" />Plan de Tratamiento</h4>
+
+                        <HistorySection icon={<BrainCircuit/>} title="Impresión Diagnóstica">
+                             <div className="flex flex-wrap gap-2">
+                                {consultation.diagnoses.length > 0 ? consultation.diagnoses.map((dx) => (
+                                <Badge key={dx.cie10Code} variant="secondary">
+                                    {dx.cie10Code}: {dx.cie10Description}
+                                </Badge>
+                                )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                            </div>
+                        </HistorySection>
+
+                        <HistorySection icon={<Pill/>} title="Plan de Tratamiento">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{consultation.treatmentPlan || 'N/A'}</p>
-                        </div>
+                        </HistorySection>
+
                         {consultation.documents && consultation.documents.length > 0 && (
-                            <div>
-                                <h4 className="font-semibold mb-2 flex items-center gap-2"><Paperclip className="h-4 w-4" />Documentos Adjuntos</h4>
+                            <HistorySection icon={<Paperclip/>} title="Documentos Adjuntos">
                                 <div className="flex flex-col gap-3">
                                     {consultation.documents.map(doc => (
                                         <div key={doc.id} className="p-3 rounded-md border bg-secondary/50">
@@ -121,7 +188,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </HistorySection>
                         )}
                     </AccordionContent>
                 </AccordionItem>
@@ -139,18 +206,9 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="space-y-4 pl-2">
-                        <div>
-                            <h4 className="font-semibold mb-1">Procedimiento</h4>
-                            <p className="text-sm text-muted-foreground">{execution.procedureDescription}</p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-1">Observaciones</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{execution.observations}</p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-1">Ejecutado por</h4>
-                            <p className="text-sm text-muted-foreground">{execution.executedBy}</p>
-                        </div>
+                        <HistoryDetail label="Procedimiento" value={execution.procedureDescription} />
+                        <HistoryDetail label="Observaciones" value={execution.observations} />
+                        <HistoryDetail label="Ejecutado por" value={execution.executedBy} />
                     </AccordionContent>
                 </AccordionItem>
             )
@@ -160,3 +218,23 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     </Accordion>
   );
 }
+
+
+const HistorySection = ({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) => (
+    <div className="space-y-2 rounded-lg border bg-card p-4">
+        <h3 className="font-semibold flex items-center gap-2"><span className="text-primary">{icon}</span>{title}</h3>
+        <div className="space-y-2 pl-6">{children}</div>
+    </div>
+);
+
+
+const HistoryDetail = ({ label, value }: { label?: string, value: any }) => {
+    const displayValue = value === undefined || value === null || value === '' ? 'N/A' : String(value);
+    
+    return (
+        <div>
+            {label && <h4 className="font-semibold text-sm">{label}</h4>}
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{displayValue}</p>
+        </div>
+    );
+};

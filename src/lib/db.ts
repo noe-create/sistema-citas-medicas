@@ -1,3 +1,4 @@
+
 'server-only';
 
 import sqlite3 from 'sqlite3';
@@ -116,8 +117,15 @@ async function createTables(dbInstance: Database): Promise<void> {
             pacienteId TEXT NOT NULL,
             waitlistId TEXT,
             consultationDate TEXT NOT NULL,
-            anamnesis TEXT,
-            physicalExam TEXT,
+            motivoConsulta TEXT,
+            enfermedadActual TEXT,
+            revisionPorSistemas TEXT,
+            antecedentesPersonales TEXT,
+            antecedentesFamiliares TEXT,
+            antecedentesGinecoObstetricos TEXT,
+            antecedentesPediatricos TEXT,
+            signosVitales TEXT,
+            examenFisicoGeneral TEXT,
             treatmentPlan TEXT,
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
         );

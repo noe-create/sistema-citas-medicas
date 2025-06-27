@@ -1,3 +1,4 @@
+
 export type Genero = 'Masculino' | 'Femenino' | 'Otro';
 export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
@@ -117,6 +118,7 @@ export interface Patient {
   status: PatientStatus;
   checkInTime: Date;
   fechaNacimiento: Date;
+  genero: Genero;
 }
 
 
@@ -144,17 +146,62 @@ export interface ConsultationDocument {
   uploadedAt: Date;
 }
 
+export interface SignosVitales {
+  ta?: string;
+  fc?: number;
+  fr?: number;
+  temp?: number;
+  peso?: number;
+  talla?: number;
+  imc?: number;
+}
+
+export interface AntecedentesPersonales {
+  patologicos?: string;
+  quirurgicos?: string;
+  alergicos?: string;
+  medicamentos?: string;
+  habitos?: string;
+}
+
+export interface AntecedentesGinecoObstetricos {
+  menarquia?: number;
+  ciclos?: string;
+  fum?: Date;
+  g?: number;
+  p?: number;
+  a?: number;
+  c?: number;
+  metodoAnticonceptivo?: string;
+}
+
+export interface AntecedentesPediatricos {
+  prenatales?: string;
+  natales?: string;
+  postnatales?: string;
+  inmunizaciones?: string;
+  desarrolloPsicomotor?: string;
+}
+
 export interface Consultation {
   id: string;
   pacienteId: string;
   waitlistId?: string;
   consultationDate: Date;
-  anamnesis: string;
-  physicalExam: string;
+  motivoConsulta?: string;
+  enfermedadActual?: string;
+  revisionPorSistemas?: string;
+  antecedentesPersonales?: AntecedentesPersonales;
+  antecedentesFamiliares?: string;
+  antecedentesGinecoObstetricos?: AntecedentesGinecoObstetricos;
+  antecedentesPediatricos?: AntecedentesPediatricos;
+  signosVitales?: SignosVitales;
+  examenFisicoGeneral?: string;
   treatmentPlan: string;
   diagnoses: Diagnosis[];
   documents?: ConsultationDocument[];
 }
+
 
 export interface CreateConsultationDocumentInput {
   fileName: string;
@@ -164,12 +211,7 @@ export interface CreateConsultationDocumentInput {
   fileData: string; // as a data URI
 }
 
-export interface CreateConsultationInput {
-    waitlistId: string;
-    pacienteId: string;
-    anamnesis: string;
-    physicalExam: string;
-    treatmentPlan: string;
+export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents'> {
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
 }

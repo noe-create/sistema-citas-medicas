@@ -554,7 +554,7 @@ export async function getWaitlist(): Promise<Patient[]> {
     const rows = await db.all(`
         SELECT 
             w.id, w.personaId, w.pacienteId, w.name, w.kind, w.serviceType, w.accountType, w.status, w.checkInTime,
-            p.fechaNacimiento
+            p.fechaNacimiento, p.genero
         FROM waitlist w
         JOIN personas p ON w.personaId = p.id
         WHERE w.status NOT IN ('Completado', 'Cancelado')
@@ -635,6 +635,20 @@ export async function updatePatientStatus(
 
 // --- EHR Actions ---
 
+function parseConsultation(row: any) {
+    if (!row) return null;
+    const { fum, ...restOfGineco } = row.antecedentesGinecoObstetricos ? JSON.parse(row.antecedentesGinecoObstetricos) : {};
+
+    return {
+        ...row,
+        consultationDate: new Date(row.consultationDate),
+        signosVitales: row.signosVitales ? JSON.parse(row.signosVitales) : undefined,
+        antecedentesPersonales: row.antecedentesPersonales ? JSON.parse(row.antecedentesPersonales) : undefined,
+        antecedentesGinecoObstetricos: row.antecedentesGinecoObstetricos ? { ...restOfGineco, fum: fum ? new Date(fum) : undefined } : undefined,
+        antecedentesPediatricos: row.antecedentesPediatricos ? JSON.parse(row.antecedentesPediatricos) : undefined,
+    }
+}
+
 export async function getPatientHistory(personaId: string): Promise<HistoryEntry[]> {
     const db = await getDb();
     
@@ -656,11 +670,13 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
                 'SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC',
                 row.id
             );
+            
+            const parsedConsultation = parseConsultation(row);
+            
             return {
                 type: 'consultation' as const,
                 data: {
-                    ...row,
-                    consultationDate: new Date(row.consultationDate),
+                    ...parsedConsultation,
                     diagnoses,
                     documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
                 }
@@ -709,21 +725,36 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         await db.exec('BEGIN TRANSACTION');
         
         await db.run(
-            'INSERT INTO consultations (id, pacienteId, waitlistId, consultationDate, anamnesis, physicalExam, treatmentPlan) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            `INSERT INTO consultations (
+                id, pacienteId, waitlistId, consultationDate, motivoConsulta, enfermedadActual, 
+                revisionPorSistemas, antecedentesPersonales, antecedentesFamiliares, 
+                antecedentesGinecoObstetricos, antecedentesPediatricos, signosVitales, 
+                examenFisicoGeneral, treatmentPlan
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             consultationId,
             data.pacienteId,
             data.waitlistId,
             consultationDate.toISOString(),
-            data.anamnesis,
-            data.physicalExam,
+            data.motivoConsulta,
+            data.enfermedadActual,
+            data.revisionPorSistemas,
+            data.antecedentesPersonales ? JSON.stringify(data.antecedentesPersonales) : null,
+            data.antecedentesFamiliares,
+            data.antecedentesGinecoObstetricos ? JSON.stringify(data.antecedentesGinecoObstetricos) : null,
+            data.antecedentesPediatricos ? JSON.stringify(data.antecedentesPediatricos) : null,
+            data.signosVitales ? JSON.stringify(data.signosVitales) : null,
+            data.examenFisicoGeneral,
             data.treatmentPlan
         );
         
-        const diagnosisStmt = await db.prepare('INSERT INTO consultation_diagnoses (id, consultationId, cie10Code, cie10Description) VALUES (?, ?, ?, ?)');
-        for (const diagnosis of data.diagnoses) {
-            await diagnosisStmt.run(generateId('d'), consultationId, diagnosis.cie10Code, diagnosis.cie10Description);
+        if (data.diagnoses && data.diagnoses.length > 0) {
+            const diagnosisStmt = await db.prepare('INSERT INTO consultation_diagnoses (id, consultationId, cie10Code, cie10Description) VALUES (?, ?, ?, ?)');
+            for (const diagnosis of data.diagnoses) {
+                await diagnosisStmt.run(generateId('d'), consultationId, diagnosis.cie10Code, diagnosis.cie10Description);
+            }
+            await diagnosisStmt.finalize();
         }
-        await diagnosisStmt.finalize();
+
 
         if (data.documents && data.documents.length > 0) {
             const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, documentType, description, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
@@ -757,16 +788,14 @@ export async function createConsultation(data: CreateConsultationInput): Promise
 
     
     const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
+    
+    const createdConsultationRaw = await db.get('SELECT * from consultations WHERE id = ?', consultationId);
+    const createdConsultation = parseConsultation(createdConsultationRaw);
+
 
     return {
-        id: consultationId,
-        pacienteId: data.pacienteId,
-        waitlistId: data.waitlistId,
-        consultationDate,
-        anamnesis: data.anamnesis,
-        physicalExam: data.physicalExam,
-        treatmentPlan: data.treatmentPlan,
-        diagnoses: data.diagnoses,
+        ...createdConsultation,
+        diagnoses: data.diagnoses || [],
         documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
     };
 }
