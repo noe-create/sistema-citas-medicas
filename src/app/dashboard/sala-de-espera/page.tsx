@@ -110,6 +110,7 @@ export default function SalaDeEsperaPage() {
       await addPatientToWaitlist(newPatientData);
 
       toast({
+          variant: 'success',
           title: '¡Paciente Registrado!',
           description: `${newPatientData.name} ha sido añadido a la cola.`,
       });

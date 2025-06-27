@@ -86,12 +86,28 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   }
 
   const handleChangeStatus = async (patientId: string, status: PatientStatus) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
     try {
         await updatePatientStatus(patientId, status);
-        toast({
-            title: 'Estado actualizado',
-            description: `El estado del paciente ha sido actualizado a "${statusInfo[status].label}".`,
-        });
+        
+        const toastOptions: { 
+            variant: 'default' | 'destructive' | 'success' | 'info', 
+            title: string, 
+            description: string 
+        } = {
+            variant: 'default',
+            title: 'Estado Actualizado',
+            description: `El estado de ${patient.name} es ahora "${statusInfo[status].label}".`
+        };
+
+        if (status === 'Cancelado') {
+            toastOptions.variant = 'destructive';
+            toastOptions.title = 'Cita Cancelada';
+        }
+
+        toast(toastOptions);
         onListRefresh();
     } catch (error: any) {
         console.error("Error updating status:", error);
@@ -109,6 +125,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     try {
         await updatePatientStatus(patientToReschedule.id, 'Pospuesto', newDateTime);
         toast({
+            variant: 'info',
             title: 'Cita Pospuesta',
             description: `La cita de ${patientToReschedule.name} ha sido reprogramada.`,
         });
@@ -126,7 +143,8 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
         try {
             await updatePatientStatus(patient.id, 'En Consulta');
             toast({
-                title: 'Paciente en consulta',
+                variant: 'info',
+                title: 'Paciente en Consulta',
                 description: `${patient.name} ha sido llamado.`,
             });
             onListRefresh();
@@ -141,6 +159,11 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   };
   
   const handleConsultationComplete = () => {
+    toast({
+        variant: 'success',
+        title: 'Consulta Completada',
+        description: `La consulta de ${selectedPatient?.name} ha sido finalizada con éxito.`
+    });
     onListRefresh();
     setIsSheetOpen(false);
     setSelectedPatientId(null);
