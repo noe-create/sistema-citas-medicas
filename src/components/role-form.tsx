@@ -20,7 +20,8 @@ import {
     type DragEndEvent,
     DragOverlay,
     type DragStartEvent,
-    useDroppable
+    useDroppable,
+    rectIntersection,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -91,7 +92,7 @@ const PermissionColumn = ({ id, title, permissions }: { id: string; title: strin
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <ScrollArea className="flex-grow p-4 pt-0">
-        <SortableContext id={id} items={permissions} strategy={verticalListSortingStrategy}>
+        <SortableContext id={id} items={permissions.map(p => p.id)} strategy={verticalListSortingStrategy}>
           {permissions.length > 0 ? (
             permissions.map((p) => <SortablePermission key={p.id} permission={p} />)
           ) : (
@@ -252,7 +253,12 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
           <FormItem>
              <FormLabel>Permisos</FormLabel>
              <FormDescription>Arrastre los permisos desde la columna "Disponibles" a "Asignados".</FormDescription>
-             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+             <DndContext 
+                sensors={sensors} 
+                collisionDetection={rectIntersection} 
+                onDragStart={handleDragStart} 
+                onDragEnd={handleDragEnd}
+             >
                 <div className="flex gap-4 mt-2">
                     <PermissionColumn id="available" title="Disponibles" permissions={containers.available} />
                     <PermissionColumn id="assigned" title="Asignados" permissions={containers.assigned} />
