@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,7 +11,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -106,27 +104,25 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
               ))}
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter>
+        </Sidebar>
+        <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
+            <SidebarTrigger />
+            <div className="flex-1">
+              {/* Header content can go here */}
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="justify-start w-full px-2">
-                    <div className="flex justify-between items-center w-full">
-                      <div className="flex gap-2 items-center">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="https://placehold.co/40x40.png" alt={user.name} data-ai-hint="doctor portrait"/>
-                          <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                          <span className="text-sm font-medium">{user.name}</span>
-                          <span className="text-xs text-muted-foreground capitalize">
-                            {user.role === 'doctor' && user.specialty ? user.specialty : user.role}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="https://placehold.co/40x40.png" alt={user.name} data-ai-hint="doctor portrait"/>
+                      <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 mb-2" align="end" forceMount>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -146,15 +142,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                     </form>
                 </DropdownMenuContent>
               </DropdownMenu>
-          </SidebarFooter>
-        </Sidebar>
-        <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
-            <SidebarTrigger />
-            <div className="flex-1">
-              {/* Header content can go here */}
             </div>
-            <ThemeToggle />
           </header>
           {children}
         </main>
