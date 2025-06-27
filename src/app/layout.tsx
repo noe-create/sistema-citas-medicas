@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'CareFlow Central',
+  title: 'Medihub',
   description: 'Optimizando la gestión de pacientes con flujos de trabajo inteligentes.',
 };
 

@@ -33,7 +33,7 @@ export default function LoginPage() {
                     <Stethoscope className="h-8 w-8 text-primary" />
                 </div>
             </div>
-            <CardTitle className="text-2xl font-bold">CareFlow Central</CardTitle>
+            <CardTitle className="text-2xl font-bold">Medihub</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

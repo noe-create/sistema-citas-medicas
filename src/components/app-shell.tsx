@@ -14,8 +14,8 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import type { User as UserType } from '@/lib/types';
@@ -34,7 +34,7 @@ const allMenuOptions = [
   { href: '/dashboard/personas', icon: <Contact />, title: 'Personas', section: 'admin' },
   { href: '/dashboard/lista-pacientes', icon: <ClipboardList />, title: 'Lista de Pacientes', section: 'admin' },
   { href: '/dashboard/pacientes', icon: <Users />, title: 'Gestión de Titulares', section: 'admin' },
-  { href: '/dashboard/beneficiarios', icon: <User />, title: 'Beneficiarios', section: 'admin' },
+  { href: '/dashboard/beneficiarios', icon: <UserIcon />, title: 'Beneficiarios', section: 'admin' },
   { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', section: 'admin' },
   { href: '/dashboard/usuarios', icon: <UserCog />, title: 'Gestión de Usuarios', section: 'admin' },
 ];
@@ -85,8 +85,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                 <Stethoscope className="h-6 w-6 text-primary" />
               </div>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <h2 className="text-lg font-semibold font-headline">CareFlow</h2>
-                <p className="text-sm text-muted-foreground">Central</p>
+                <h2 className="text-lg font-semibold font-headline">Medihub</h2>
               </div>
             </div>
           </SidebarHeader>
@@ -123,7 +122,7 @@ export function AppShell({ children, user }: { children: React.ReactNode, user: 
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
                         <span className="sr-only">{user.name}</span>
-                        <User className="h-5 w-5" />
+                        <UserIcon className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
                   </Button>
