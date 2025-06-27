@@ -17,6 +17,7 @@ export interface Role {
   id: string;
   name: string;
   description: string;
+  hasSpecialty?: boolean;
   permissions?: Permission[]; // Populated when fetching a specific role
 }
 // --- End RBAC Types ---

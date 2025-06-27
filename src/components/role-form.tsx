@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -28,10 +29,12 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
+import { Checkbox } from './ui/checkbox';
 
 const roleSchema = z.object({
   name: z.string().min(3, { message: 'El nombre del rol es requerido.' }),
   description: z.string().min(1, 'La descripción es requerida.'),
+  hasSpecialty: z.boolean().default(false).optional(),
   permissions: z.array(z.string()).min(1, 'Debe asignar al menos un permiso.'),
 });
 
@@ -120,6 +123,7 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
     defaultValues: {
       name: role?.name || '',
       description: role?.description || '',
+      hasSpecialty: role?.hasSpecialty || false,
       permissions: role?.permissions || [],
     },
   });
@@ -236,6 +240,28 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
               </FormItem>
             )}
           />
+           <FormField
+            control={form.control}
+            name="hasSpecialty"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3 shadow-sm">
+                <FormControl>
+                    <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                    <FormLabel>
+                    Puede tener especialidades
+                    </FormLabel>
+                    <FormDescription>
+                    Marque esta casilla si los usuarios con este rol pueden tener una especialidad médica asignada.
+                    </FormDescription>
+                </div>
+                </FormItem>
+            )}
+           />
           <FormItem>
              <FormLabel>Permisos</FormLabel>
              <FormDescription>Arrastre los permisos desde la columna "Disponibles" a "Asignados".</FormDescription>

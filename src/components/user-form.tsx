@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -69,7 +70,7 @@ export function UserForm({ user, roles, onSubmitted, onCancel }: UserFormProps) 
   }, [form]);
   
   const roleId = form.watch('roleId');
-  const selectedRoleName = roles.find(r => r.id === roleId)?.name;
+  const selectedRole = roles.find(r => r.id === roleId);
 
   async function onSubmit(values: any) {
     setIsSubmitting(true);
@@ -124,7 +125,7 @@ export function UserForm({ user, roles, onSubmitted, onCancel }: UserFormProps) 
               )}
             />
 
-            {selectedRoleName === 'Doctor' && (
+            {selectedRole?.hasSpecialty && (
                 <FormField
                     control={form.control}
                     name="specialty"

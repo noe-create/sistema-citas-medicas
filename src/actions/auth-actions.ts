@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -138,7 +139,10 @@ export async function createUser(data: {
         }
     }
     
-    const role = await db.get('SELECT name FROM roles WHERE id = ?', data.roleId);
+    const role = await db.get<{ hasSpecialty: number }>('SELECT hasSpecialty FROM roles WHERE id = ?', data.roleId);
+    if (!role) {
+        throw new Error('El rol seleccionado no es válido.');
+    }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const userId = `usr-${Date.now()}`;
@@ -149,7 +153,7 @@ export async function createUser(data: {
         data.username,
         hashedPassword,
         data.roleId,
-        role?.name === 'Doctor' ? data.specialty : null,
+        role.hasSpecialty ? data.specialty : null,
         data.personaId || null
     );
 
@@ -180,7 +184,10 @@ export async function updateUser(id: string, data: {
         }
     }
 
-    const role = await db.get('SELECT name FROM roles WHERE id = ?', data.roleId);
+    const role = await db.get<{ hasSpecialty: number }>('SELECT hasSpecialty FROM roles WHERE id = ?', data.roleId);
+    if (!role) {
+        throw new Error('El rol seleccionado no es válido.');
+    }
     
     let result;
     if (data.password) {
@@ -190,7 +197,7 @@ export async function updateUser(id: string, data: {
             data.username,
             hashedPassword,
             data.roleId,
-            role?.name === 'Doctor' ? data.specialty : null,
+            role.hasSpecialty ? data.specialty : null,
             data.personaId || null,
             id
         );
@@ -199,7 +206,7 @@ export async function updateUser(id: string, data: {
             'UPDATE users SET username = ?, roleId = ?, specialty = ?, personaId = ? WHERE id = ?',
             data.username,
             data.roleId,
-            role?.name === 'Doctor' ? data.specialty : null,
+            role.hasSpecialty ? data.specialty : null,
             data.personaId || null,
             id
         );

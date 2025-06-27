@@ -33,7 +33,8 @@ async function createTables(dbInstance: Database): Promise<void> {
         CREATE TABLE IF NOT EXISTS roles (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
-            description TEXT
+            description TEXT,
+            hasSpecialty BOOLEAN NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS role_permissions (
@@ -201,15 +202,15 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const roleCount = await dbInstance.get('SELECT COUNT(*) as count FROM roles');
     if (roleCount.count === 0) {
         const roles = [
-            { id: 'superuser', name: 'Superusuario', description: 'Acceso total a todas las funciones del sistema.' },
-            { id: 'administrator', name: 'Administrador', description: 'Gestiona la parametrización del sistema como empresas y catálogos.' },
-            { id: 'asistencial', name: 'Asistencial', description: 'Personal de recepción encargado de la admisión de pacientes.' },
-            { id: 'doctor', name: 'Doctor', description: 'Personal médico que realiza consultas.' },
-            { id: 'enfermera', name: 'Enfermera', description: 'Personal de enfermería que aplica tratamientos.' },
+            { id: 'superuser', name: 'Superusuario', description: 'Acceso total a todas las funciones del sistema.', hasSpecialty: 1 },
+            { id: 'administrator', name: 'Administrador', description: 'Gestiona la parametrización del sistema como empresas y catálogos.', hasSpecialty: 0 },
+            { id: 'asistencial', name: 'Asistencial', description: 'Personal de recepción encargado de la admisión de pacientes.', hasSpecialty: 0 },
+            { id: 'doctor', name: 'Doctor', description: 'Personal médico que realiza consultas.', hasSpecialty: 1 },
+            { id: 'enfermera', name: 'Enfermera', description: 'Personal de enfermería que aplica tratamientos.', hasSpecialty: 0 },
         ];
-        const stmt = await dbInstance.prepare('INSERT INTO roles (id, name, description) VALUES (?, ?, ?)');
+        const stmt = await dbInstance.prepare('INSERT INTO roles (id, name, description, hasSpecialty) VALUES (?, ?, ?, ?)');
         for (const role of roles) {
-            await stmt.run(role.id, role.name, role.description);
+            await stmt.run(role.id, role.name, role.description, role.hasSpecialty);
         }
         await stmt.finalize();
 

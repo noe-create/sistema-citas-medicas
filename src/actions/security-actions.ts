@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -9,14 +10,18 @@ import { ALL_PERMISSIONS } from '@/lib/permissions';
 export async function getRoles(): Promise<Role[]> {
   await authorize('roles.manage');
   const db = await getDb();
-  return await db.all('SELECT * FROM roles ORDER BY name');
+  const roles = await db.all('SELECT *, CAST(hasSpecialty AS INTEGER) as hasSpecialty FROM roles ORDER BY name');
+  return roles.map(role => ({ ...role, hasSpecialty: !!role.hasSpecialty }));
 }
 
 export async function getRoleWithPermissions(roleId: string): Promise<(Role & { permissions: string[] }) | null> {
     await authorize('roles.manage');
     const db = await getDb();
-    const role = await db.get<Role>('SELECT * FROM roles WHERE id = ?', roleId);
-    if (!role) return null;
+    const roleRow = await db.get<any>('SELECT *, CAST(hasSpecialty AS INTEGER) as hasSpecialty FROM roles WHERE id = ?', roleId);
+    if (!roleRow) return null;
+
+    const { hasSpecialty, ...restOfRole } = roleRow;
+    const role: Role = { ...restOfRole, hasSpecialty: !!hasSpecialty };
 
     const permissions = await db.all<{permissionId: string}>(
         'SELECT permissionId FROM role_permissions WHERE roleId = ?',
@@ -33,14 +38,14 @@ export async function getAllPermissions(): Promise<Permission[]> {
     return ALL_PERMISSIONS;
 }
 
-export async function createRole(data: { name: string; description: string; permissions: string[] }) {
+export async function createRole(data: { name: string; description: string; hasSpecialty?: boolean; permissions: string[] }) {
   await authorize('roles.manage');
   const db = await getDb();
   const roleId = `role-${Date.now()}`;
 
   await db.exec('BEGIN TRANSACTION');
   try {
-    await db.run('INSERT INTO roles (id, name, description) VALUES (?, ?, ?)', roleId, data.name, data.description);
+    await db.run('INSERT INTO roles (id, name, description, hasSpecialty) VALUES (?, ?, ?, ?)', roleId, data.name, data.description, data.hasSpecialty ? 1 : 0);
     
     const stmt = await db.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');
     for (const permissionId of data.permissions) {
@@ -62,13 +67,13 @@ export async function createRole(data: { name: string; description: string; perm
   return newRole;
 }
 
-export async function updateRole(id: string, data: { name: string; description: string; permissions: string[] }) {
+export async function updateRole(id: string, data: { name: string; description: string; hasSpecialty?: boolean; permissions: string[] }) {
   await authorize('roles.manage');
   const db = await getDb();
 
   await db.exec('BEGIN TRANSACTION');
   try {
-    await db.run('UPDATE roles SET name = ?, description = ? WHERE id = ?', data.name, data.description, id);
+    await db.run('UPDATE roles SET name = ?, description = ?, hasSpecialty = ? WHERE id = ?', data.name, data.description, data.hasSpecialty ? 1 : 0, id);
     
     // Clear old permissions and insert new ones
     await db.run('DELETE FROM role_permissions WHERE roleId = ?', id);
