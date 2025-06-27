@@ -11,22 +11,25 @@ interface RealTimeClockProps {
 }
 
 export function RealTimeClock({ className }: RealTimeClockProps) {
-  const [time, setTime] = React.useState(new Date());
+  const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
   React.useEffect(() => {
+    // This runs only on the client, after the initial render.
+    setCurrentTime(new Date());
+
     const timerId = setInterval(() => {
-      setTime(new Date());
+      setCurrentTime(new Date());
     }, 1000);
 
     return () => {
       clearInterval(timerId);
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount.
 
   // e.g., "sábado, 25 de mayo de 2024"
-  const formattedDate = format(time, "PPPP", { locale: es });
+  const formattedDate = currentTime ? format(currentTime, "PPPP", { locale: es }) : 'Cargando fecha...';
   // e.g., "01:30:05 PM"
-  const formattedTime = format(time, "hh:mm:ss a", { locale: es });
+  const formattedTime = currentTime ? format(currentTime, "hh:mm:ss a", { locale: es }) : '--:--:-- --';
 
   return (
     <div className={cn("flex flex-col sm:flex-row items-baseline sm:items-center gap-x-6 gap-y-1 font-mono mt-2", className)}>
