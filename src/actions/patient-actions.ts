@@ -30,14 +30,14 @@ import { getSession } from '@/lib/auth';
 // --- Authorization Helpers ---
 async function ensureAdminPermission() {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator'].includes(session.user.role)) {
+    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada. Se requiere rol de administrador o superusuario.');
     }
 }
 
 async function ensureDataEntryPermission() {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator', 'asistencial'].includes(session.user.role)) {
+    if (!session.isLoggedIn || !session.user || !['superuser', 'administrator', 'asistencial'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada. Se requiere permiso para ingreso de datos.');
     }
 }
@@ -697,7 +697,7 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
 
 export async function createConsultation(data: CreateConsultationInput): Promise<Consultation> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || (session.user.role !== 'superuser' && session.user.role !== 'doctor')) {
+    if (!session.isLoggedIn || !session.user || !['superuser', 'doctor'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada. Se requiere rol de doctor o superusuario.');
     }
     
@@ -1078,7 +1078,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
 
 export async function createTreatmentOrder(data: CreateTreatmentOrderInput): Promise<TreatmentOrder> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'superuser'].includes(session.user.role)) {
+    if (!session.isLoggedIn || !session.user || !['doctor', 'superuser'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada.');
     }
     const db = await getDb();
@@ -1115,7 +1115,7 @@ export async function createTreatmentOrder(data: CreateTreatmentOrderInput): Pro
 
 export async function createTreatmentExecution(data: CreateTreatmentExecutionInput): Promise<TreatmentExecution> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role)) {
+    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada.');
     }
     const executedBy = session.user.name || session.user.username;
@@ -1150,7 +1150,7 @@ export async function createTreatmentExecution(data: CreateTreatmentExecutionInp
 
 export async function updateTreatmentOrderStatus(orderId: string, status: 'Activo' | 'Completado' | 'Cancelado'): Promise<{ success: boolean }> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role)) {
+    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada.');
     }
     const db = await getDb();

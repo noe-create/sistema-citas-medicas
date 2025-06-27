@@ -109,7 +109,7 @@ export function CompanyManagement() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-            {(user.role === 'superuser' || user.role === 'administrator') && (
+            {(user.role.id === 'superuser' || user.role.id === 'administrator') && (
               <Button onClick={() => handleOpenForm(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Añadir Empresa
@@ -140,7 +140,7 @@ export function CompanyManagement() {
                     <TableCell>{empresa.telefono}</TableCell>
                     <TableCell className="max-w-xs truncate">{empresa.direccion}</TableCell>
                     <TableCell className="text-right">
-                        {(user.role === 'superuser' || user.role === 'administrator') && (
+                        {(user.role.id === 'superuser' || user.role.id === 'administrator') && (
                             <AlertDialog>
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

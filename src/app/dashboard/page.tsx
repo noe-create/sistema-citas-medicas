@@ -25,7 +25,7 @@ interface MenuOption {
   icon: React.ReactNode;
   title: string;
   description: string;
-  roles?: Role[];
+  roles?: string[];
 }
 
 const menuOptions: MenuOption[] = [
@@ -120,7 +120,7 @@ export default function DashboardPage() {
     const user = useUser();
     
     const visibleMenuOptions = menuOptions.filter(
-        option => !option.roles || option.roles.includes(user.role)
+        option => !option.roles || option.roles.includes(user.role.id)
     );
 
   return (

@@ -37,7 +37,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const [selectedBeneficiario, setSelectedBeneficiario] = React.useState<Beneficiario | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
 
   const refreshBeneficiarios = async () => {
     const freshData = await getBeneficiarios(titular.id);

@@ -26,7 +26,7 @@ export function PeopleList() {
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
   
   const refreshPersonas = React.useCallback(async (currentSearch: string) => {
     setIsLoading(true);

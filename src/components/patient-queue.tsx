@@ -55,17 +55,17 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
   const [patientToReschedule, setPatientToReschedule] = React.useState<Patient | null>(null);
 
-  const canManageStatus = user && ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'].includes(user.role);
+  const canManageStatus = user && ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'].includes(user.role.id);
 
   const statusOptionsForRole = React.useMemo(() => {
     if (!user) return [];
     const baseOptions: PatientStatus[] = ['Ausente', 'Pospuesto', 'Reevaluacion'];
     
-    if (user.role === 'asistencial' || user.role === 'administrator') {
+    if (user.role.id === 'asistencial' || user.role.id === 'administrator') {
       return ['Esperando', ...baseOptions];
     }
     
-    if (user.role === 'enfermera') {
+    if (user.role.id === 'enfermera') {
         return ['Esperando', 'En Tratamiento', ...baseOptions];
     }
     
@@ -150,20 +150,21 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     if (!user) return [];
     const allServices = Object.keys(serviceInfo) as ServiceType[];
 
-    if (user.role === 'superuser' || user.role === 'asistencial') {
+    if (user.role.id === 'superuser' || user.role.id === 'asistencial' || user.role.id === 'administrator') {
       return allServices;
     }
 
-    if (user.role === 'doctor') {
+    if (user.role.id === 'doctor') {
       if (user.specialty === 'medico pediatra') {
-        return allServices.filter((s) => s === 'consulta pediatrica');
+        return allServices.filter((s) => s === 'consulta pediatrica' || s === 'servicio de enfermeria');
       }
       if (user.specialty === 'medico general') {
-        return allServices.filter((s) => s === 'medicina general');
+        return allServices.filter((s) => s === 'medicina general' || s === 'servicio de enfermeria');
       }
+      return allServices; // Default doctor can see all
     }
     
-    if (user.role === 'enfermera') {
+    if (user.role.id === 'enfermera') {
       return allServices.filter((s) => s === 'servicio de enfermeria');
     }
 
@@ -271,7 +272,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                                     </div>
                                     <WaitTimeStopwatch startTime={new Date(patient.checkInTime)} />
                                 </div>
-                                {(user?.role === 'superuser' || user?.role === 'doctor') &&
+                                {(user?.role.id === 'superuser' || user?.role.id === 'doctor') &&
                                     (patient.status === 'Esperando' || patient.status === 'En Consulta' || patient.status === 'Reevaluacion') && (
                                     <Button 
                                         onClick={() => handleStartOrContinueConsultation(patient)} 

@@ -23,6 +23,7 @@ import { TreatmentOrderForm } from './treatment-order-form';
 import { RegisterExecutionForm } from './register-execution-form';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useUser } from './app-shell';
 
 const statusColors: Record<TreatmentOrder['status'], string> = {
   Activo: 'bg-blue-500/20 text-blue-700 border-blue-500/30 dark:text-blue-300',
@@ -32,6 +33,7 @@ const statusColors: Record<TreatmentOrder['status'], string> = {
 
 export function TreatmentLogManagement() {
   const { toast } = useToast();
+  const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [orders, setOrders] = React.useState<TreatmentOrder[]>([]);
@@ -39,6 +41,9 @@ export function TreatmentLogManagement() {
   const [selectedOrder, setSelectedOrder] = React.useState<TreatmentOrder | null>(null);
   const [isOrderFormOpen, setIsOrderFormOpen] = React.useState(false);
   const [isExecutionFormOpen, setIsExecutionFormOpen] = React.useState(false);
+
+  const canCreateOrder = ['doctor', 'superuser'].includes(user.role.id);
+  const canManageOrder = ['doctor', 'enfermera', 'superuser'].includes(user.role.id);
 
   const refreshOrders = React.useCallback(async (currentSearch: string) => {
     setIsLoading(true);
@@ -123,10 +128,12 @@ export function TreatmentLogManagement() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-            <Button onClick={handleOpenOrderForm}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Nueva Orden
-            </Button>
+            {canCreateOrder && (
+              <Button onClick={handleOpenOrderForm}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nueva Orden
+              </Button>
+            )}
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -161,32 +168,34 @@ export function TreatmentLogManagement() {
                         <Badge variant="outline" className={statusColors[order.status]}>{order.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Abrir menú</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            {order.status === 'Activo' && (
-                                <DropdownMenuItem onClick={() => handleOpenExecutionForm(order)}>
-                                    <ClipboardCheck className="mr-2 h-4 w-4" />
-                                    <span>Registrar Ejecución</span>
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'Completado')}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                <span>Marcar como Completado</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'Cancelado')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                <XCircle className="mr-2 h-4 w-4" />
-                                <span>Cancelar Orden</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {canManageOrder && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menú</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              {order.status === 'Activo' && (
+                                  <DropdownMenuItem onClick={() => handleOpenExecutionForm(order)}>
+                                      <ClipboardCheck className="mr-2 h-4 w-4" />
+                                      <span>Registrar Ejecución</span>
+                                  </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'Completado')}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  <span>Marcar como Completado</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'Cancelado')} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  <span>Cancelar Orden</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

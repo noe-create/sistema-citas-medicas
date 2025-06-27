@@ -41,7 +41,7 @@ export function PatientManagement() {
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role);
+  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
 
   const refreshTitulares = React.useCallback(async (currentSearch: string) => {
     setIsLoading(true);
