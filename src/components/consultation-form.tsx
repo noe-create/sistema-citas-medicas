@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save, CalendarIcon } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -32,6 +32,8 @@ import { es } from 'date-fns/locale';
 import { Calendar } from './ui/calendar';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Slider } from './ui/slider';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from './ui/dialog';
+import { LabOrderForm } from './lab-order-form';
 
 
 // --- Zod Schema Definition ---
@@ -597,6 +599,7 @@ const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient })
     const { toast } = useToast();
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
+    const [isLabOrderOpen, setIsLabOrderOpen] = React.useState(false);
 
     const { watch } = form;
     const diagnoses = watch('diagnoses');
@@ -630,6 +633,19 @@ const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient })
         }
     };
 
+    const handleLabOrderSubmit = (selectedTests: string[]) => {
+        if (selectedTests.length > 0) {
+            const currentPlan = form.getValues('treatmentPlan') || '';
+            const labOrderText = `\n\n--- ORDEN DE LABORATORIO ---\n* ${selectedTests.join('\n* ')}`;
+            form.setValue('treatmentPlan', (currentPlan + labOrderText).trim(), { shouldValidate: true });
+            toast({
+                title: 'Exámenes Añadidos',
+                description: `${selectedTests.length} exámenes de laboratorio han sido añadidos al plan de tratamiento.`,
+            });
+        }
+        setIsLabOrderOpen(false);
+    };
+
     return (
         <div className="space-y-6">
             <FormSection title="Diagnósticos">
@@ -648,6 +664,24 @@ const StepDiagnosticoPlan = ({ form, patient }: { form: any; patient: Patient })
                         <FormMessage />
                     </FormItem>
                 )} />
+                <Dialog open={isLabOrderOpen} onOpenChange={setIsLabOrderOpen}>
+                    <Button type="button" variant="outline" onClick={() => setIsLabOrderOpen(true)} className="w-full mt-2">
+                        <Beaker className="mr-2 h-4 w-4" />
+                        Generar Orden de Laboratorio
+                    </Button>
+                    <DialogContent className="sm:max-w-2xl p-0 gap-0">
+                        <DialogHeader className="p-4 border-b">
+                            <DialogTitle>Seleccionar Exámenes de Laboratorio</DialogTitle>
+                            <DialogDesc>
+                                Busque o seleccione de la lista los exámenes a solicitar.
+                            </DialogDesc>
+                        </DialogHeader>
+                        <LabOrderForm 
+                            onSubmitted={handleLabOrderSubmit}
+                            onCancel={() => setIsLabOrderOpen(false)}
+                        />
+                    </DialogContent>
+                </Dialog>
             </FormSection>
             <FormSection title="Asistente de Récipe Médico con IA">
                 <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
