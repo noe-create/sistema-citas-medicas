@@ -117,9 +117,9 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                             <HistorySection icon={<User/>} title="Antecedentes Personales">
                                 <HistoryDetail label="Patológicos" value={consultation.antecedentesPersonales?.patologicos} />
                                 <HistoryDetail label="Quirúrgicos" value={consultation.antecedentesPersonales?.quirurgicos} />
-                                <HistoryDetail label="Alérgicos" value={consultation.antecedentesPersonales?.alergicos} />
+                                <HistoryDetailList label="Alérgicos" values={consultation.antecedentesPersonales?.alergicos} otherValue={consultation.antecedentesPersonales?.alergicosOtros} />
                                 <HistoryDetail label="Medicamentos" value={consultation.antecedentesPersonales?.medicamentos} />
-                                <HistoryDetail label="Hábitos" value={consultation.antecedentesPersonales?.habitos} />
+                                <HistoryDetailList label="Hábitos Psicobiológicos" values={consultation.antecedentesPersonales?.habitos} otherValue={consultation.antecedentesPersonales?.habitosOtros} />
                             </HistorySection>
                             
                             <HistorySection icon={<Users/>} title="Antecedentes Familiares">
@@ -235,6 +235,30 @@ const HistoryDetail = ({ label, value }: { label?: string, value: any }) => {
         <div>
             {label && <h4 className="font-semibold text-sm">{label}</h4>}
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{displayValue}</p>
+        </div>
+    );
+};
+
+const HistoryDetailList = ({ label, values, otherValue }: { label: string, values?: string[], otherValue?: string }) => {
+    const formatLabel = (id: string) => {
+        return id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    if ((!values || values.length === 0) && !otherValue) {
+        return <HistoryDetail label={label} value="N/A" />;
+    }
+    
+    const allItems: string[] = [...(values || []).map(formatLabel)];
+    if (otherValue) {
+        allItems.push(`Otros: ${otherValue}`);
+    }
+
+    return (
+        <div>
+            <h4 className="font-semibold text-sm">{label}</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+                {allItems.map((item, index) => <li key={index}>{item}</li>)}
+            </ul>
         </div>
     );
 };

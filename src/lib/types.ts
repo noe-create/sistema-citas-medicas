@@ -159,9 +159,11 @@ export interface SignosVitales {
 export interface AntecedentesPersonales {
   patologicos?: string;
   quirurgicos?: string;
-  alergicos?: string;
+  alergicos?: string[];
+  alergicosOtros?: string;
   medicamentos?: string;
-  habitos?: string;
+  habitos?: string[];
+  habitosOtros?: string;
 }
 
 export interface AntecedentesGinecoObstetricos {

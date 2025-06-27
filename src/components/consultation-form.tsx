@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save, CalendarIcon } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos } from '@/lib/types';
 import { searchCie10Codes, createConsultation } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -25,8 +25,32 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { calculateAge } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { Checkbox } from './ui/checkbox';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar } from './ui/calendar';
+
 
 // --- Zod Schema Definition ---
+const alergiasOptions = [
+  { id: 'medicamentos', label: 'Medicamentos' },
+  { id: 'alimentos', label: 'Alimentos' },
+  { id: 'polen', label: 'Polen' },
+  { id: 'polvo', label: 'Polvo' },
+  { id: 'animales', label: 'Animales' },
+  { id: 'picaduras_de_insectos', label: 'Picaduras de Insectos' },
+];
+
+const habitosOptions = [
+  { id: 'tabaco', label: 'Tabaco' },
+  { id: 'alcohol', label: 'Alcohol' },
+  { id: 'drogas', label: 'Drogas' },
+  { id: 'cafe', label: 'Café' },
+  { id: 'actividad_fisica', label: 'Actividad Física' },
+  { id: 'dieta_balanceada', label: 'Dieta Balanceada' },
+];
+
+
 const consultationSchema = z.object({
   // Step 1: Anamnesis
   motivoConsulta: z.string().min(1, 'El motivo de consulta es obligatorio.'),
@@ -37,9 +61,11 @@ const consultationSchema = z.object({
   antecedentesPersonales: z.object({
     patologicos: z.string().optional(),
     quirurgicos: z.string().optional(),
-    alergicos: z.string().optional(),
+    alergicos: z.array(z.string()).optional(),
+    alergicosOtros: z.string().optional(),
     medicamentos: z.string().optional(),
-    habitos: z.string().optional(),
+    habitos: z.array(z.string()).optional(),
+    habitosOtros: z.string().optional(),
   }).optional(),
   antecedentesFamiliares: z.string().optional(),
   antecedentesGinecoObstetricos: z.object({
@@ -122,6 +148,10 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             diagnoses: [],
             treatmentPlan: '',
             examenFisicoGeneral: '',
+            antecedentesPersonales: {
+              alergicos: [],
+              habitos: [],
+            }
         }
     });
 
@@ -283,9 +313,112 @@ const StepAntecedentes = ({ form, isFemale, isPediatric }: { form: any, isFemale
         <FormSection title="Antecedentes Personales">
             <FormField control={form.control} name="antecedentesPersonales.patologicos" render={({ field }) => ( <FormItem><FormLabel>Patológicos</FormLabel><FormControl><Textarea placeholder="Enfermedades crónicas, previas..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="antecedentesPersonales.quirurgicos" render={({ field }) => ( <FormItem><FormLabel>Quirúrgicos</FormLabel><FormControl><Textarea placeholder="Cirugías anteriores..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="antecedentesPersonales.alergicos" render={({ field }) => ( <FormItem><FormLabel>Alérgicos</FormLabel><FormControl><Textarea placeholder="Alergias a medicamentos, alimentos, etc." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+            
+             <FormField
+                control={form.control}
+                name="antecedentesPersonales.alergicos"
+                render={() => (
+                    <FormItem>
+                        <FormLabel>Alérgicos</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
+                            {alergiasOptions.map((item) => (
+                                <FormField
+                                    key={item.id}
+                                    control={form.control}
+                                    name="antecedentesPersonales.alergicos"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                        const currentValue = field.value || [];
+                                                        return checked
+                                                            ? field.onChange([...currentValue, item.id])
+                                                            : field.onChange(
+                                                                currentValue.filter(
+                                                                    (value: string) => value !== item.id
+                                                                )
+                                                            );
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">{item.label}</FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="antecedentesPersonales.alergicosOtros"
+                            render={({ field }) => (
+                                <FormItem className="mt-2">
+                                    <FormControl>
+                                        <Input placeholder="Otras alergias, especificar..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
             <FormField control={form.control} name="antecedentesPersonales.medicamentos" render={({ field }) => ( <FormItem><FormLabel>Medicamentos Actuales</FormLabel><FormControl><Textarea placeholder="Medicamentos que toma regularmente..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="antecedentesPersonales.habitos" render={({ field }) => ( <FormItem><FormLabel>Hábitos Psicobiológicos</FormLabel><FormControl><Textarea placeholder="Tabaco, alcohol, drogas, actividad física, dieta..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+
+            <FormField
+                control={form.control}
+                name="antecedentesPersonales.habitos"
+                render={() => (
+                    <FormItem>
+                        <FormLabel>Hábitos Psicobiológicos</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
+                            {habitosOptions.map((item) => (
+                                <FormField
+                                    key={item.id}
+                                    control={form.control}
+                                    name="antecedentesPersonales.habitos"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                        const currentValue = field.value || [];
+                                                        return checked
+                                                            ? field.onChange([...currentValue, item.id])
+                                                            : field.onChange(
+                                                                currentValue.filter(
+                                                                    (value: string) => value !== item.id
+                                                                )
+                                                            );
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">{item.label}</FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="antecedentesPersonales.habitosOtros"
+                            render={({ field }) => (
+                                <FormItem className="mt-2">
+                                    <FormControl>
+                                        <Input placeholder="Otros hábitos, especificar..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
         </FormSection>
         
         <FormSection title="Antecedentes Familiares">
