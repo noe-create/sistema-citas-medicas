@@ -11,8 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, GripVertical } from 'lucide-react';
 import type { Role, Permission } from '@/lib/types';
-import { PERMISSION_MODULES } from '@/lib/permissions';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    DragOverlay,
+    type DragStartEvent,
+    useDroppable
+} from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -58,8 +68,10 @@ const SortablePermission = ({ permission }: { permission: Permission }) => {
 };
 
 const PermissionColumn = ({ id, title, permissions }: { id: string; title: string; permissions: Permission[] }) => {
+  const { setNodeRef } = useDroppable({ id });
+
   return (
-    <Card className="flex-1 flex flex-col min-h-[400px]">
+    <Card ref={setNodeRef} className="flex-1 flex flex-col min-h-[400px]">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -85,6 +97,7 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
     available: [],
     assigned: [],
   });
+  const [activePermission, setActivePermission] = React.useState<Permission | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -114,50 +127,72 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
   }, [containers.assigned, form]);
 
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const activeId = active.id as string;
+    const permission = allPermissions.find(p => p.id === activeId);
+    if (permission) {
+      setActivePermission(permission);
+    }
+  };
+
+  const findContainer = (id: string): keyof typeof containers | undefined => {
+    if (containers.available.some(p => p.id === id)) return 'available';
+    if (containers.assigned.some(p => p.id === id)) return 'assigned';
+    return undefined;
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over) return;
+    setActivePermission(null);
+
+    if (!over) {
+      return;
+    }
+
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeContainer = active.data.current?.sortable.containerId;
-    const overContainer = over.data.current?.sortable.containerId;
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId) || (overId as keyof typeof containers);
     
-    if (!activeContainer || !overContainer) return;
+    if (!activeContainer || !overContainer) {
+        return;
+    }
 
-    setContainers(prev => {
-        const activeItems = prev[activeContainer as keyof typeof prev];
-        const overItems = prev[overContainer as keyof typeof prev];
-
-        if (activeContainer === overContainer) {
-            const activeIndex = activeItems.findIndex(item => item.id === activeId);
-            const overIndex = overItems.findIndex(item => item.id === overId);
-            return {
-                ...prev,
-                [activeContainer]: arrayMove(activeItems, activeIndex, overIndex)
-            }
-        } else {
-            const activeIndex = activeItems.findIndex(item => item.id === activeId);
-            let overIndex = overItems.findIndex(item => item.id === overId);
-            
-            // If dropping on container but not on an item
-            if (overIndex < 0) {
-                overIndex = overItems.length;
-            }
-
-            return {
-                ...prev,
-                [activeContainer]: activeItems.filter(item => item.id !== activeId),
-                [overContainer]: [
-                    ...overItems.slice(0, overIndex),
-                    activeItems[activeIndex],
-                    ...overItems.slice(overIndex)
-                ]
-            }
+    if (activeContainer !== overContainer) {
+      setContainers((prev) => {
+        const activeItems = prev[activeContainer];
+        const overItems = prev[overContainer];
+        const activeIndex = activeItems.findIndex((item) => item.id === activeId);
+        
+        let overIndex = overItems.findIndex((item) => item.id === overId);
+        if (overIndex < 0) {
+            overIndex = overItems.length;
         }
-    });
-  }
 
+        return {
+          ...prev,
+          [activeContainer]: activeItems.filter((item) => item.id !== activeId),
+          [overContainer]: [
+            ...overItems.slice(0, overIndex),
+            activeItems[activeIndex],
+            ...overItems.slice(overIndex),
+          ],
+        };
+      });
+    } else {
+      const activeIndex = containers[activeContainer].findIndex((item) => item.id === activeId);
+      const overIndex = containers[overContainer].findIndex((item) => item.id === overId);
+
+      if (activeIndex !== overIndex) {
+        setContainers((prev) => ({
+          ...prev,
+          [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
+        }));
+      }
+    }
+  };
 
   async function onSubmit(values: RoleFormValues) {
     setIsSubmitting(true);
@@ -198,11 +233,14 @@ export function RoleForm({ role, allPermissions, onSubmitted, onCancel }: RoleFo
           <FormItem>
              <FormLabel>Permisos</FormLabel>
              <FormDescription>Arrastre los permisos desde la columna "Disponibles" a "Asignados".</FormDescription>
-             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex gap-4 mt-2">
                     <PermissionColumn id="available" title="Disponibles" permissions={containers.available} />
                     <PermissionColumn id="assigned" title="Asignados" permissions={containers.assigned} />
                 </div>
+                <DragOverlay>
+                  {activePermission ? <SortablePermission permission={activePermission} /> : null}
+                </DragOverlay>
              </DndContext>
              <FormField control={form.control} name="permissions" render={() => <FormMessage />} />
           </FormItem>
