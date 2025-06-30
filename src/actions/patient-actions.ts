@@ -915,6 +915,64 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     return { ...createdPersona, fechaNacimiento: new Date(createdPersona.fechaNacimiento) };
 }
 
+export async function bulkCreatePersonas(
+    personasData: (Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string })[]
+): Promise<{ imported: number; skipped: number; errors: string[] }> {
+    await ensureDataEntryPermission();
+    const db = await getDb();
+    let importedCount = 0;
+    let skippedCount = 0;
+    const errorMessages: string[] = [];
+
+    await db.exec('BEGIN TRANSACTION');
+    try {
+        for (const [index, data] of personasData.entries()) {
+            if (!data.nombreCompleto || !data.cedula || !data.fechaNacimiento || !data.genero) {
+                skippedCount++;
+                errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos.`);
+                continue;
+            }
+
+            const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+            if (existingPersona) {
+                skippedCount++;
+                continue;
+            }
+
+            const personaId = generateId('p');
+
+            await db.run(
+                'INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                personaId,
+                data.nombreCompleto,
+                data.cedula,
+                new Date(data.fechaNacimiento).toISOString(),
+                data.genero,
+                data.telefono || null,
+                data.telefonoCelular || null,
+                data.email || null
+            );
+
+            await getOrCreatePaciente(db, personaId);
+            
+            importedCount++;
+        }
+        await db.exec('COMMIT');
+    } catch (error: any) {
+        await db.exec('ROLLBACK');
+        console.error("Error bulk inserting personas:", error);
+        throw new Error('Error masivo al insertar personas. Se revirtieron todos los cambios.');
+    }
+
+    revalidatePath('/dashboard/personas');
+    return {
+        imported: importedCount,
+        skipped: skippedCount,
+        errors: errorMessages,
+    };
+}
+
+
 export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
