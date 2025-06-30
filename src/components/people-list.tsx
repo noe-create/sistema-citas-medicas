@@ -112,27 +112,38 @@ export function PeopleList() {
 
         const personasToImport = json
           .map((row) => {
-            let fechaNacimiento = row[8]; // Column I
-            if (typeof fechaNacimiento === 'number') {
-                const utc_days  = Math.floor(fechaNacimiento - 25569);
+            let fechaNacimiento;
+            const fechaNacimientoRaw = row[8]; // Column I for Fecha de Nacimiento
+
+            if (typeof fechaNacimientoRaw === 'number') {
+                const utc_days  = Math.floor(fechaNacimientoRaw - 25569);
                 const utc_value = utc_days * 86400;
                 const date_info = new Date(utc_value * 1000);
-                fechaNacimiento = new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate() + 1).toISOString().split('T')[0];
+                fechaNacimiento = new Date(Date.UTC(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate())).toISOString();
+            } else if (typeof fechaNacimientoRaw === 'string') {
+                const dateString = fechaNacimientoRaw.trim();
+                const parts = dateString.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+                if (parts) {
+                    const day = parseInt(parts[1], 10);
+                    const month = parseInt(parts[2], 10) - 1; // JS months are 0-indexed
+                    const year = parseInt(parts[3], 10);
+                    const parsedDate = new Date(Date.UTC(year, month, day));
+                    if (parsedDate.getUTCFullYear() === year && parsedDate.getUTCMonth() === month && parsedDate.getUTCDate() === day) {
+                        fechaNacimiento = parsedDate.toISOString();
+                    }
+                }
             }
-
-            const nacionalidad = String(row[3] || '').charAt(0).toUpperCase();
-            const cedulaNum = String(row[4] || '').replace(/\D/g, '');
 
             return {
                 primerNombre: String(row[0] || ''),
                 segundoNombre: String(row[1] || ''),
                 primerApellido: String(row[2] || ''),
                 segundoApellido: String(row[3] || ''),
-                cedula: `${nacionalidad}-${cedulaNum}`,
+                cedula: String(row[4] || ''), // Column E
                 telefono1: String(row[5] || ''),
                 telefono2: String(row[6] || ''),
                 direccion: String(row[7] || ''),
-                fechaNacimiento: fechaNacimiento,
+                fechaNacimiento: fechaNacimiento, // Now ISO string or undefined
                 genero: String(row[9] || ''), // Column J
             }
           })
@@ -225,7 +236,7 @@ export function PeopleList() {
                                             <li><strong className="font-semibold">Columna F:</strong> Teléfono 1 (Texto, Opcional, ej: 0212-5551234)</li>
                                             <li><strong className="font-semibold">Columna G:</strong> Teléfono 2 (Texto, Opcional, ej: 0414-1234567)</li>
                                             <li><strong className="font-semibold">Columna H:</strong> Dirección (Texto, Opcional)</li>
-                                            <li><strong className="font-semibold">Columna I:</strong> Fecha de Nacimiento (Fecha, Requerido, formato: AAAA-MM-DD)</li>
+                                            <li><strong className="font-semibold">Columna I:</strong> Fecha de Nacimiento (Fecha, Requerido, formato: DD/MM/AAAA)</li>
                                             <li><strong className="font-semibold">Columna J:</strong> Sexo (Texto, Requerido, valores: 'Masculino', 'Femenino', 'Otro')</li>
                                         </ul>
                                         <p>El sistema ignorará automáticamente cualquier persona cuya cédula ya exista en la base de datos.</p>
