@@ -33,13 +33,19 @@ export interface User {
 
 export interface Persona {
   id: string;
-  nombreCompleto: string;
+  primerNombre: string;
+  segundoNombre?: string;
+  primerApellido: string;
+  segundoApellido?: string;
   cedula: string;
   fechaNacimiento: Date;
   genero: Genero;
-  telefono?: string;
-  telefonoCelular?: string;
+  telefono1?: string;
+  telefono2?: string;
   email?: string;
+  direccion?: string;
+  // Computed property, not in DB
+  nombreCompleto?: string; 
 }
 
 export interface Paciente {
@@ -83,7 +89,7 @@ export interface BeneficiarioConTitular extends Beneficiario {
 
 // For Check-in Search
 export interface SearchResult {
-  persona: Persona;
+  persona: Persona & { nombreCompleto: string };
   // A person can be a titular, a beneficiary of one or more titulares, or both.
   titularInfo?: {
     id: string; // titular record id
@@ -238,7 +244,7 @@ export interface TreatmentOrder {
   createdAt: Date;
   items: TreatmentOrderItem[];
   // Denormalized for display
-  paciente?: Persona;
+  paciente?: Persona & { nombreCompleto?: string };
   diagnosticoPrincipal?: string;
   orderedBy?: string;
 }
@@ -281,6 +287,7 @@ export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'cons
 
 export interface PacienteConInfo extends Persona {
     roles: string[];
+    nombreCompleto: string;
 }
 
 export interface CreateTreatmentExecutionInput {
@@ -297,7 +304,7 @@ export interface LabOrder {
     status: 'Pendiente' | 'Completado';
     tests: string[];
     // Denormalized for display
-    paciente: Persona;
+    paciente: Persona & { nombreCompleto?: string };
 }
 
 export type HistoryEntry =

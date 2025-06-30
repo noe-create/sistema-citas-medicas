@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -67,10 +68,10 @@ export function PeopleList() {
     try {
       if (selectedPersona) {
         await updatePersona(selectedPersona.id, values);
-        toast({ title: '¡Persona Actualizada!', description: `${values.nombreCompleto} ha sido guardado.` });
+        toast({ title: '¡Persona Actualizada!', description: `${values.primerNombre} ${values.primerApellido} ha sido guardado.` });
       } else {
         await createPersona(values);
-        toast({ title: '¡Persona Creada!', description: `${values.nombreCompleto} ha sido añadida.` });
+        toast({ title: '¡Persona Creada!', description: `${values.primerNombre} ${values.primerApellido} ha sido añadida.` });
       }
       handleCloseDialog();
       await refreshPersonas(search);
@@ -110,9 +111,8 @@ export function PeopleList() {
         const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
         const personasToImport = json
-          .map((row, index) => {
-            // Excel can convert YYYY-MM-DD to a number, we need to handle that
-            let fechaNacimiento = row[2];
+          .map((row) => {
+            let fechaNacimiento = row[8]; // Column I
             if (typeof fechaNacimiento === 'number') {
                 const utc_days  = Math.floor(fechaNacimiento - 25569);
                 const utc_value = utc_days * 86400;
@@ -120,23 +120,29 @@ export function PeopleList() {
                 fechaNacimiento = new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate() + 1).toISOString().split('T')[0];
             }
 
+            const nacionalidad = String(row[3] || '').charAt(0).toUpperCase();
+            const cedulaNum = String(row[4] || '').replace(/\D/g, '');
+
             return {
-                nombreCompleto: row[0] || '',
-                cedula: row[1] || '',
+                primerNombre: String(row[0] || ''),
+                segundoNombre: String(row[1] || ''),
+                primerApellido: String(row[2] || ''),
+                segundoApellido: String(row[3] || ''),
+                cedula: `${nacionalidad}-${cedulaNum}`,
+                telefono1: String(row[5] || ''),
+                telefono2: String(row[6] || ''),
+                direccion: String(row[7] || ''),
                 fechaNacimiento: fechaNacimiento,
-                genero: row[3] || '',
-                telefono: row[4] || '',
-                telefonoCelular: row[5] || '',
-                email: row[6] || '',
+                genero: String(row[9] || ''), // Column J
             }
           })
-          .filter(p => p.nombreCompleto && p.cedula);
+          .filter(p => p.primerNombre && p.primerApellido && p.cedula && p.fechaNacimiento && p.genero);
 
         if (personasToImport.length === 0) {
-          throw new Error('El archivo está vacío o no tiene el formato correcto (requiere al menos nombre y cédula).');
+          throw new Error('El archivo está vacío o no tiene el formato correcto (requiere las columnas obligatorias).');
         }
 
-        const result = await bulkCreatePersonas(personasToImport);
+        const result = await bulkCreatePersonas(personasToImport as any);
         
         toast({
           title: '¡Importación Completada!',
@@ -206,18 +212,21 @@ export function PeopleList() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Formato para Importación de Personas</AlertDialogTitle>
+                                <AlertDialogTitle>Formato para Importación</AlertDialogTitle>
                                 <AlertDialogDescription asChild>
                                     <div className="text-left space-y-3 pt-2 text-sm">
                                         <p>Para una importación exitosa, su archivo CSV o Excel debe seguir este orden de columnas. No incluya una fila de encabezados.</p>
                                         <ul className="list-disc list-inside bg-muted/50 p-4 rounded-md border space-y-1">
-                                            <li><strong className="font-semibold">Columna A:</strong> Nombre Completo (Texto, Requerido)</li>
-                                            <li><strong className="font-semibold">Columna B:</strong> Cédula (Texto, Requerido, ej: V-12345678)</li>
-                                            <li><strong className="font-semibold">Columna C:</strong> Fecha de Nacimiento (Fecha, Requerido, formato: AAAA-MM-DD)</li>
-                                            <li><strong className="font-semibold">Columna D:</strong> Género (Texto, Requerido, valores: 'Masculino', 'Femenino', 'Otro')</li>
-                                            <li><strong className="font-semibold">Columna E:</strong> Teléfono Fijo (Texto, Opcional, ej: 0212-5551234)</li>
-                                            <li><strong className="font-semibold">Columna F:</strong> Teléfono Celular (Texto, Opcional, ej: 0414-1234567)</li>
-                                            <li><strong className="font-semibold">Columna G:</strong> Email (Texto, Opcional, ej: correo@ejemplo.com)</li>
+                                            <li><strong className="font-semibold">Columna A:</strong> Primer Nombre (Texto, Requerido)</li>
+                                            <li><strong className="font-semibold">Columna B:</strong> Segundo Nombre (Texto, Opcional)</li>
+                                            <li><strong className="font-semibold">Columna C:</strong> Primer Apellido (Texto, Requerido)</li>
+                                            <li><strong className="font-semibold">Columna D:</strong> Segundo Apellido (Texto, Opcional)</li>
+                                            <li><strong className="font-semibold">Columna E:</strong> Cédula (Texto, Requerido, ej: V-12345678)</li>
+                                            <li><strong className="font-semibold">Columna F:</strong> Teléfono 1 (Texto, Opcional, ej: 0212-5551234)</li>
+                                            <li><strong className="font-semibold">Columna G:</strong> Teléfono 2 (Texto, Opcional, ej: 0414-1234567)</li>
+                                            <li><strong className="font-semibold">Columna H:</strong> Dirección (Texto, Opcional)</li>
+                                            <li><strong className="font-semibold">Columna I:</strong> Fecha de Nacimiento (Fecha, Requerido, formato: AAAA-MM-DD)</li>
+                                            <li><strong className="font-semibold">Columna J:</strong> Sexo (Texto, Requerido, valores: 'Masculino', 'Femenino', 'Otro')</li>
                                         </ul>
                                         <p>El sistema ignorará automáticamente cualquier persona cuya cédula ya exista en la base de datos.</p>
                                     </div>

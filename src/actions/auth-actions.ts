@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -27,7 +28,7 @@ export async function login(
     const userRow: any = await db.get(
         `SELECT 
           u.id, u.username, u.password, u.specialty, u.personaId, 
-          p.nombreCompleto as name,
+          TRIM(p.primerNombre || ' ' || COALESCE(p.segundoNombre, '') || ' ' || p.primerApellido || ' ' || COALESCE(p.segundoApellido, '')) as name,
           r.id as roleId, r.name as roleName
          FROM users u
          LEFT JOIN personas p ON u.personaId = p.id
@@ -89,7 +90,7 @@ export async function getUsers(query?: string): Promise<(User & {roleName: strin
     let selectQuery = `
         SELECT 
           u.id, u.username, u.roleId, r.name as roleName, u.specialty, 
-          u.personaId, p.nombreCompleto as name
+          u.personaId, TRIM(p.primerNombre || ' ' || COALESCE(p.segundoNombre, '') || ' ' || p.primerApellido || ' ' || COALESCE(p.segundoApellido, '')) as name
         FROM users u
         LEFT JOIN personas p ON u.personaId = p.id
         JOIN roles r ON u.roleId = r.id
@@ -97,8 +98,8 @@ export async function getUsers(query?: string): Promise<(User & {roleName: strin
     const params: any[] = [];
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        selectQuery += ' WHERE u.username LIKE ? OR p.nombreCompleto LIKE ?';
-        params.push(searchQuery, searchQuery);
+        selectQuery += ' WHERE u.username LIKE ? OR p.primerNombre LIKE ? OR p.primerApellido LIKE ?';
+        params.push(searchQuery, searchQuery, searchQuery);
     }
     selectQuery += ' ORDER BY u.username';
     const rows = await db.all(selectQuery, ...params);
@@ -223,7 +224,7 @@ export async function updateUser(id: string, data: {
         const userRow: any = await db.get(
            `SELECT 
               u.id, u.username, u.specialty, u.personaId, 
-              p.nombreCompleto as name,
+              TRIM(p.primerNombre || ' ' || COALESCE(p.segundoNombre, '') || ' ' || p.primerApellido || ' ' || COALESCE(p.segundoApellido, '')) as name,
               r.id as roleId, r.name as roleName
             FROM users u
             LEFT JOIN personas p ON u.personaId = p.id

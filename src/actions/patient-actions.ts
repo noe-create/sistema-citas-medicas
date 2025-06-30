@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -30,6 +31,15 @@ import type {
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
+// --- Helpers ---
+const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
+const getFullName = (p: { primerNombre: string, segundoNombre?: string, primerApellido: string, segundoApellido?: string}) => {
+    return [p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido].filter(Boolean).join(' ');
+}
+const fullNameSql = `TRIM(p.primerNombre || ' ' || COALESCE(p.segundoNombre, '') || ' ' || p.primerApellido || ' ' || COALESCE(p.segundoApellido, ''))`;
+const titularNameSql = `TRIM(p_titular.primerNombre || ' ' || COALESCE(p_titular.segundoNombre, '') || ' ' || p_titular.primerApellido || ' ' || COALESCE(p_titular.segundoApellido, ''))`;
+
+
 // --- Authorization Helpers ---
 async function ensureAdminPermission() {
     const session = await getSession();
@@ -45,31 +55,31 @@ async function ensureDataEntryPermission() {
     }
 }
 
-// --- ID Generation ---
-const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
-
 // --- Persona Actions (Centralized Person Management) ---
 
 async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string }): Promise<string> {
-    // Check if persona exists by cedula
     const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
     if (existingPersona) {
         return existingPersona.id;
     }
-    // Create new persona
+    
     const personaId = generateId('p');
     await db.run(
-        'INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
-        personaData.nombreCompleto,
+        personaData.primerNombre,
+        personaData.segundoNombre,
+        personaData.primerApellido,
+        personaData.segundoApellido,
         personaData.cedula,
         personaData.fechaNacimiento,
         personaData.genero,
-        personaData.telefono,
-        personaData.telefonoCelular,
-        personaData.email
+        personaData.telefono1,
+        personaData.telefono2,
+        personaData.email,
+        personaData.direccion
     );
-    // Also create a patient record for them
+
     await getOrCreatePaciente(db, personaId);
     return personaId;
 }
@@ -78,20 +88,21 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
 export async function getPersonas(query?: string): Promise<Persona[]> {
     const db = await getDb();
     let selectQuery = `
-        SELECT id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email 
-        FROM personas
+        SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion,
+        ${fullNameSql} as nombreCompleto
+        FROM personas p
     `;
     const params: any[] = [];
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE nombreCompleto LIKE ? 
+            WHERE ${fullNameSql} LIKE ? 
             OR cedula LIKE ? 
             OR email LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
-    selectQuery += ' ORDER BY nombreCompleto';
+    selectQuery += ' ORDER BY primerNombre, primerApellido';
     const rows = await db.all(selectQuery, ...params);
     return rows.map((row: any) => ({
         ...row,
@@ -107,7 +118,7 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
     let selectQuery = `
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
-            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email,
+            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion,
             e.name as empresaName,
             (SELECT COUNT(*) FROM beneficiarios b WHERE b.titularId = t.id) as beneficiariosCount
         FROM titulares t
@@ -119,14 +130,14 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p.nombreCompleto LIKE ? 
+            WHERE ${fullNameSql} LIKE ? 
             OR p.cedula LIKE ? 
             OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
     
-    selectQuery += ' ORDER BY p.nombreCompleto';
+    selectQuery += ' ORDER BY p.primerNombre, p.primerApellido';
     const rows = await db.all(selectQuery, ...params);
     
     return rows.map(row => ({
@@ -142,9 +153,14 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
             cedula: row.cedula,
             fechaNacimiento: new Date(row.fechaNacimiento),
             genero: row.genero,
-            telefono: row.telefono,
-            telefonoCelular: row.telefonoCelular,
+            primerNombre: row.primerNombre,
+            segundoNombre: row.segundoNombre,
+            primerApellido: row.primerApellido,
+            segundoApellido: row.segundoApellido,
+            telefono1: row.telefono1,
+            telefono2: row.telefono2,
             email: row.email,
+            direccion: row.direccion
         }
     }));
 }
@@ -155,7 +171,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     const row = await db.get(`
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
-            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email,
+            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion,
             e.name as empresaName
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
@@ -177,16 +193,21 @@ export async function getTitularById(id: string): Promise<Titular | null> {
             cedula: row.cedula,
             fechaNacimiento: new Date(row.fechaNacimiento),
             genero: row.genero,
-            telefono: row.telefono,
-            telefonoCelular: row.telefonoCelular,
+            primerNombre: row.primerNombre,
+            segundoNombre: row.segundoNombre,
+            primerApellido: row.primerApellido,
+            segundoApellido: row.segundoApellido,
+            telefono1: row.telefono1,
+            telefono2: row.telefono2,
             email: row.email,
+            direccion: row.direccion
         }
     };
 }
 
 
 export async function createTitular(data: {
-    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string };
+    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula' | 'nombreCompleto'> & { fechaNacimiento: Date; cedula: string };
     tipo: TitularType;
     empresaId?: string;
 } | {
@@ -233,30 +254,31 @@ export async function createTitular(data: {
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; tipo: TitularType; empresaId?: string }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
     try {
         await db.exec('BEGIN TRANSACTION');
 
-        // Check for cedula duplication before updating
-        const cedulaParts = data.cedula.split('-');
-        const cedulaToCheck = `${cedulaParts[0]}-${cedulaParts.slice(1).join('')}`;
-        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', cedulaToCheck, personaId);
+        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
         if (existingPersona) {
             throw new Error('Ya existe otra persona con la misma cédula.');
         }
 
         await db.run(
-            'UPDATE personas SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ? WHERE id = ?',
-            data.nombreCompleto,
-            cedulaToCheck,
+            'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
+            data.primerNombre,
+            data.segundoNombre,
+            data.primerApellido,
+            data.segundoApellido,
+            data.cedula,
             data.fechaNacimiento.toISOString(),
             data.genero,
-            data.telefono,
-            data.telefonoCelular,
+            data.telefono1,
+            data.telefono2,
             data.email,
+            data.direccion,
             personaId
         );
 
@@ -284,9 +306,6 @@ export async function deleteTitular(id: string): Promise<{ success: boolean }> {
     await ensureDataEntryPermission();
     const db = await getDb();
     const result = await db.run('DELETE FROM titulares WHERE id = ?', id);
-    // The persona record is NOT deleted, only their role as a titular.
-    // Beneficiary relationships are cascaded.
-
     if (result.changes === 0) {
         throw new Error('Titular no encontrado para eliminar');
     }
@@ -303,26 +322,17 @@ export async function getBeneficiarios(titularId: string): Promise<Beneficiario[
     const rows = await db.all(`
         SELECT 
             b.id, b.titularId, b.personaId,
-            p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email
+            ${fullNameSql} as nombreCompleto, p.*
         FROM beneficiarios b
         JOIN personas p ON b.personaId = p.id
         WHERE b.titularId = ? 
-        ORDER BY p.nombreCompleto
+        ORDER BY p.primerNombre, p.primerApellido
     `, titularId);
     return rows.map(row => ({
         id: row.id,
         personaId: row.personaId,
         titularId: row.titularId,
-        persona: {
-            id: row.personaId,
-            nombreCompleto: row.nombreCompleto,
-            cedula: row.cedula,
-            fechaNacimiento: new Date(row.fechaNacimiento),
-            genero: row.genero,
-            telefono: row.telefono,
-            telefonoCelular: row.telefonoCelular,
-            email: row.email
-        }
+        persona: { ...row, fechaNacimiento: new Date(row.fechaNacimiento) }
     }));
 }
 
@@ -333,14 +343,10 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
             b.id, 
             b.personaId, 
             b.titularId,
-            p.nombreCompleto, 
-            p.cedula, 
-            p.fechaNacimiento, 
-            p.genero, 
-            p.telefono, 
-            p.telefonoCelular, 
-            p.email,
-            p_titular.nombreCompleto as titularNombre
+            ${fullNameSql} as nombreCompleto,
+            p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion,
+            p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido,
+            ${titularNameSql} as titularNombre
         FROM beneficiarios b
         JOIN personas p ON b.personaId = p.id
         JOIN titulares t ON b.titularId = t.id
@@ -351,14 +357,14 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p.nombreCompleto LIKE ? 
+            WHERE ${fullNameSql} LIKE ? 
             OR p.cedula LIKE ? 
-            OR p_titular.nombreCompleto LIKE ?
+            OR ${titularNameSql} LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
     
-    selectQuery += ' ORDER BY p.nombreCompleto';
+    selectQuery += ' ORDER BY p.primerNombre, p.primerApellido';
     
     const rows = await db.all(selectQuery, ...params);
     return rows.map((row: any) => ({
@@ -366,21 +372,12 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
         personaId: row.personaId,
         titularId: row.titularId,
         titularNombre: row.titularNombre,
-        persona: {
-            id: row.personaId,
-            nombreCompleto: row.nombreCompleto,
-            cedula: row.cedula,
-            fechaNacimiento: new Date(row.fechaNacimiento),
-            genero: row.genero,
-            telefono: row.telefono,
-            telefonoCelular: row.telefonoCelular,
-            email: row.email,
-        }
+        persona: { ...row, fechaNacimiento: new Date(row.fechaNacimiento) }
     }));
 }
 
 
-export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
+export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
     await ensureDataEntryPermission();
     const db = await getDb();
     const beneficiarioId = generateId('b');
@@ -397,9 +394,8 @@ export async function createBeneficiario(titularId: string, data: { persona: Omi
             personaId = data.personaId;
         } else {
             const personaData = { ...data.persona, fechaNacimiento: data.persona.fechaNacimiento.toISOString() };
-            personaId = await getOrCreatePersona(db, personaData);
+            personaId = await getOrCreatePersona(db, personaData as any);
         }
-
 
         await db.run(
             'INSERT INTO beneficiarios (id, titularId, personaId) VALUES (?, ?, ?)',
@@ -429,23 +425,22 @@ export async function createBeneficiario(titularId: string, data: { persona: Omi
 }
 
 
-export async function updateBeneficiario(beneficiarioId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
+export async function updateBeneficiario(beneficiarioId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
     await ensureDataEntryPermission();
     const db = await getDb();
     
     await db.run(
-        'UPDATE personas SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ? WHERE id = ?',
-        data.nombreCompleto,
+        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
+        data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
         data.cedula,
         data.fechaNacimiento.toISOString(),
         data.genero,
-        data.telefono,
-        data.telefonoCelular,
-        data.email,
+        data.telefono1, data.telefono2,
+        data.email, data.direccion,
         personaId
     );
 
-    const updatedRow = await db.get('SELECT * FROM personas WHERE id = ?', personaId);
+    const updatedRow = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p WHERE id = ?`, personaId);
     const beneficiarioRow = await db.get('SELECT titularId FROM beneficiarios WHERE id = ?', beneficiarioId);
 
     revalidatePath(`/dashboard/pacientes/${beneficiarioRow.titularId}/beneficiarios`);
@@ -468,7 +463,6 @@ export async function deleteBeneficiario(id: string): Promise<{ success: boolean
         throw new Error('Beneficiario no encontrado para eliminar');
     }
 
-    // Only deletes the relationship, not the persona
     await db.run('DELETE FROM beneficiarios WHERE id = ?', id);
     
     revalidatePath(`/dashboard/pacientes/${beneficiario.titularId}/beneficiarios`);
@@ -487,10 +481,10 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
     const hasQuery = query && query.trim().length > 0;
 
     const personasQuery = `
-        SELECT id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email 
-        FROM personas 
-        ${hasQuery ? 'WHERE nombreCompleto LIKE ? OR cedula LIKE ?' : ''}
-        ORDER BY nombreCompleto
+        SELECT *, ${fullNameSql} as nombreCompleto
+        FROM personas p
+        ${hasQuery ? `WHERE ${fullNameSql} LIKE ? OR cedula LIKE ?` : ''}
+        ORDER BY primerNombre, primerApellido
         LIMIT 20
     `;
     const personasParams = hasQuery ? [searchQuery, searchQuery] : [];
@@ -506,7 +500,7 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
     `, ...personaIds);
 
     const beneficiariosInfo = await db.all(`
-        SELECT b.personaId, b.titularId, p_titular.nombreCompleto as titularNombre
+        SELECT b.personaId, b.titularId, ${titularNameSql} as titularNombre
         FROM beneficiarios b
         JOIN titulares t ON b.titularId = t.id
         JOIN personas p_titular ON t.personaId = p_titular.id
@@ -693,7 +687,7 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ? ORDER BY orderDate DESC', paciente.id);
     const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
         const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
-        const persona = await db.get('SELECT * FROM personas JOIN pacientes ON personas.id = pacientes.personaId WHERE pacientes.id = ?', order.pacienteId);
+        const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, order.pacienteId);
         return {
             type: 'lab_order' as const,
             data: {
@@ -883,7 +877,7 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 
 // --- Central Person Management Actions ---
 
-export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }) {
     await ensureDataEntryPermission();
     const db = await getDb();
     
@@ -895,18 +889,21 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     const personaId = generateId('p');
 
     await db.run(
-        'INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
-        data.nombreCompleto,
+        data.primerNombre,
+        data.segundoNombre,
+        data.primerApellido,
+        data.segundoApellido,
         data.cedula,
         data.fechaNacimiento.toISOString(),
         data.genero,
-        data.telefono,
-        data.telefonoCelular,
-        data.email
+        data.telefono1,
+        data.telefono2,
+        data.email,
+        data.direccion
     );
 
-    // Also create a patient record for them so they can have a clinical history
     await getOrCreatePaciente(db, personaId);
 
     revalidatePath('/dashboard/personas');
@@ -916,7 +913,7 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
 }
 
 export async function bulkCreatePersonas(
-    personasData: (Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string })[]
+    personasData: (Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: string })[]
 ): Promise<{ imported: number; skipped: number; errors: string[] }> {
     await ensureDataEntryPermission();
     const db = await getDb();
@@ -927,9 +924,9 @@ export async function bulkCreatePersonas(
     await db.exec('BEGIN TRANSACTION');
     try {
         for (const [index, data] of personasData.entries()) {
-            if (!data.nombreCompleto || !data.cedula || !data.fechaNacimiento || !data.genero) {
+            if (!data.primerNombre || !data.primerApellido || !data.cedula || !data.fechaNacimiento || !data.genero) {
                 skippedCount++;
-                errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos.`);
+                errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos (primer nombre, primer apellido, cédula, fecha de nacimiento, género).`);
                 continue;
             }
 
@@ -940,19 +937,23 @@ export async function bulkCreatePersonas(
             }
 
             const personaId = generateId('p');
-
+            
             await db.run(
-                'INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 personaId,
-                data.nombreCompleto,
+                data.primerNombre,
+                data.segundoNombre,
+                data.primerApellido,
+                data.segundoApellido,
                 data.cedula,
                 new Date(data.fechaNacimiento).toISOString(),
                 data.genero,
-                data.telefono || null,
-                data.telefonoCelular || null,
-                data.email || null
+                data.telefono1,
+                data.telefono2,
+                data.email,
+                data.direccion
             );
-
+            
             await getOrCreatePaciente(db, personaId);
             
             importedCount++;
@@ -973,7 +974,7 @@ export async function bulkCreatePersonas(
 }
 
 
-export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula'> & { fechaNacimiento: Date; cedula: string; }) {
+export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
@@ -983,14 +984,15 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
     }
 
     await db.run(
-        'UPDATE personas SET nombreCompleto = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono = ?, telefonoCelular = ?, email = ? WHERE id = ?',
-        data.nombreCompleto,
+        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
+        data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
         data.cedula,
         data.fechaNacimiento.toISOString(),
         data.genero,
-        data.telefono,
-        data.telefonoCelular,
+        data.telefono1,
+        data.telefono2,
         data.email,
+        data.direccion,
         personaId
     );
 
@@ -1152,12 +1154,12 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
     let selectQuery = `
         SELECT
             p.id,
-            p.nombreCompleto,
+            ${fullNameSql} as nombreCompleto,
             p.cedula,
             p.fechaNacimiento,
             p.genero,
-            p.telefono,
-            p.telefonoCelular,
+            p.telefono1,
+            p.telefono2,
             p.email,
             MAX(t.id IS NOT NULL) as isTitular,
             MAX(b.id IS NOT NULL) as isBeneficiario
@@ -1170,14 +1172,14 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p.nombreCompleto LIKE ? 
+            WHERE ${fullNameSql} LIKE ? 
             OR p.cedula LIKE ? 
             OR p.email LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
     }
     
-    selectQuery += ' GROUP BY p.id ORDER BY p.nombreCompleto';
+    selectQuery += ' GROUP BY p.id ORDER BY p.primerNombre, p.primerApellido';
 
     const rows = await db.all(selectQuery, ...params);
     
@@ -1187,14 +1189,8 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         if (row.isBeneficiario) roles.push('Beneficiario');
         
         return {
-            id: row.id,
-            nombreCompleto: row.nombreCompleto,
-            cedula: row.cedula,
+            ...row,
             fechaNacimiento: new Date(row.fechaNacimiento),
-            genero: row.genero,
-            telefono: row.telefono,
-            telefonoCelular: row.telefonoCelular,
-            email: row.email,
             roles: roles.length > 0 ? roles : ['Paciente'],
         };
     });
@@ -1213,7 +1209,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     let selectQuery = `
         SELECT
             o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
-            p.nombreCompleto as pacienteNombre,
+            ${fullNameSql} as pacienteNombre,
             p.cedula as pacienteCedula,
             (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
         FROM treatment_orders o
@@ -1224,7 +1220,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p.nombreCompleto LIKE ? OR p.cedula LIKE ?
+            WHERE ${fullNameSql} LIKE ? OR p.cedula LIKE ?
         `;
         params.push(searchQuery, searchQuery);
     }
@@ -1243,14 +1239,14 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
                 nombreCompleto: row.pacienteNombre,
                 cedula: row.pacienteCedula
             }
-        });
+        } as any);
     }
     return orders;
 }
 
 export async function createTreatmentExecution(data: CreateTreatmentExecutionInput): Promise<TreatmentExecution> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role.id)) {
+    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(user.role.id)) {
         throw new Error('Acción no autorizada.');
     }
     const executedBy = session.user.name || session.user.username;
@@ -1295,7 +1291,7 @@ export async function createTreatmentExecution(data: CreateTreatmentExecutionInp
     };
 }
 
-export async function updateTreatmentOrderStatus(orderId: string, status: 'Activo' | 'Completado' | 'Cancelado'): Promise<{ success: boolean }> {
+export async function updateTreatmentOrderStatus(orderId: string, status: 'En Progreso' | 'Completado' | 'Cancelado'): Promise<{ success: boolean }> {
     const session = await getSession();
     if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada.');
@@ -1448,7 +1444,7 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
 
     revalidatePath('/dashboard/hce');
     
-    const persona = await db.get('SELECT * FROM personas JOIN pacientes ON personas.id = pacientes.personaId WHERE pacientes.id = ?', pacienteId);
+    const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, pacienteId);
 
     return {
         id: orderId,

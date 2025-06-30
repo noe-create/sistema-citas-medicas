@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -11,6 +12,54 @@ import { ALL_PERMISSIONS } from './permissions';
 
 let db: Database | null = null;
 
+async function migratePersonaSchema(dbInstance: Database) {
+    // Check if migration is needed by looking for an old column
+    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
+    
+    if (cols.some(c => c.name === 'nombreCompleto')) {
+        console.log("Old 'personas' schema detected. Migrating to new schema...");
+        try {
+            await dbInstance.exec('BEGIN TRANSACTION;');
+
+            // 1. Rename old table
+            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_old;');
+            
+            // 2. Create new table with the correct schema
+            await createTables(dbInstance);
+
+            // 3. Migrate data from old table to new table
+            await dbInstance.exec(`
+                INSERT INTO personas (id, primerNombre, primerApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email)
+                SELECT 
+                    id,
+                    SUBSTR(nombreCompleto, 1, INSTR(nombreCompleto, ' ') - 1),
+                    SUBSTR(nombreCompleto, INSTR(nombreCompleto, ' ') + 1),
+                    cedula,
+                    fechaNacimiento,
+                    genero,
+                    telefono,
+                    telefonoCelular,
+                    email
+                FROM personas_old;
+            `);
+
+            // 4. Drop the old table
+            await dbInstance.exec('DROP TABLE personas_old;');
+            
+            await dbInstance.exec('COMMIT;');
+            console.log("Persona schema migration completed successfully.");
+        } catch (error) {
+            await dbInstance.exec('ROLLBACK;');
+            console.error("Failed to migrate persona schema, rolling back.", error);
+            // If migration fails, try to restore the old table
+            await dbInstance.exec('DROP TABLE IF EXISTS personas;');
+            await dbInstance.exec('ALTER TABLE personas_old RENAME TO personas;');
+            throw new Error("Database migration for personas table failed.");
+        }
+    }
+}
+
+
 async function initializeDb(): Promise<Database> {
     const dbPath = path.join(process.cwd(), 'database.db');
     
@@ -20,6 +69,8 @@ async function initializeDb(): Promise<Database> {
     });
 
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
+    
+    await migratePersonaSchema(dbInstance);
     
     // --- Safe Migration for Treatment Tables ---
     const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
@@ -83,13 +134,17 @@ async function createTables(dbInstance: Database): Promise<void> {
 
         CREATE TABLE IF NOT EXISTS personas (
             id TEXT PRIMARY KEY,
-            nombreCompleto TEXT NOT NULL,
+            primerNombre TEXT NOT NULL,
+            segundoNombre TEXT,
+            primerApellido TEXT NOT NULL,
+            segundoApellido TEXT,
             cedula TEXT NOT NULL UNIQUE,
             fechaNacimiento TEXT NOT NULL,
             genero TEXT NOT NULL,
-            telefono TEXT,
-            telefonoCelular TEXT,
-            email TEXT
+            telefono1 TEXT,
+            telefono2 TEXT,
+            email TEXT,
+            direccion TEXT
         );
 
         CREATE TABLE IF NOT EXISTS pacientes (
@@ -276,16 +331,16 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const personaCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM personas');
     if (personaCountResult.count === 0) {
         const personas = [
-            { id: "p1", nombreCompleto: "Carlos Rodriguez", cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono: "0212-555-1234", telefonoCelular: "0414-1234567", email: "carlos.r@email.com" },
-            { id: "p2", nombreCompleto: "Ana Martinez (Doctora)", cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono: "0241-555-5678", telefonoCelular: "0412-7654321", email: "ana.m@email.com" },
-            { id: "p3", nombreCompleto: "Luis Hernandez", cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono: "0261-555-9012", telefonoCelular: "0424-9876543", email: "luis.h@email.com" },
-            { id: "p4", nombreCompleto: "Sofia Gomez (Asistente)", cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono: "0212-555-3456", telefonoCelular: "0416-2345678", email: "sofia.g@email.com" },
-            { id: "p5", nombreCompleto: "Laura Rodriguez", cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com" },
-            { id: "p6", nombreCompleto: "David Rodriguez", cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com" },
+            { id: "p1", primerNombre: "Carlos", primerApellido: "Rodriguez", cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono1: "0212-555-1234", telefono2: "0414-1234567", email: "carlos.r@email.com", direccion: "Av. Urdaneta" },
+            { id: "p2", primerNombre: "Ana", primerApellido: "Martinez", segundoApellido: "(Doctora)", cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono1: "0241-555-5678", telefono2: "0412-7654321", email: "ana.m@email.com" },
+            { id: "p3", primerNombre: "Luis", primerApellido: "Hernandez", cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono1: "0261-555-9012", telefono2: "0424-9876543", email: "luis.h@email.com" },
+            { id: "p4", primerNombre: "Sofia", primerApellido: "Gomez", segundoApellido: "(Asistente)", cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono1: "0212-555-3456", telefono2: "0416-2345678", email: "sofia.g@email.com" },
+            { id: "p5", primerNombre: "Laura", primerApellido: "Rodriguez", cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com" },
+            { id: "p6", primerNombre: "David", primerApellido: "Rodriguez", cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com" },
         ];
-        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, nombreCompleto, cedula, fechaNacimiento, genero, telefono, telefonoCelular, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, primerApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         for (const p of personas) {
-            await personaStmt.run(p.id, p.nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono, p.telefonoCelular, p.email);
+            await personaStmt.run(p.id, p.primerNombre, p.primerApellido, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion);
         }
         await personaStmt.finalize();
 
