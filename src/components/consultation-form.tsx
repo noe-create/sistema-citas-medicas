@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -11,8 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, Paperclip, File as FileIcon, Trash2, UploadCloud, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker } from 'lucide-react';
-import type { Patient, Cie10Code, Diagnosis, CreateConsultationDocumentInput, DocumentType, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos } from '@/lib/types';
+import { Loader2, X, PlusCircle, Wand2, File as FileIcon, Trash2, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker, ChevronsUpDown, Check } from 'lucide-react';
+import type { Patient, Cie10Code, Diagnosis, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos, CreateTreatmentItemInput } from '@/lib/types';
 import { searchCie10Codes, createConsultation, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -20,8 +20,6 @@ import { Badge } from './ui/badge';
 import { generatePrescription } from '@/ai/flows/generate-prescription';
 import type { GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
 import { PrescriptionDisplay } from './prescription-display';
-import { Separator } from './ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { calculateAge } from '@/lib/utils';
@@ -37,38 +35,15 @@ import { LabOrderForm } from './lab-order-form';
 
 
 // --- Zod Schema Definition ---
-const alergiasOptions = [
-  { id: 'medicamentos', label: 'Medicamentos' },
-  { id: 'alimentos', label: 'Alimentos' },
-  { id: 'polen', label: 'Polen' },
-  { id: 'polvo', label: 'Polvo' },
-  { id: 'animales', label: 'Animales' },
-  { id: 'picaduras_de_insectos', label: 'Picaduras de Insectos' },
-];
-
-const habitosOptions = [
-  { id: 'tabaco', label: 'Tabaco' },
-  { id: 'alcohol', label: 'Alcohol' },
-  { id: 'drogas', label: 'Drogas' },
-  { id: 'cafe', label: 'Café' },
-  { id: 'actividad_fisica', label: 'Actividad Física' },
-  { id: 'dieta_balanceada', label: 'Dieta Balanceada' },
-];
-
-const sintomasComunes = [
-  { id: 'fiebre', label: 'Fiebre' },
-  { id: 'tos', label: 'Tos' },
-  { id: 'dolor_garganta', label: 'Dolor de garganta' },
-  { id: 'dolor_cabeza', label: 'Dolor de cabeza' },
-  { id: 'congestion_nasal', label: 'Congestión nasal' },
-  { id: 'dificultad_respirar', label: 'Dificultad para respirar' },
-  { id: 'dolor_abdominal', label: 'Dolor abdominal' },
-  { id: 'nauseas_vomitos', label: 'Náuseas/Vómitos' },
-  { id: 'diarrea', label: 'Diarrea' },
-  { id: 'fatiga_cansancio', label: 'Fatiga/Cansancio' },
-  { id: 'dolor_muscular', label: 'Dolor muscular' },
-  { id: 'mareos', label: 'Mareos' },
-];
+const treatmentItemSchema = z.object({
+    id: z.string().optional(),
+    medicamentoProcedimiento: z.string().min(1, 'El medicamento o procedimiento es requerido.'),
+    dosis: z.string().optional(),
+    via: z.string().optional(),
+    frecuencia: z.string().optional(),
+    duracion: z.string().optional(),
+    instrucciones: z.string().optional(),
+});
 
 
 const consultationSchema = z.object({
@@ -142,16 +117,10 @@ const consultationSchema = z.object({
     cie10Description: z.string(),
   })).min(1, 'Se requiere al menos un diagnóstico.'),
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
+  treatmentItems: z.array(treatmentItemSchema).optional(),
 });
 
 const documentTypes = ['laboratorio', 'imagenologia', 'informe medico', 'otro'] as const;
-
-interface FileUploadState {
-    file: File;
-    documentType: DocumentType;
-    description: string;
-    id: string;
-}
 
 interface ConsultationFormProps {
     patient: Patient;
@@ -174,7 +143,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
             { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
             { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
-            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan', 'treatmentItems'] },
         ];
         return baseSteps;
     }, []);
@@ -182,14 +151,12 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
     const form = useForm<z.infer<typeof consultationSchema>>({
         resolver: zodResolver(consultationSchema),
         defaultValues: {
-            motivoConsulta: {
-                sintomas: [],
-                otros: ''
-            },
+            motivoConsulta: { sintomas: [], otros: '' },
             enfermedadActual: '',
             revisionPorSistemas: '',
             diagnoses: [],
             treatmentPlan: '',
+            treatmentItems: [],
             examenFisicoGeneral: '',
             antecedentesFamiliares: '',
             antecedentesPersonales: {
@@ -202,42 +169,16 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
               habitosOtros: '',
             },
             antecedentesGinecoObstetricos: {
-                menarquia: undefined,
-                ciclos: '',
-                fum: undefined,
-                g: undefined,
-                p: undefined,
-                a: undefined,
-                c: undefined,
-                metodoAnticonceptivo: '',
+                menarquia: undefined, ciclos: '', fum: undefined, g: undefined, p: undefined, a: undefined, c: undefined, metodoAnticonceptivo: '',
             },
             antecedentesPediatricos: {
-                prenatales: '',
-                natales: '',
-                postnatales: '',
-                inmunizaciones: '',
-                desarrolloPsicomotor: '',
+                prenatales: '', natales: '', postnatales: '', inmunizaciones: '', desarrolloPsicomotor: '',
             },
             signosVitales: {
-                taSistolica: undefined,
-                taDiastolica: undefined,
-                taBrazo: 'izquierdo',
-                taPosicion: 'sentado',
-                fc: undefined,
-                fcRitmo: 'regular',
-                fr: undefined,
-                temp: undefined,
-                tempUnidad: 'C',
-                tempSitio: 'oral',
-                peso: undefined,
-                pesoUnidad: 'kg',
-                talla: undefined,
-                tallaUnidad: 'cm',
-                imc: undefined,
-                satO2: undefined,
-                satO2Ambiente: true,
-                satO2Flujo: undefined,
-                dolor: 0,
+                taSistolica: undefined, taDiastolica: undefined, taBrazo: 'izquierdo', taPosicion: 'sentado', fc: undefined,
+                fcRitmo: 'regular', fr: undefined, temp: undefined, tempUnidad: 'C', tempSitio: 'oral',
+                peso: undefined, pesoUnidad: 'kg', talla: undefined, tallaUnidad: 'cm', imc: undefined,
+                satO2: undefined, satO2Ambiente: true, satO2Flujo: undefined, dolor: 0,
             }
         }
     });
@@ -255,20 +196,17 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step - 1);
+            setCurrentStep(step => step + 1);
         }
     };
     
     async function onSubmit(values: z.infer<typeof consultationSchema>) {
         setIsSubmitting(true);
-        // This is a placeholder for file upload logic.
-        const documentsData: CreateConsultationDocumentInput[] = []; 
-
+        
         try {
             const createdConsultation = await createConsultation({
                 waitlistId: patient.id,
                 pacienteId: patient.pacienteId,
-                documents: documentsData,
                 motivoConsulta: values.motivoConsulta,
                 enfermedadActual: values.enfermedadActual,
                 revisionPorSistemas: values.revisionPorSistemas || undefined,
@@ -280,6 +218,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 examenFisicoGeneral: values.examenFisicoGeneral,
                 diagnoses: values.diagnoses,
                 treatmentPlan: values.treatmentPlan,
+                treatmentItems: values.treatmentItems,
             });
 
             if (createdConsultation && selectedLabTests.length > 0) {
@@ -320,7 +259,6 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 <CardDescription>
                 Registre los detalles de la consulta. Al guardar, el paciente saldrá de la cola de espera.
                 </CardDescription>
-                 {/* Stepper Indicator */}
                 <div className="flex items-center justify-center pt-2">
                     {steps.map((step, index) => (
                         <React.Fragment key={step.id}>
@@ -344,7 +282,6 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 </div>
             </CardHeader>
             <CardContent className="space-y-6 min-h-[400px]">
-                {/* Step Content */}
                 {currentStep === 0 && <StepAnamnesis form={form} />}
                 {currentStep === 1 && <StepAntecedentes form={form} isFemale={isFemale} isPediatric={isPediatric} />}
                 {currentStep === 2 && <StepExamenFisico form={form} />}
@@ -376,9 +313,13 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
 
 // --- Step Sub-components ---
+const alergiasOptions = [ { id: 'medicamentos', label: 'Medicamentos' }, { id: 'alimentos', label: 'Alimentos' }, { id: 'polen', label: 'Polen' }, { id: 'polvo', label: 'Polvo' }, { id: 'animales', label: 'Animales' }, { id: 'picaduras_de_insectos', label: 'Picaduras de Insectos' } ];
+const habitosOptions = [ { id: 'tabaco', label: 'Tabaco' }, { id: 'alcohol', label: 'Alcohol' }, { id: 'drogas', label: 'Drogas' }, { id: 'cafe', label: 'Café' }, { id: 'actividad_fisica', label: 'Actividad Física' }, { id: 'dieta_balanceada', label: 'Dieta Balanceada' } ];
+const sintomasComunes = [ { id: 'fiebre', label: 'Fiebre' }, { id: 'tos', label: 'Tos' }, { id: 'dolor_garganta', label: 'Dolor de garganta' }, { id: 'dolor_cabeza', label: 'Dolor de cabeza' }, { id: 'congestion_nasal', label: 'Congestión nasal' }, { id: 'dificultad_respirar', label: 'Dificultad para respirar' }, { id: 'dolor_abdominal', label: 'Dolor abdominal' }, { id: 'nauseas_vomitos', label: 'Náuseas/Vómitos' }, { id: 'diarrea', label: 'Diarrea' }, { id: 'fatiga_cansancio', label: 'Fatiga/Cansancio' }, { id: 'dolor_muscular', label: 'Dolor muscular' }, { id: 'mareos', label: 'Mareos' } ];
 
-const FormSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="space-y-4 rounded-lg border p-4">
+
+const FormSection = ({ title, children, className }: { title: string, children: React.ReactNode, className?: string }) => (
+    <div className={cn("space-y-4 rounded-lg border p-4", className)}>
         <h3 className="text-lg font-medium leading-none">{title}</h3>
         <div className="space-y-4">{children}</div>
     </div>
@@ -387,79 +328,41 @@ const FormSection = ({ title, children }: { title: string, children: React.React
 const StepAnamnesis = ({ form }: { form: any }) => (
     <div className="space-y-6">
         <FormSection title="Motivo de Consulta">
-             <FormField
-              control={form.control}
-              name="motivoConsulta"
-              render={() => (
+             <FormField control={form.control} name="motivoConsulta" render={() => (
                 <FormItem>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
                     {sintomasComunes.map((item) => (
-                      <FormField
-                        key={item.id}
-                        control={form.control}
-                        name="motivoConsulta.sintomas"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={item.id}
-                              className="flex flex-row items-center space-x-2 space-y-0"
-                            >
+                      <FormField key={item.id} control={form.control} name="motivoConsulta.sintomas"
+                        render={({ field }) => (
+                            <FormItem key={item.id} className="flex flex-row items-center space-x-2 space-y-0">
                               <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(item.label)}
+                                <Checkbox checked={field.value?.includes(item.label)}
                                   onCheckedChange={(checked) => {
                                     const currentValue = field.value || [];
                                     return checked
                                       ? field.onChange([...currentValue, item.label])
-                                      : field.onChange(
-                                          currentValue.filter(
-                                            (value: string) => value !== item.label
-                                          )
-                                        )
-                                  }}
-                                />
+                                      : field.onChange(currentValue.filter((value: string) => value !== item.label))
+                                  }} />
                               </FormControl>
-                              <FormLabel className="font-normal">
-                                {item.label}
-                              </FormLabel>
+                              <FormLabel className="font-normal">{item.label}</FormLabel>
                             </FormItem>
-                          )
-                        }}
-                      />
-                    ))}
+                        )} /> ))}
                   </div>
-                   <FormField
-                    control={form.control}
-                    name="motivoConsulta.otros"
-                    render={({ field }) => (
+                   <FormField control={form.control} name="motivoConsulta.otros" render={({ field }) => (
                       <FormItem className="mt-4">
                         <FormLabel>Otros síntomas</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Describa otros síntomas no listados..." {...field} />
-                        </FormControl>
+                        <FormControl><Input placeholder="Describa otros síntomas no listados..." {...field} /></FormControl>
                          <FormMessage />
                       </FormItem>
-                    )}
-                  />
+                    )} />
                 </FormItem>
-              )}
-            />
+              )} />
         </FormSection>
         <FormSection title="Enfermedad Actual">
-            <FormField control={form.control} name="enfermedadActual" render={({ field }) => (
-                <FormItem>
-                    <FormControl><Textarea placeholder="Detalle la cronología y características de los síntomas..." {...field} rows={6} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
+            <FormField control={form.control} name="enfermedadActual" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Detalle la cronología y características de los síntomas..." {...field} rows={6} /></FormControl><FormMessage /></FormItem> )} />
         </FormSection>
         <FormSection title="Revisión por Sistemas">
-            <FormField control={form.control} name="revisionPorSistemas" render={({ field }) => (
-                <FormItem>
-                    <FormControl><Textarea placeholder="Detalle cualquier otro síntoma por sistema corporal..." {...field} rows={4} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
+            <FormField control={form.control} name="revisionPorSistemas" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Detalle cualquier otro síntoma por sistema corporal..." {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
         </FormSection>
     </div>
 );
@@ -470,111 +373,61 @@ const StepAntecedentes = ({ form, isFemale, isPediatric }: { form: any, isFemale
             <FormField control={form.control} name="antecedentesPersonales.patologicos" render={({ field }) => ( <FormItem><FormLabel>Patológicos</FormLabel><FormControl><Textarea placeholder="Enfermedades crónicas, previas..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="antecedentesPersonales.quirurgicos" render={({ field }) => ( <FormItem><FormLabel>Quirúrgicos</FormLabel><FormControl><Textarea placeholder="Cirugías anteriores..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
             
-             <FormField
-                control={form.control}
-                name="antecedentesPersonales.alergicos"
-                render={() => (
+             <FormField control={form.control} name="antecedentesPersonales.alergicos" render={() => (
                     <FormItem>
                         <FormLabel>Alérgicos</FormLabel>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
                             {alergiasOptions.map((item) => (
-                                <FormField
-                                    key={item.id}
-                                    control={form.control}
-                                    name="antecedentesPersonales.alergicos"
+                                <FormField key={item.id} control={form.control} name="antecedentesPersonales.alergicos"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                             <FormControl>
-                                                <Checkbox
-                                                    checked={field.value?.includes(item.id)}
+                                                <Checkbox checked={field.value?.includes(item.id)}
                                                     onCheckedChange={(checked) => {
                                                         const currentValue = field.value || [];
-                                                        return checked
-                                                            ? field.onChange([...currentValue, item.id])
-                                                            : field.onChange(
-                                                                currentValue.filter(
-                                                                    (value: string) => value !== item.id
-                                                                )
-                                                            );
-                                                    }}
-                                                />
+                                                        return checked ? field.onChange([...currentValue, item.id]) : field.onChange(currentValue.filter((value: string) => value !== item.id));
+                                                    }}/>
                                             </FormControl>
                                             <FormLabel className="font-normal">{item.label}</FormLabel>
                                         </FormItem>
-                                    )}
-                                />
-                            ))}
+                                    )} /> ))}
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="antecedentesPersonales.alergicosOtros"
+                        <FormField control={form.control} name="antecedentesPersonales.alergicosOtros"
                             render={({ field }) => (
-                                <FormItem className="mt-2">
-                                    <FormControl>
-                                        <Input placeholder="Otras alergias, especificar..." {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                <FormItem className="mt-2"><FormControl><Input placeholder="Otras alergias, especificar..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
                         <FormMessage />
                     </FormItem>
-                )}
-            />
+                )} />
 
             <FormField control={form.control} name="antecedentesPersonales.medicamentos" render={({ field }) => ( <FormItem><FormLabel>Medicamentos Actuales</FormLabel><FormControl><Textarea placeholder="Medicamentos que toma regularmente..." {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
 
-            <FormField
-                control={form.control}
-                name="antecedentesPersonales.habitos"
-                render={() => (
+            <FormField control={form.control} name="antecedentesPersonales.habitos" render={() => (
                     <FormItem>
                         <FormLabel>Hábitos Psicobiológicos</FormLabel>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-md border p-4">
                             {habitosOptions.map((item) => (
-                                <FormField
-                                    key={item.id}
-                                    control={form.control}
-                                    name="antecedentesPersonales.habitos"
+                                <FormField key={item.id} control={form.control} name="antecedentesPersonales.habitos"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                             <FormControl>
-                                                <Checkbox
-                                                    checked={field.value?.includes(item.id)}
+                                                <Checkbox checked={field.value?.includes(item.id)}
                                                     onCheckedChange={(checked) => {
                                                         const currentValue = field.value || [];
-                                                        return checked
-                                                            ? field.onChange([...currentValue, item.id])
-                                                            : field.onChange(
-                                                                currentValue.filter(
-                                                                    (value: string) => value !== item.id
-                                                                )
-                                                            );
-                                                    }}
-                                                />
+                                                        return checked ? field.onChange([...currentValue, item.id]) : field.onChange(currentValue.filter((value: string) => value !== item.id));
+                                                    }}/>
                                             </FormControl>
                                             <FormLabel className="font-normal">{item.label}</FormLabel>
                                         </FormItem>
-                                    )}
-                                />
-                            ))}
+                                    )} /> ))}
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="antecedentesPersonales.habitosOtros"
+                        <FormField control={form.control} name="antecedentesPersonales.habitosOtros"
                             render={({ field }) => (
-                                <FormItem className="mt-2">
-                                    <FormControl>
-                                        <Input placeholder="Otros hábitos, especificar..." {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                <FormItem className="mt-2"><FormControl><Input placeholder="Otros hábitos, especificar..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
                         <FormMessage />
                     </FormItem>
-                )}
-            />
+                )} />
         </FormSection>
         
         <FormSection title="Antecedentes Familiares">
@@ -589,15 +442,15 @@ const StepAntecedentes = ({ form, isFemale, isPediatric }: { form: any, isFemale
 const StepGineco = ({ form }: { form: any }) => (
     <FormSection title="Antecedentes Gineco-Obstétricos">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.menarquia" render={({ field }) => ( <FormItem><FormLabel>Menarquia (edad)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl></FormItem> )} />
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.ciclos" render={({ field }) => ( <FormItem><FormLabel>Ciclos (días/duración)</FormLabel><FormControl><Input placeholder="28/5" {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.menarquia" render={({ field }) => ( <FormItem><FormLabel>Menarquia (edad)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.ciclos" render={({ field }) => ( <FormItem><FormLabel>Ciclos (días/duración)</FormLabel><FormControl><Input placeholder="28/5" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="antecedentesGinecoObstetricos.fum" render={({ field }) => ( <FormItem><FormLabel>FUM</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(field.value, 'PPP', {locale: es})) : (<span>Seleccione fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover></FormItem> )} />
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.g" render={({ field }) => ( <FormItem><FormLabel>Gestas</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl></FormItem> )} />
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.p" render={({ field }) => ( <FormItem><FormLabel>Partos</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl></FormItem> )} />
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.a" render={({ field }) => ( <FormItem><FormLabel>Abortos</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl></FormItem> )} />
-            <FormField control={form.control} name="antecedentesGinecoObstetricos.c" render={({ field }) => ( <FormItem><FormLabel>Cesáreas</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.g" render={({ field }) => ( <FormItem><FormLabel>Gestas</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.p" render={({ field }) => ( <FormItem><FormLabel>Partos</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.a" render={({ field }) => ( <FormItem><FormLabel>Abortos</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="antecedentesGinecoObstetricos.c" render={({ field }) => ( <FormItem><FormLabel>Cesáreas</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
         </div>
-        <FormField control={form.control} name="antecedentesGinecoObstetricos.metodoAnticonceptivo" render={({ field }) => ( <FormItem><FormLabel>Método Anticonceptivo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+        <FormField control={form.control} name="antecedentesGinecoObstetricos.metodoAnticonceptivo" render={({ field }) => ( <FormItem><FormLabel>Método Anticonceptivo</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl></FormItem> )} />
     </FormSection>
 );
 
@@ -629,95 +482,57 @@ const StepExamenFisico = ({ form }: { form: any }) => {
                 form.setValue('signosVitales.imc', parseFloat(imc.toFixed(2)));
             }
         }
-    }, [
-        form.watch('signosVitales.peso'), 
-        form.watch('signosVitales.pesoUnidad'), 
-        form.watch('signosVitales.talla'), 
-        form.watch('signosVitales.tallaUnidad'), 
-        form
-    ]);
+    }, [ form.watch('signosVitales.peso'), form.watch('signosVitales.pesoUnidad'), form.watch('signosVitales.talla'), form.watch('signosVitales.tallaUnidad'), form ]);
 
     return (
         <div className="space-y-6">
             <FormSection title="Signos Vitales">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
-                    {/* Tensión Arterial */}
                     <div className="lg:col-span-2 space-y-2">
                         <FormLabel>Tensión Arterial (mmHg)</FormLabel>
                         <div className="flex items-center gap-2">
-                            <FormField control={form.control} name="signosVitales.taSistolica" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" placeholder="Sist." {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="signosVitales.taSistolica" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" placeholder="Sist." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                             <span className="text-muted-foreground">/</span>
-                            <FormField control={form.control} name="signosVitales.taDiastolica" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" placeholder="Diast." {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="signosVitales.taDiastolica" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" placeholder="Diast." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                         <div className="flex gap-4">
                             <FormField control={form.control} name="signosVitales.taBrazo" render={({ field }) => (<FormItem className="space-y-1"><FormLabel className="text-xs">Brazo</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="izquierdo" /></FormControl><Label className="font-normal">Izq</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="derecho" /></FormControl><Label className="font-normal">Der</Label></FormItem></RadioGroup></FormControl></FormItem>)} />
                             <FormField control={form.control} name="signosVitales.taPosicion" render={({ field }) => (<FormItem className="space-y-1"><FormLabel className="text-xs">Posición</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="sentado" /></FormControl><Label className="font-normal">Sentado</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="acostado" /></FormControl><Label className="font-normal">Acostado</Label></FormItem></RadioGroup></FormControl></FormItem>)} />
                         </div>
                     </div>
-
-                    {/* Frecuencia Cardíaca */}
                      <div className="space-y-2">
-                        <FormField control={form.control} name="signosVitales.fc" render={({ field }) => (<FormItem><FormLabel>Frec. Cardíaca (lpm)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="signosVitales.fc" render={({ field }) => (<FormItem><FormLabel>Frec. Cardíaca (lpm)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="signosVitales.fcRitmo" render={({ field }) => (<FormItem className="space-y-1"><FormLabel className="text-xs">Ritmo</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="regular" /></FormControl><Label className="font-normal">Regular</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="irregular" /></FormControl><Label className="font-normal">Irregular</Label></FormItem></RadioGroup></FormControl></FormItem>)} />
                     </div>
-
-                    {/* Frecuencia Respiratoria */}
-                    <FormField control={form.control} name="signosVitales.fr" render={({ field }) => (<FormItem><FormLabel>Frec. Resp. (rpm)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
-                    
-                    {/* Temperatura */}
+                    <FormField control={form.control} name="signosVitales.fr" render={({ field }) => (<FormItem><FormLabel>Frec. Resp. (rpm)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                      <div className="lg:col-span-2 space-y-2">
                         <FormLabel>Temperatura</FormLabel>
                         <div className="flex items-center gap-2">
-                            <FormField control={form.control} name="signosVitales.temp" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" step="0.1" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="signosVitales.temp" render={({ field }) => (<FormItem className="flex-1"><FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="signosVitales.tempUnidad" render={({ field }) => (<FormItem><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="C" /></FormControl><Label className="font-normal">°C</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="F" /></FormControl><Label className="font-normal">°F</Label></FormItem></RadioGroup></FormControl></FormItem>)} />
                         </div>
                         <FormField control={form.control} name="signosVitales.tempSitio" render={({ field }) => (<FormItem className="space-y-1"><FormLabel className="text-xs">Sitio</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-x-4 gap-y-1"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="oral" /></FormControl><Label className="font-normal">Oral</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="axilar" /></FormControl><Label className="font-normal">Axilar</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="rectal" /></FormControl><Label className="font-normal">Rectal</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="timpanica" /></FormControl><Label className="font-normal">Timpánica</Label></FormItem></RadioGroup></FormControl></FormItem>)} />
                     </div>
-                    
-                    {/* Peso y Talla */}
-                    <FormField control={form.control} name="signosVitales.peso" render={({ field }) => (<FormItem className="space-y-2"><FormLabel>Peso</FormLabel><div className="flex items-center gap-2"><FormControl><Input type="number" step="0.1" {...field} value={field.value || ''} /></FormControl><FormField control={form.control} name="signosVitales.pesoUnidad" render={({ field }) => (<FormItem><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="kg" /></FormControl><Label className="font-normal">kg</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="lb" /></FormControl><Label className="font-normal">lb</Label></FormItem></RadioGroup></FormControl></FormItem>)} /></div><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="signosVitales.talla" render={({ field }) => (<FormItem className="space-y-2"><FormLabel>Talla</FormLabel><div className="flex items-center gap-2"><FormControl><Input type="number" step="0.1" {...field} value={field.value || ''} /></FormControl><FormField control={form.control} name="signosVitales.tallaUnidad" render={({ field }) => (<FormItem><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="cm" /></FormControl><Label className="font-normal">cm</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="in" /></FormControl><Label className="font-normal">in</Label></FormItem></RadioGroup></FormControl></FormItem>)} /></div><FormMessage /></FormItem>)} />
-
-                    {/* IMC */}
-                     <FormField control={form.control} name="signosVitales.imc" render={({ field }) => (<FormItem><FormLabel>IMC (kg/m²)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} readOnly className="bg-muted" /></FormControl><FormMessage /></FormItem>)} />
-
-                    {/* Saturación O2 */}
+                    <FormField control={form.control} name="signosVitales.peso" render={({ field }) => (<FormItem className="space-y-2"><FormLabel>Peso</FormLabel><div className="flex items-center gap-2"><FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl><FormField control={form.control} name="signosVitales.pesoUnidad" render={({ field }) => (<FormItem><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="kg" /></FormControl><Label className="font-normal">kg</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="lb" /></FormControl><Label className="font-normal">lb</Label></FormItem></RadioGroup></FormControl></FormItem>)} /></div><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="signosVitales.talla" render={({ field }) => (<FormItem className="space-y-2"><FormLabel>Talla</FormLabel><div className="flex items-center gap-2"><FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl><FormField control={form.control} name="signosVitales.tallaUnidad" render={({ field }) => (<FormItem><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="cm" /></FormControl><Label className="font-normal">cm</Label></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="in" /></FormControl><Label className="font-normal">in</Label></FormItem></RadioGroup></FormControl></FormItem>)} /></div><FormMessage /></FormItem>)} />
+                     <FormField control={form.control} name="signosVitales.imc" render={({ field }) => (<FormItem><FormLabel>IMC (kg/m²)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly className="bg-muted" /></FormControl><FormMessage /></FormItem>)} />
                     <div className="space-y-2">
-                         <FormField control={form.control} name="signosVitales.satO2" render={({ field }) => (<FormItem><FormLabel>SatO2 (%)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />
+                         <FormField control={form.control} name="signosVitales.satO2" render={({ field }) => (<FormItem><FormLabel>SatO2 (%)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="signosVitales.satO2Ambiente" render={({ field }) => (<FormItem className="flex items-center space-x-2 pt-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><Label className="font-normal text-sm">Aire Ambiente</Label></FormItem>)} />
-                         {!satO2Ambiente && <FormField control={form.control} name="signosVitales.satO2Flujo" render={({ field }) => (<FormItem><FormLabel className="text-xs">Flujo O2 (L/min)</FormLabel><FormControl><Input type="number" step="0.5" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>)} />}
+                         {!satO2Ambiente && <FormField control={form.control} name="signosVitales.satO2Flujo" render={({ field }) => (<FormItem><FormLabel className="text-xs">Flujo O2 (L/min)</FormLabel><FormControl><Input type="number" step="0.5" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />}
                     </div>
-                
-                    {/* Dolor */}
                     <div className="lg:col-span-2 space-y-2">
-                        <FormField
-                            control={form.control}
-                            name="signosVitales.dolor"
-                            render={({ field }) => (
+                        <FormField control={form.control} name="signosVitales.dolor" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Dolor (0-10): {field.value ?? 'N/A'}</FormLabel>
-                                    <FormControl>
-                                        <Slider
-                                            defaultValue={[0]}
-                                            value={[field.value ?? 0]}
-                                            max={10}
-                                            step={1}
-                                            onValueChange={(value) => field.onChange(value[0])}
-                                        />
-                                    </FormControl>
+                                    <FormControl><Slider defaultValue={[0]} value={[field.value ?? 0]} max={10} step={1} onValueChange={(value) => field.onChange(value[0])} /></FormControl>
                                 </FormItem>
-                            )}
-                        />
+                            )} />
                     </div>
                 </div>
             </FormSection>
             <FormSection title="Examen Físico General">
-                 <FormField control={form.control} name="examenFisicoGeneral" render={({ field }) => (
-                    <FormItem>
-                        <FormControl><Textarea placeholder="Descripción del examen físico por sistemas (cabeza, cuello, tórax, etc.)..." {...field} rows={8} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                 <FormField control={form.control} name="examenFisicoGeneral" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Descripción del examen físico por sistemas (cabeza, cuello, tórax, etc.)..." {...field} rows={8} /></FormControl><FormMessage /></FormItem> )} />
             </FormSection>
         </div>
     );
@@ -783,11 +598,11 @@ const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; p
                     </FormItem>
                 )} />
             </FormSection>
-            <FormSection title="Plan de Tratamiento y Órdenes">
+            <FormSection title="Plan y Órdenes">
                  <FormField control={form.control} name="treatmentPlan" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Indicaciones Médicas y Plan</FormLabel>
-                        <FormControl><Textarea placeholder="Indicaciones, prescripciones, estudios solicitados..." {...field} rows={6} /></FormControl>
+                        <FormLabel>Plan General y Observaciones</FormLabel>
+                        <FormControl><Textarea placeholder="Indicaciones generales, plan de seguimiento, estudios solicitados, etc." {...field} rows={4} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -810,18 +625,121 @@ const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; p
                     </DialogContent>
                 </Dialog>
             </FormSection>
-            <FormSection title="Asistente de Récipe Médico con IA">
+            
+            <TreatmentOrderBuilder form={form} />
+
+            <FormSection title="Asistente de Récipe Médico con IA" className="bg-secondary/30">
                 <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
                     {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Generar Récipe con IA
+                    Generar Récipe con IA (Basado en Plan General)
                 </Button>
-                {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan de tratamiento.</p>}
+                {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan general.</p>}
                 {prescription && <PrescriptionDisplay prescription={prescription} />}
             </FormSection>
         </div>
     );
 };
 
+const TreatmentOrderBuilder = ({ form }: { form: any }) => {
+    const { fields, append, remove, update } = useFieldArray({
+        control: form.control,
+        name: "treatmentItems",
+    });
+
+    const [currentItem, setCurrentItem] = React.useState<CreateTreatmentItemInput>({
+        medicamentoProcedimiento: '', dosis: '', via: '', frecuencia: '', duracion: '', instrucciones: ''
+    });
+    const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setCurrentItem({ ...currentItem, [e.target.name]: e.target.value });
+    };
+
+    const handleAddItem = () => {
+        if (!currentItem.medicamentoProcedimiento) return;
+        if (editingIndex !== null) {
+            update(editingIndex, currentItem);
+            setEditingIndex(null);
+        } else {
+            append(currentItem);
+        }
+        setCurrentItem({ medicamentoProcedimiento: '', dosis: '', via: '', frecuencia: '', duracion: '', instrucciones: '' });
+    };
+
+    const handleEditItem = (index: number) => {
+        setCurrentItem(fields[index] as CreateTreatmentItemInput);
+        setEditingIndex(index);
+    };
+
+    const handleCancelEdit = () => {
+        setCurrentItem({ medicamentoProcedimiento: '', dosis: '', via: '', frecuencia: '', duracion: '', instrucciones: '' });
+        setEditingIndex(null);
+    }
+
+    return (
+        <FormSection title="Orden de Tratamiento">
+            <div className="p-4 bg-background border rounded-md space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                        <Label htmlFor="medicamentoProcedimiento">Medicamento / Procedimiento</Label>
+                        <Input name="medicamentoProcedimiento" value={currentItem.medicamentoProcedimiento} onChange={handleInputChange} placeholder="Ej: Paracetamol"/>
+                    </div>
+                    <div>
+                        <Label htmlFor="dosis">Dosis</Label>
+                        <Input name="dosis" value={currentItem.dosis} onChange={handleInputChange} placeholder="Ej: 500 mg"/>
+                    </div>
+                    <div>
+                        <Label htmlFor="via">Vía</Label>
+                        <Input name="via" value={currentItem.via} onChange={handleInputChange} placeholder="Ej: Oral"/>
+                    </div>
+                    <div>
+                        <Label htmlFor="frecuencia">Frecuencia</Label>
+                        <Input name="frecuencia" value={currentItem.frecuencia} onChange={handleInputChange} placeholder="Ej: Cada 8 horas"/>
+                    </div>
+                     <div>
+                        <Label htmlFor="duracion">Duración</Label>
+                        <Input name="duracion" value={currentItem.duracion} onChange={handleInputChange} placeholder="Ej: Por 7 días"/>
+                    </div>
+                    <div className="md:col-span-2">
+                        <Label htmlFor="instrucciones">Instrucciones Especiales (opcional)</Label>
+                        <Textarea name="instrucciones" value={currentItem.instrucciones} onChange={handleInputChange} placeholder="Ej: Tomar con las comidas"/>
+                    </div>
+                 </div>
+                 <div className="flex justify-end gap-2">
+                    {editingIndex !== null && <Button type="button" variant="ghost" onClick={handleCancelEdit}>Cancelar Edición</Button>}
+                    <Button type="button" onClick={handleAddItem}><PlusCircle className="mr-2 h-4 w-4"/> {editingIndex !== null ? 'Actualizar Ítem' : 'Agregar Ítem'}</Button>
+                 </div>
+            </div>
+            
+            {fields.length > 0 && (
+                <div className="mt-4 space-y-2">
+                    <h4 className="font-medium">Ítems de la Orden</h4>
+                    <div className="border rounded-md divide-y">
+                        {fields.map((field, index) => (
+                            <div key={field.id} className="p-3 flex justify-between items-start">
+                                <div className="text-sm">
+                                    <p className="font-semibold">{(field as any).medicamentoProcedimiento}</p>
+                                    <p className="text-muted-foreground">
+                                        {(field as any).dosis && <span>{(field as any).dosis}</span>}
+                                        {(field as any).via && <span> &bull; Vía {(field as any).via}</span>}
+                                        {(field as any).frecuencia && <span> &bull; {(field as any).frecuencia}</span>}
+                                        {(field as any).duracion && <span> &bull; {(field as any).duracion}</span>}
+                                    </p>
+                                    {(field as any).instrucciones && <p className="text-xs text-muted-foreground mt-1">Instrucciones: {(field as any).instrucciones}</p>}
+                                </div>
+                                <div className="flex gap-1">
+                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleEditItem(index)}><FilePenLine className="h-4 w-4"/></Button>
+                                    <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            <FormField control={form.control} name="treatmentItems" render={() => <FormMessage/>} />
+        </FormSection>
+    );
+}
 
 // Sub-component for CIE-10 Autocomplete
 interface Cie10AutocompleteProps {

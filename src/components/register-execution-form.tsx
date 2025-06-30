@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
-import type { TreatmentOrder } from '@/lib/types';
+import type { TreatmentOrderItem } from '@/lib/types';
 
 const executionSchema = z.object({
   observations: z.string().min(1, 'Las observaciones son requeridas.'),
@@ -24,25 +25,25 @@ const executionSchema = z.object({
 type ExecutionFormValues = z.infer<typeof executionSchema>;
 
 interface RegisterExecutionFormProps {
-  treatmentOrder: TreatmentOrder;
-  onSubmitted: (values: { treatmentOrderId: string; observations: string }) => Promise<void>;
+  treatmentOrderItem: TreatmentOrderItem;
+  onSubmitted: (values: { treatmentOrderItemId: string; observations: string }) => Promise<void>;
   onCancel: () => void;
 }
 
-export function RegisterExecutionForm({ treatmentOrder, onSubmitted, onCancel }: RegisterExecutionFormProps) {
+export function RegisterExecutionForm({ treatmentOrderItem, onSubmitted, onCancel }: RegisterExecutionFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<ExecutionFormValues>({
     resolver: zodResolver(executionSchema),
     defaultValues: {
-      observations: '',
+      observations: 'Procedimiento realizado según lo indicado.',
     },
   });
 
   async function onSubmit(values: ExecutionFormValues) {
     setIsSubmitting(true);
     await onSubmitted({
-        treatmentOrderId: treatmentOrder.id,
+        treatmentOrderItemId: treatmentOrderItem.id,
         observations: values.observations
     });
     setIsSubmitting(false);
@@ -51,10 +52,6 @@ export function RegisterExecutionForm({ treatmentOrder, onSubmitted, onCancel }:
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-2">
-            <h3 className="font-medium">Procedimiento:</h3>
-            <p className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50">{treatmentOrder.procedureDescription}</p>
-        </div>
         <FormField
           control={form.control}
           name="observations"

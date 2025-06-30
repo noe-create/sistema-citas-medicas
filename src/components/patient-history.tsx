@@ -4,14 +4,13 @@
 
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
-import type { HistoryEntry, SignosVitales, LabOrder, MotivoConsulta } from '@/lib/types';
+import type { HistoryEntry, SignosVitales, LabOrder, MotivoConsulta, TreatmentOrder, TreatmentOrderItem } from '@/lib/types';
 import { Loader2, Calendar, Stethoscope, Pill, Paperclip, FileText, ClipboardCheck, HeartPulse, User, Users, Baby, BrainCircuit, Beaker } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { LabOrderDisplay } from './lab-order-display';
 
 interface PatientHistoryProps {
@@ -64,7 +63,6 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
 
   const getEntryId = (entry: HistoryEntry) => {
     if (entry.type === 'consultation') return entry.data.id;
-    if (entry.type === 'treatment_execution') return entry.data.id;
     if (entry.type === 'lab_order') return entry.data.id;
     return Math.random().toString();
   };
@@ -146,9 +144,11 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                             </div>
                         </HistorySection>
 
-                        <HistorySection icon={<Pill/>} title="Plan de Tratamiento">
+                        <HistorySection icon={<Pill/>} title="Plan General">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{consultation.treatmentPlan || 'N/A'}</p>
                         </HistorySection>
+                        
+                        {consultation.treatmentOrder && <TreatmentOrderDisplay order={consultation.treatmentOrder} />}
 
                         {consultation.documents && consultation.documents.length > 0 && (
                             <HistorySection icon={<Paperclip/>} title="Documentos Adjuntos">
@@ -176,25 +176,6 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                 </div>
                             </HistorySection>
                         )}
-                    </AccordionContent>
-                </AccordionItem>
-            )
-        } else if (entry.type === 'treatment_execution') {
-            const execution = entry.data;
-            return (
-                <AccordionItem value={execution.id} key={execution.id}>
-                    <AccordionTrigger>
-                        <div className="flex items-center gap-2 text-left">
-                        <ClipboardCheck className="h-4 w-4" />
-                        <span className="font-semibold">
-                            Ejecución de Tratamiento: {format(execution.executionTime, "PPP 'a las' p", { locale: es })}
-                        </span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-4 pl-2">
-                        <HistoryDetail label="Procedimiento" value={execution.procedureDescription} />
-                        <HistoryDetail label="Observaciones" value={execution.observations} />
-                        <HistoryDetail label="Ejecutado por" value={execution.executedBy} />
                     </AccordionContent>
                 </AccordionItem>
             )
@@ -337,4 +318,26 @@ const VitalSignsDisplay = ({ sv }: { sv?: SignosVitales }) => {
       </div>
     </HistorySection>
   );
+};
+
+
+const TreatmentOrderDisplay = ({ order }: { order: TreatmentOrder }) => {
+    return (
+        <HistorySection icon={<ClipboardCheck />} title="Orden de Tratamiento">
+            <div className="border rounded-md divide-y bg-card">
+                {order.items.map((item) => (
+                    <div key={item.id} className="p-3 text-sm">
+                        <p className="font-semibold">{item.medicamentoProcedimiento}</p>
+                        <p className="text-muted-foreground">
+                            {item.dosis && <span>{item.dosis}</span>}
+                            {item.via && <span> &bull; Vía {item.via}</span>}
+                            {item.frecuencia && <span> &bull; {item.frecuencia}</span>}
+                            {item.duracion && <span> &bull; {item.duracion}</span>}
+                        </p>
+                        {item.instrucciones && <p className="text-xs text-muted-foreground mt-1">Instrucciones: {item.instrucciones}</p>}
+                    </div>
+                ))}
+            </div>
+        </HistorySection>
+    );
 };

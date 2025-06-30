@@ -205,6 +205,46 @@ export interface MotivoConsulta {
   otros?: string;
 }
 
+// For Treatment Log (Refactored)
+export type TreatmentOrderItemStatus = 'Pendiente' | 'Administrado' | 'Omitido';
+export type TreatmentOrderStatus = 'Pendiente' | 'En Progreso' | 'Completado' | 'Cancelado';
+
+export interface TreatmentExecution {
+  id: string;
+  treatmentOrderItemId: string;
+  executionTime: Date;
+  observations: string;
+  executedBy: string;
+}
+
+export interface TreatmentOrderItem {
+  id: string;
+  treatmentOrderId: string;
+  medicamentoProcedimiento: string;
+  dosis?: string;
+  via?: string;
+  frecuencia?: string;
+  duracion?: string;
+  instrucciones?: string;
+  status: TreatmentOrderItemStatus;
+  executions?: TreatmentExecution[];
+}
+
+export interface TreatmentOrder {
+  id: string;
+  pacienteId: string;
+  consultationId: string;
+  status: TreatmentOrderStatus;
+  createdAt: Date;
+  items: TreatmentOrderItem[];
+  // Denormalized for display
+  paciente?: Persona;
+  diagnosticoPrincipal?: string;
+  orderedBy?: string;
+}
+
+export interface CreateTreatmentItemInput extends Omit<TreatmentOrderItem, 'id' | 'treatmentOrderId' | 'status' | 'executions'> {}
+
 export interface Consultation {
   id: string;
   pacienteId: string;
@@ -222,8 +262,8 @@ export interface Consultation {
   treatmentPlan: string;
   diagnoses: Diagnosis[];
   documents?: ConsultationDocument[];
+  treatmentOrder?: TreatmentOrder; // Added to nest the order within the consultation history
 }
-
 
 export interface CreateConsultationDocumentInput {
   fileName: string;
@@ -233,54 +273,18 @@ export interface CreateConsultationDocumentInput {
   fileData: string; // as a data URI
 }
 
-export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'motivoConsulta'> {
-    motivoConsulta: MotivoConsulta;
+export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder'> {
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
+    treatmentItems?: CreateTreatmentItemInput[];
 }
 
 export interface PacienteConInfo extends Persona {
     roles: string[];
 }
 
-// For Treatment Log
-export interface TreatmentOrder {
-  id: string;
-  pacienteId: string;
-  procedureDescription: string;
-  frequency: string;
-  startDate: Date;
-  endDate: Date;
-  notes?: string;
-  status: 'Activo' | 'Completado' | 'Cancelado';
-  createdAt: Date;
-  // Denormalized for display
-  pacienteNombre: string;
-  pacienteCedula: string;
-}
-
-export interface CreateTreatmentOrderInput {
-  pacienteId: string;
-  procedureDescription: string;
-  frequency: string;
-  startDate: Date;
-  endDate: Date;
-  notes?: string;
-}
-
-export interface TreatmentExecution {
-  id: string;
-  treatmentOrderId: string;
-  executionTime: Date;
-  observations: string;
-  executedBy: string; // e.g., 'Dr. Smith'
-  // Denormalized
-  procedureDescription: string;
-  pacienteId: string;
-}
-
 export interface CreateTreatmentExecutionInput {
-  treatmentOrderId: string;
+  treatmentOrderItemId: string;
   observations: string;
 }
 
@@ -296,10 +300,8 @@ export interface LabOrder {
     paciente: Persona;
 }
 
-
 export type HistoryEntry =
   | { type: 'consultation'; data: Consultation }
-  | { type: 'treatment_execution'; data: TreatmentExecution }
   | { type: 'lab_order'; data: LabOrder };
 
 // For Reports

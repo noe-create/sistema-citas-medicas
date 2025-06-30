@@ -17,14 +17,15 @@ import type {
     BeneficiarioConTitular,
     PacienteConInfo,
     TreatmentOrder,
-    CreateTreatmentOrderInput,
     CreateTreatmentExecutionInput,
     TreatmentExecution,
     HistoryEntry,
     MorbidityReportRow,
     OperationalReportData,
     LabOrder,
-    MotivoConsulta
+    MotivoConsulta,
+    TreatmentOrderItem,
+    User
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -659,20 +660,21 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     if (!paciente) return [];
 
     const consultationsRows = await db.all(
-        'SELECT * FROM consultations WHERE pacienteId = ?',
+        'SELECT * FROM consultations WHERE pacienteId = ? ORDER BY consultationDate DESC',
         paciente.id
     );
 
     const consultations: HistoryEntry[] = await Promise.all(
         consultationsRows.map(async (row) => {
-            const diagnoses = await db.all(
-                'SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?',
-                row.id
-            );
-            const documents = await db.all(
-                'SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC',
-                row.id
-            );
+            const diagnoses = await db.all('SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?', row.id);
+            const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC', row.id);
+            const orderRow = await db.get('SELECT * FROM treatment_orders WHERE consultationId = ?', row.id);
+            
+            let treatmentOrder: TreatmentOrder | undefined = undefined;
+            if(orderRow) {
+                const items = await db.all('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', orderRow.id);
+                treatmentOrder = { ...orderRow, items: items, createdAt: new Date(orderRow.createdAt) };
+            }
             
             const parsedConsultation = parseConsultation(row);
             
@@ -682,27 +684,13 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
                     ...parsedConsultation,
                     diagnoses,
                     documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+                    treatmentOrder,
                 }
             };
         })
     );
 
-    const treatmentExecutionsRows = await db.all(`
-        SELECT te.*, tro.procedureDescription, tro.pacienteId
-        FROM treatment_executions te
-        JOIN treatment_orders tro ON te.treatmentOrderId = tro.id
-        WHERE tro.pacienteId = ?
-    `, paciente.id);
-
-    const treatmentExecutions: HistoryEntry[] = treatmentExecutionsRows.map(row => ({
-        type: 'treatment_execution' as const,
-        data: {
-            ...row,
-            executionTime: new Date(row.executionTime),
-        }
-    }));
-    
-    const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ?', paciente.id);
+    const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ? ORDER BY orderDate DESC', paciente.id);
     const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
         const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
         const persona = await db.get('SELECT * FROM personas JOIN pacientes ON personas.id = pacientes.personaId WHERE pacientes.id = ?', order.pacienteId);
@@ -721,19 +709,11 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     }));
 
 
-    const allHistory = [...consultations, ...treatmentExecutions, ...labOrders];
+    const allHistory = [...consultations, ...labOrders];
     
     allHistory.sort((a, b) => {
-        let dateA: Date;
-        if (a.type === 'consultation') dateA = a.data.consultationDate;
-        else if (a.type === 'treatment_execution') dateA = a.data.executionTime;
-        else dateA = a.data.orderDate;
-
-        let dateB: Date;
-        if (b.type === 'consultation') dateB = b.data.consultationDate;
-        else if (b.type === 'treatment_execution') dateB = b.data.executionTime;
-        else dateB = b.data.orderDate;
-        
+        const dateA = a.type === 'consultation' ? a.data.consultationDate : a.data.orderDate;
+        const dateB = b.type === 'consultation' ? b.data.consultationDate : b.data.orderDate;
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -743,7 +723,8 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
 
 export async function createConsultation(data: CreateConsultationInput): Promise<Consultation> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['superuser', 'doctor'].includes(session.user.role.id)) {
+    const user = session.user;
+    if (!user || !['superuser', 'doctor'].includes(user.role.id)) {
         throw new Error('Acción no autorizada. Se requiere rol de doctor o superusuario.');
     }
     
@@ -761,20 +742,16 @@ export async function createConsultation(data: CreateConsultationInput): Promise
                 antecedentesGinecoObstetricos, antecedentesPediatricos, signosVitales, 
                 examenFisicoGeneral, treatmentPlan
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            consultationId,
-            data.pacienteId,
-            data.waitlistId,
+            consultationId, data.pacienteId, data.waitlistId,
             consultationDate.toISOString(),
             data.motivoConsulta ? JSON.stringify(data.motivoConsulta) : null,
-            data.enfermedadActual,
-            data.revisionPorSistemas || null,
+            data.enfermedadActual, data.revisionPorSistemas || null,
             data.antecedentesPersonales ? JSON.stringify(data.antecedentesPersonales) : null,
             data.antecedentesFamiliares || null,
             data.antecedentesGinecoObstetricos ? JSON.stringify(data.antecedentesGinecoObstetricos) : null,
             data.antecedentesPediatricos ? JSON.stringify(data.antecedentesPediatricos) : null,
             data.signosVitales ? JSON.stringify(data.signosVitales) : null,
-            data.examenFisicoGeneral,
-            data.treatmentPlan
+            data.examenFisicoGeneral, data.treatmentPlan
         );
         
         if (data.diagnoses && data.diagnoses.length > 0) {
@@ -785,22 +762,37 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             await diagnosisStmt.finalize();
         }
 
-
         if (data.documents && data.documents.length > 0) {
             const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, documentType, description, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
             for (const doc of data.documents) {
                 await docStmt.run(
-                    generateId('doc'), 
-                    consultationId, 
-                    doc.fileName, 
-                    doc.fileType,
-                    doc.documentType,
-                    doc.description,
-                    doc.fileData, 
-                    new Date().toISOString()
+                    generateId('doc'), consultationId, doc.fileName, doc.fileType,
+                    doc.documentType, doc.description, doc.fileData, new Date().toISOString()
                 );
             }
             await docStmt.finalize();
+        }
+        
+        // Handle Treatment Order creation
+        if (data.treatmentItems && data.treatmentItems.length > 0) {
+            const orderId = generateId('to');
+            await db.run(
+                'INSERT INTO treatment_orders (id, pacienteId, consultationId, status, createdAt) VALUES (?, ?, ?, ?, ?)',
+                orderId, data.pacienteId, consultationId, 'Pendiente', new Date().toISOString()
+            );
+
+            const itemStmt = await db.prepare(`
+                INSERT INTO treatment_order_items 
+                (id, treatmentOrderId, medicamentoProcedimiento, dosis, via, frecuencia, duracion, instrucciones, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for(const item of data.treatmentItems) {
+                await itemStmt.run(
+                    generateId('toi'), orderId, item.medicamentoProcedimiento, item.dosis,
+                    item.via, item.frecuencia, item.duracion, item.instrucciones, 'Pendiente'
+                );
+            }
+            await itemStmt.finalize();
         }
 
         await db.run('UPDATE waitlist SET status = ? WHERE id = ?', 'Completado', data.waitlistId);
@@ -815,7 +807,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
 
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/hce');
-
+    revalidatePath('/dashboard/bitacora');
     
     const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
     
@@ -1162,9 +1154,10 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     const db = await getDb();
     let selectQuery = `
         SELECT
-            o.id, o.pacienteId, o.procedureDescription, o.frequency, o.startDate, o.endDate, o.notes, o.status, o.createdAt,
+            o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
             p.nombreCompleto as pacienteNombre,
-            p.cedula as pacienteCedula
+            p.cedula as pacienteCedula,
+            (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
         FROM treatment_orders o
         JOIN pacientes pac ON o.pacienteId = pac.id
         JOIN personas p ON pac.personaId = p.id
@@ -1173,56 +1166,29 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE p.nombreCompleto LIKE ? OR p.cedula LIKE ? OR o.procedureDescription LIKE ?
+            WHERE p.nombreCompleto LIKE ? OR p.cedula LIKE ?
         `;
-        params.push(searchQuery, searchQuery, searchQuery);
+        params.push(searchQuery, searchQuery);
     }
     selectQuery += ' ORDER BY o.createdAt DESC';
     const rows = await db.all(selectQuery, ...params);
-    return rows.map((row: any) => ({
-        ...row,
-        startDate: new Date(row.startDate),
-        endDate: new Date(row.endDate),
-        createdAt: new Date(row.createdAt),
-    }));
-}
-
-export async function createTreatmentOrder(data: CreateTreatmentOrderInput): Promise<TreatmentOrder> {
-    const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'superuser'].includes(session.user.role.id)) {
-        throw new Error('Acción no autorizada.');
-    }
-    const db = await getDb();
-    const orderId = generateId('to');
-    const createdAt = new Date();
     
-    await db.run(
-        'INSERT INTO treatment_orders (id, pacienteId, procedureDescription, frequency, startDate, endDate, notes, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        orderId,
-        data.pacienteId,
-        data.procedureDescription,
-        data.frequency,
-        data.startDate.toISOString(),
-        data.endDate.toISOString(),
-        data.notes,
-        'Activo',
-        createdAt.toISOString()
-    );
-
-    revalidatePath('/dashboard/bitacora');
-
-    const patientInfo = await db.get('SELECT p.nombreCompleto, p.cedula FROM pacientes pac JOIN personas p ON pac.personaId = p.id WHERE pac.id = ?', data.pacienteId);
-
-    return {
-        id: orderId,
-        ...data,
-        status: 'Activo',
-        createdAt,
-        pacienteNombre: patientInfo.nombreCompleto,
-        pacienteCedula: patientInfo.cedula,
-    };
+    const orders: TreatmentOrder[] = [];
+    for (const row of rows) {
+        const items = await db.all<TreatmentOrderItem[]>('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', row.id);
+        orders.push({
+            ...row,
+            createdAt: new Date(row.createdAt),
+            items,
+            paciente: {
+                id: row.pacienteId,
+                nombreCompleto: row.pacienteNombre,
+                cedula: row.pacienteCedula
+            }
+        });
+    }
+    return orders;
 }
-
 
 export async function createTreatmentExecution(data: CreateTreatmentExecutionInput): Promise<TreatmentExecution> {
     const session = await getSession();
@@ -1234,28 +1200,40 @@ export async function createTreatmentExecution(data: CreateTreatmentExecutionInp
     const executionId = generateId('te');
     const executionTime = new Date();
 
-    await db.run(
-        'INSERT INTO treatment_executions (id, treatmentOrderId, executionTime, observations, executedBy) VALUES (?, ?, ?, ?, ?)',
-        executionId,
-        data.treatmentOrderId,
-        executionTime.toISOString(),
-        data.observations,
-        executedBy
-    );
-    
-    const orderInfo = await db.get('SELECT procedureDescription, pacienteId FROM treatment_orders WHERE id = ?', data.treatmentOrderId);
+    try {
+        await db.exec('BEGIN TRANSACTION');
+
+        await db.run(
+            'INSERT INTO treatment_executions (id, treatmentOrderItemId, executionTime, observations, executedBy) VALUES (?, ?, ?, ?, ?)',
+            executionId,
+            data.treatmentOrderItemId,
+            executionTime.toISOString(),
+            data.observations,
+            executedBy
+        );
+
+        await db.run(
+            'UPDATE treatment_order_items SET status = ? WHERE id = ?',
+            'Administrado',
+            data.treatmentOrderItemId
+        );
+        
+        await db.exec('COMMIT');
+    } catch(e) {
+        await db.exec('ROLLBACK');
+        console.error("Error creating treatment execution:", e);
+        throw new Error("No se pudo registrar la ejecución del tratamiento.");
+    }
     
     revalidatePath('/dashboard/bitacora');
     revalidatePath('/dashboard/hce');
     
     return {
         id: executionId,
-        treatmentOrderId: data.treatmentOrderId,
+        treatmentOrderItemId: data.treatmentOrderItemId,
         executionTime,
         observations: data.observations,
         executedBy: executedBy,
-        procedureDescription: orderInfo.procedureDescription,
-        pacienteId: orderInfo.pacienteId
     };
 }
 
@@ -1267,12 +1245,12 @@ export async function updateTreatmentOrderStatus(orderId: string, status: 'Activ
     const db = await getDb();
 
     if (status === 'Completado') {
-        const executionCount = await db.get(
-            'SELECT COUNT(*) as count FROM treatment_executions WHERE treatmentOrderId = ?',
+        const pendingItems = await db.get(
+            `SELECT COUNT(*) as count FROM treatment_order_items WHERE treatmentOrderId = ? AND status = 'Pendiente'`,
             orderId
         );
-        if (executionCount.count === 0) {
-            throw new Error('No se puede completar una orden de tratamiento sin haber registrado al menos una ejecución.');
+        if (pendingItems.count > 0) {
+            throw new Error('No se puede completar la orden. Aún hay ítems pendientes de administrar.');
         }
     }
     
@@ -1348,7 +1326,7 @@ export async function getOperationalReport(filters: { from: Date, to: Date }): P
         SELECT AVG(strftime('%s', c.consultationDate) - strftime('%s', w.checkInTime)) as avgStaySeconds
         FROM consultations c
         JOIN waitlist w ON c.waitlistId = w.id
-        WHERE c.consultationDate BETWEEN ? AND ?
+        WHERE c.consultationDate BETWEEN ? AND ? AND w.status = 'Completado'
     `, fromISO, toISO);
 
     const patientsPerDay = await db.all(`

@@ -20,6 +20,16 @@ async function initializeDb(): Promise<Database> {
     });
 
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
+    
+    // --- Safe Migration for Treatment Tables ---
+    const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
+    if (treatmentOrdersCols.length > 0 && treatmentOrdersCols.some(col => col.name === 'procedureDescription')) {
+        console.log("Old treatment table structure detected. Migrating to new schema...");
+        await dbInstance.exec('DROP TABLE IF EXISTS treatment_executions;');
+        await dbInstance.exec('DROP TABLE IF EXISTS treatment_orders;');
+        console.log("Old treatment tables dropped.");
+    }
+
     await createTables(dbInstance);
 
     // Simple migration: check for hasSpecialty column in roles table
@@ -162,28 +172,40 @@ async function createTables(dbInstance: Database): Promise<void> {
             code TEXT PRIMARY KEY,
             description TEXT NOT NULL
         );
-
+        
+        -- NEW Treatment Schema
         CREATE TABLE IF NOT EXISTS treatment_orders (
             id TEXT PRIMARY KEY,
             pacienteId TEXT NOT NULL,
-            procedureDescription TEXT NOT NULL,
-            frequency TEXT NOT NULL,
-            startDate TEXT NOT NULL,
-            endDate TEXT NOT NULL,
-            notes TEXT,
-            status TEXT NOT NULL DEFAULT 'Activo',
+            consultationId TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pendiente', -- Pendiente, En Progreso, Completado, Cancelado
             createdAt TEXT NOT NULL,
-            FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
+            FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS treatment_order_items (
+            id TEXT PRIMARY KEY,
+            treatmentOrderId TEXT NOT NULL,
+            medicamentoProcedimiento TEXT NOT NULL,
+            dosis TEXT,
+            via TEXT,
+            frecuencia TEXT,
+            duracion TEXT,
+            instrucciones TEXT,
+            status TEXT NOT NULL DEFAULT 'Pendiente', -- Pendiente, Administrado
+            FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS treatment_executions (
             id TEXT PRIMARY KEY,
-            treatmentOrderId TEXT NOT NULL,
+            treatmentOrderItemId TEXT NOT NULL,
             executionTime TEXT NOT NULL,
             observations TEXT NOT NULL,
             executedBy TEXT NOT NULL,
-            FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
+            FOREIGN KEY (treatmentOrderItemId) REFERENCES treatment_order_items(id) ON DELETE CASCADE
         );
+
 
         CREATE TABLE IF NOT EXISTS lab_orders (
             id TEXT PRIMARY KEY,
