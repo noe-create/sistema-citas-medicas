@@ -1265,6 +1265,17 @@ export async function updateTreatmentOrderStatus(orderId: string, status: 'Activ
         throw new Error('Acción no autorizada.');
     }
     const db = await getDb();
+
+    if (status === 'Completado') {
+        const executionCount = await db.get(
+            'SELECT COUNT(*) as count FROM treatment_executions WHERE treatmentOrderId = ?',
+            orderId
+        );
+        if (executionCount.count === 0) {
+            throw new Error('No se puede completar una orden de tratamiento sin haber registrado al menos una ejecución.');
+        }
+    }
+    
     const result = await db.run(
         'UPDATE treatment_orders SET status = ? WHERE id = ?',
         status,
