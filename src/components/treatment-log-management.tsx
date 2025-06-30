@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getTreatmentOrders, createTreatmentOrder, createTreatmentExecution, updateTreatmentOrderStatus } from '@/actions/patient-actions';
 import { TreatmentOrderForm } from './treatment-order-form';
