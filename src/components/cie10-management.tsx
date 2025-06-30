@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Cie10Code } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { getManagedCie10Codes, createCie10Code, updateCie10Code, deleteCie10Code } from '@/actions/patient-actions';
 import { Cie10Form } from './cie10-form';
 import { useDebounce } from '@/hooks/use-debounce';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 export function Cie10Management() {
   const { toast } = useToast();
@@ -84,6 +86,30 @@ export function Cie10Management() {
     }
   }
 
+  const handleExportCsv = async () => {
+    toast({ title: 'Generando archivo...', description: 'Exportando el catálogo completo.' });
+    try {
+      const allCodes = await getManagedCie10Codes(); // Fetch all codes, not just filtered ones
+      if (allCodes.length === 0) {
+        toast({ title: 'No hay datos para exportar', variant: 'destructive' });
+        return;
+      }
+
+      const dataToExport = allCodes.map(row => ({
+        'code': row.code,
+        'description': row.description,
+      }));
+      
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
+      const blob = new Blob([`\uFEFF${csvOutput}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
+      saveAs(blob, 'Catalogo_CIE10.csv');
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast({ title: 'Error de Exportación', description: 'No se pudo generar el archivo CSV.', variant: 'destructive' });
+    }
+  };
+
   return (
     <>
       <Card>
@@ -101,10 +127,16 @@ export function Cie10Management() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-             <Button onClick={() => handleOpenForm(null)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Añadir Código
-              </Button>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={handleExportCsv}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar CSV
+                </Button>
+                <Button onClick={() => handleOpenForm(null)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Añadir Código
+                </Button>
+            </div>
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
