@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import bcrypt from 'bcryptjs';
 import { ALL_PERMISSIONS } from './permissions';
+import { calculateAge } from './utils';
 
 let db: Database | null = null;
 
@@ -86,7 +87,9 @@ async function migrateCedulaToNullable(dbInstance: Database) {
                     telefono1 TEXT,
                     telefono2 TEXT,
                     email TEXT,
-                    direccion TEXT
+                    direccion TEXT,
+                    representanteId TEXT,
+                    FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
                 );
             `);
             
@@ -108,6 +111,38 @@ async function migrateCedulaToNullable(dbInstance: Database) {
     }
 }
 
+async function migrateRepresentanteId(dbInstance: Database) {
+    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
+    if (cols.length > 0 && !cols.some(c => c.name === 'representanteId')) {
+        console.log("Migrating 'personas' to add 'representanteId' column...");
+        
+        await dbInstance.exec('PRAGMA foreign_keys=OFF;');
+        await dbInstance.exec('BEGIN TRANSACTION;');
+
+        try {
+            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_temp_representante_migration;');
+            
+            // Re-create the table with the new schema including representanteId
+            await createTables(dbInstance);
+            
+            // Copy the data over explicitly
+            await dbInstance.exec(`
+                INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion)
+                SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion FROM personas_temp_representante_migration;
+            `);
+
+            await dbInstance.exec('DROP TABLE personas_temp_representante_migration;');
+            await dbInstance.exec('COMMIT;');
+            console.log("Migration for 'representanteId' successful.");
+        } catch (e) {
+            console.error("Migration for 'representanteId' failed, rolling back.", e);
+            await dbInstance.exec('ROLLBACK;');
+        } finally {
+            await dbInstance.exec('PRAGMA foreign_keys=ON;');
+        }
+    }
+}
+
 
 async function initializeDb(): Promise<Database> {
     const dbPath = path.join(process.cwd(), 'database.db');
@@ -121,6 +156,7 @@ async function initializeDb(): Promise<Database> {
     
     await migratePersonaSchema(dbInstance);
     await migrateCedulaToNullable(dbInstance);
+    await migrateRepresentanteId(dbInstance);
     
     // --- Safe Migration for Treatment Tables ---
     const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
@@ -194,7 +230,9 @@ async function createTables(dbInstance: Database): Promise<void> {
             telefono1 TEXT,
             telefono2 TEXT,
             email TEXT,
-            direccion TEXT
+            direccion TEXT,
+            representanteId TEXT,
+            FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
         );
 
         CREATE TABLE IF NOT EXISTS pacientes (
@@ -381,16 +419,16 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const personaCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM personas');
     if (personaCountResult.count === 0) {
         const personas = [
-            { id: "p1", primerNombre: "Carlos", primerApellido: "Rodriguez", cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono1: "0212-555-1234", telefono2: "0414-1234567", email: "carlos.r@email.com", direccion: "Av. Urdaneta" },
-            { id: "p2", primerNombre: "Ana", primerApellido: "Martinez", segundoApellido: "(Doctora)", cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono1: "0241-555-5678", telefono2: "0412-7654321", email: "ana.m@email.com" },
-            { id: "p3", primerNombre: "Luis", primerApellido: "Hernandez", cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono1: "0261-555-9012", telefono2: "0424-9876543", email: "luis.h@email.com" },
-            { id: "p4", primerNombre: "Sofia", primerApellido: "Gomez", segundoApellido: "(Asistente)", cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono1: "0212-555-3456", telefono2: "0416-2345678", email: "sofia.g@email.com" },
-            { id: "p5", primerNombre: "Laura", primerApellido: "Rodriguez", cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com" },
-            { id: "p6", primerNombre: "David", primerApellido: "Rodriguez", cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com" },
+             { id: "p1", primerNombre: "Carlos", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono1: "0212-555-1234", telefono2: "0414-1234567", email: "carlos.r@email.com", direccion: "Av. Urdaneta" },
+             { id: "p2", primerNombre: "Ana", segundoNombre: null, primerApellido: "Martinez", segundoApellido: null, cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono1: "0241-555-5678", telefono2: "0412-7654321", email: "ana.m@email.com", direccion: null },
+             { id: "p3", primerNombre: "Luis", segundoNombre: null, primerApellido: "Hernandez", segundoApellido: null, cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono1: "0261-555-9012", telefono2: "0424-9876543", email: "luis.h@email.com", direccion: null },
+             { id: "p4", primerNombre: "Sofia", segundoNombre: null, primerApellido: "Gomez", segundoApellido: null, cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono1: "0212-555-3456", telefono2: "0416-2345678", email: "sofia.g@email.com", direccion: null },
+             { id: "p5", primerNombre: "Laura", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com", direccion: null },
+             { id: "p6", primerNombre: "David", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com", direccion: null },
         ];
-        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, primerApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)');
         for (const p of personas) {
-            await personaStmt.run(p.id, p.primerNombre, p.primerApellido, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion);
+            await personaStmt.run(p.id, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion);
         }
         await personaStmt.finalize();
 

@@ -21,6 +21,7 @@ import type { Beneficiario, Persona } from '@/lib/types';
 import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { calculateAge } from '@/lib/utils';
 
 const beneficiarySchema = z.object({
   primerNombre: z.string().min(1, 'El primer nombre es requerido.'),
@@ -35,7 +36,20 @@ const beneficiarySchema = z.object({
   telefono1: z.string().optional(),
   telefono2: z.string().optional(),
   direccion: z.string().optional(),
+  representanteId: z.string().optional(),
+}).refine(data => {
+    if (data.fechaNacimiento) {
+        const age = calculateAge(data.fechaNacimiento);
+        if (age < 18 && !data.cedula) {
+            return !!data.representanteId;
+        }
+    }
+    return true;
+}, {
+    message: "Un representante es requerido para menores de edad sin cédula.",
+    path: ["representanteId"],
 });
+
 
 type BeneficiaryFormValues = z.infer<typeof beneficiarySchema>;
 
@@ -62,12 +76,34 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
         telefono1: '',
         telefono2: '',
         email: '',
-        direccion: ''
+        direccion: '',
+        representanteId: beneficiario?.persona.representanteId || undefined
     },
   });
 
   const isPersonaSelected = !!selectedPersona;
   
+  const fechaNacimiento = form.watch('fechaNacimiento');
+  const cedula = form.watch('cedula');
+  const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isPersonaSelected) {
+        setShowRepresentativeField(false);
+        return;
+    }
+    if (fechaNacimiento) {
+      const age = calculateAge(fechaNacimiento);
+      setShowRepresentativeField(age < 18 && !cedula);
+    } else {
+      setShowRepresentativeField(false);
+    }
+  }, [fechaNacimiento, cedula, isPersonaSelected]);
+
+  const handleRepresentativeSelect = (p: Persona | null) => {
+    form.setValue('representanteId', p?.id || '', { shouldValidate: true });
+  };
+
   const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
     if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
     const match = cedulaStr.match(/^([VE])-?(\d+)$/);
@@ -100,9 +136,10 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
         telefono1: personaToLoad.telefono1 || '',
         telefono2: personaToLoad.telefono2 || '',
         direccion: personaToLoad.direccion || '',
+        representanteId: personaToLoad.representanteId || undefined
       });
     }
-  }, [selectedPersona, beneficiario, form.reset]);
+  }, [selectedPersona, beneficiario, form.reset, form]);
 
   async function onSubmit(values: BeneficiaryFormValues) {
     setIsSubmitting(true);
@@ -261,6 +298,25 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
                 </FormItem>
               )}
             />
+            {showRepresentativeField && (
+                <div className="md:col-span-2 space-y-2 rounded-md border border-dashed p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Este beneficiario es un menor de edad sin cédula y requiere un representante.</p>
+                    <FormField
+                        control={form.control}
+                        name="representanteId"
+                        render={() => (
+                            <FormItem>
+                                <FormLabel>Buscar y Asignar Representante</FormLabel>
+                                <PersonaSearch
+                                    onPersonaSelect={handleRepresentativeSelect}
+                                    placeholder="Buscar por nombre o cédula del representante..."
+                                />
+                                <FormMessage/>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            )}
         </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>

@@ -30,6 +30,7 @@ import type {
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
+import { calculateAge } from '@/lib/utils';
 
 // --- Helpers ---
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
@@ -57,7 +58,7 @@ async function ensureDataEntryPermission() {
 
 // --- Persona Actions (Centralized Person Management) ---
 
-async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string }): Promise<string> {
+async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string; representanteId?: string; }): Promise<string> {
     let existingPersona;
     if (personaData.cedula) {
         existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
@@ -67,9 +68,14 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
         return existingPersona.id;
     }
     
+    const age = calculateAge(new Date(personaData.fechaNacimiento));
+    if (age < 18 && !personaData.cedula && !personaData.representanteId) {
+        throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
+    }
+    
     const personaId = generateId('p');
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         personaData.primerNombre,
         personaData.segundoNombre,
@@ -81,7 +87,8 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
         personaData.telefono1,
         personaData.telefono2,
         personaData.email,
-        personaData.direccion
+        personaData.direccion,
+        personaData.representanteId || null
     );
 
     await getOrCreatePaciente(db, personaId);
@@ -92,7 +99,7 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
 export async function getPersonas(query?: string): Promise<Persona[]> {
     const db = await getDb();
     let selectQuery = `
-        SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion,
+        SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId,
         ${fullNameSql} as nombreCompleto
         FROM personas p
     `;
@@ -175,7 +182,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     const row = await db.get(`
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
-            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion,
+            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId,
             e.name as empresaName
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
@@ -204,7 +211,8 @@ export async function getTitularById(id: string): Promise<Titular | null> {
             telefono1: row.telefono1,
             telefono2: row.telefono2,
             email: row.email,
-            direccion: row.direccion
+            direccion: row.direccion,
+            representanteId: row.representanteId
         }
     };
 }
@@ -258,35 +266,14 @@ export async function createTitular(data: {
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
     try {
         await db.exec('BEGIN TRANSACTION');
         
-        if (data.cedula) {
-            const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
-            if (existingPersona) {
-                throw new Error('Ya existe otra persona con la misma cédula.');
-            }
-        }
-
-        await db.run(
-            'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
-            data.primerNombre,
-            data.segundoNombre,
-            data.primerApellido,
-            data.segundoApellido,
-            data.cedula || null,
-            data.fechaNacimiento.toISOString(),
-            data.genero,
-            data.telefono1,
-            data.telefono2,
-            data.email,
-            data.direccion,
-            personaId
-        );
+        await updatePersona(personaId, data);
 
         await db.run(
             'UPDATE titulares SET tipo = ?, empresaId = ? WHERE id = ?',
@@ -435,16 +422,7 @@ export async function updateBeneficiario(beneficiarioId: string, personaId: stri
     await ensureDataEntryPermission();
     const db = await getDb();
     
-    await db.run(
-        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
-        data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
-        data.cedula || null,
-        data.fechaNacimiento.toISOString(),
-        data.genero,
-        data.telefono1, data.telefono2,
-        data.email, data.direccion,
-        personaId
-    );
+    await updatePersona(personaId, data);
 
     const updatedRow = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p WHERE id = ?`, personaId);
     const beneficiarioRow = await db.get('SELECT titularId FROM beneficiarios WHERE id = ?', beneficiarioId);
@@ -883,10 +861,15 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 
 // --- Central Person Management Actions ---
 
-export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }) {
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date, representanteId?: string }) {
     await ensureDataEntryPermission();
     const db = await getDb();
     
+    const age = calculateAge(data.fechaNacimiento);
+    if (age < 18 && !data.cedula && !data.representanteId) {
+        throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
+    }
+
     if (data.cedula) {
         const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
         if (existingPersona) {
@@ -897,7 +880,7 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     const personaId = generateId('p');
 
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         data.primerNombre,
         data.segundoNombre,
@@ -909,7 +892,8 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
         data.telefono1,
         data.telefono2,
         data.email,
-        data.direccion
+        data.direccion,
+        data.representanteId || null
     );
 
     await getOrCreatePaciente(db, personaId);
@@ -984,9 +968,14 @@ export async function bulkCreatePersonas(
 }
 
 
-export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }) {
+export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; representanteId?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
+
+    const age = calculateAge(data.fechaNacimiento);
+    if (age < 18 && !data.cedula && !data.representanteId) {
+        throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
+    }
 
     if (data.cedula) {
         const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
@@ -996,7 +985,7 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
     }
 
     await db.run(
-        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
+        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ?, representanteId = ? WHERE id = ?',
         data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
         data.cedula || null,
         data.fechaNacimiento.toISOString(),
@@ -1005,6 +994,7 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
         data.telefono2,
         data.email,
         data.direccion,
+        data.representanteId || null,
         personaId
     );
 
@@ -1114,7 +1104,7 @@ export async function deleteCie10Code(code: string): Promise<{ success: boolean 
         throw new Error('Este código CIE-10 está en uso y no puede ser eliminado.');
     }
     
-    const result = await db.run('DELETE FROM cie10_codes WHERE id = ?', code);
+    const result = await db.run('DELETE FROM cie10_codes WHERE code = ?', code);
     if (result.changes === 0) throw new Error('Código CIE-10 no encontrado para eliminar');
     revalidatePath('/dashboard/cie10');
     return { success: true };

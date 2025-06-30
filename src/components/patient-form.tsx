@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -29,6 +30,7 @@ import { createEmpresa } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { PersonaSearch } from './persona-search';
 import { Textarea } from './ui/textarea';
+import { calculateAge } from '@/lib/utils';
 
 
 const patientSchema = z.object({
@@ -46,6 +48,7 @@ const patientSchema = z.object({
   direccion: z.string().optional(),
   tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], { required_error: 'El tipo de titular es requerido.' }),
   empresaId: z.string().optional(),
+  representanteId: z.string().optional(),
 }).refine(data => {
     if (data.tipo === 'corporate_affiliate') {
         return !!data.empresaId;
@@ -54,7 +57,19 @@ const patientSchema = z.object({
 }, {
     message: "La empresa es requerida para afiliados corporativos.",
     path: ["empresaId"],
+}).refine(data => {
+    if (data.fechaNacimiento) {
+        const age = calculateAge(data.fechaNacimiento);
+        if (age < 18 && !data.cedula) {
+            return !!data.representanteId;
+        }
+    }
+    return true;
+}, {
+    message: "Un representante es requerido para menores de edad sin cédula.",
+    path: ["representanteId"],
 });
+
 
 type PatientFormValues = z.infer<typeof patientSchema>;
 
@@ -92,11 +107,34 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
         telefono2: '',
         email: '',
         direccion: '',
+        representanteId: titular?.persona.representanteId || undefined
     },
   });
 
   const tipo = form.watch('tipo');
   const isPersonaSelected = !!selectedPersona;
+
+  const fechaNacimiento = form.watch('fechaNacimiento');
+  const cedula = form.watch('cedula');
+  const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isPersonaSelected) { // If linking an existing person, don't show the field
+        setShowRepresentativeField(false);
+        return;
+    }
+    if (fechaNacimiento) {
+      const age = calculateAge(fechaNacimiento);
+      setShowRepresentativeField(age < 18 && !cedula);
+    } else {
+      setShowRepresentativeField(false);
+    }
+  }, [fechaNacimiento, cedula, isPersonaSelected]);
+
+  const handleRepresentativeSelect = (p: Persona | null) => {
+    form.setValue('representanteId', p?.id || '', { shouldValidate: true });
+  };
+
 
   const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
     if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
@@ -131,6 +169,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
           telefono2: personaToLoad.telefono2,
           email: personaToLoad.email || '',
           direccion: personaToLoad.direccion || '',
+          representanteId: personaToLoad.representanteId || undefined,
         });
     }
 
@@ -301,6 +340,27 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
             
             <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />Email (Opcional)</FormLabel><FormControl><Input placeholder="juan.perez@email.com" {...field} value={field.value || ''} type="email" disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="direccion" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />Dirección (Opcional)</FormLabel><FormControl><Textarea placeholder="Av. Principal, Edificio Central, Piso 4, Oficina 4B, Caracas" {...field} value={field.value || ''} disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
+
+            {showRepresentativeField && (
+                <div className="md:col-span-2 space-y-2 rounded-md border border-dashed p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Esta persona es un menor de edad sin cédula y requiere un representante.</p>
+                    <FormField
+                        control={form.control}
+                        name="representanteId"
+                        render={() => (
+                            <FormItem>
+                                <FormLabel>Buscar y Asignar Representante</FormLabel>
+                                <PersonaSearch
+                                    onPersonaSelect={handleRepresentativeSelect}
+                                    placeholder="Buscar por nombre o cédula del representante..."
+                                />
+                                <FormMessage/>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            )}
+
 
              <FormField
                 control={form.control}

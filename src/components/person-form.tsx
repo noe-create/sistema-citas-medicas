@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -22,6 +23,8 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
+import { calculateAge } from '@/lib/utils';
+import { PersonaSearch } from './persona-search';
 
 const personSchema = z.object({
   primerNombre: z.string().min(1, 'El primer nombre es requerido.'),
@@ -40,7 +43,20 @@ const personSchema = z.object({
   telefono2: z.string().optional(),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
   direccion: z.string().optional(),
+  representanteId: z.string().optional(),
+}).refine(data => {
+    if (data.fechaNacimiento) {
+        const age = calculateAge(data.fechaNacimiento);
+        if (age < 18 && !data.cedula) {
+            return !!data.representanteId;
+        }
+    }
+    return true;
+}, {
+    message: "Un representante es requerido para menores de edad sin cédula.",
+    path: ["representanteId"],
 });
+
 
 type PersonFormValues = z.infer<typeof personSchema>;
 
@@ -65,9 +81,28 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
       telefono1: '',
       telefono2: '',
       email: '',
-      direccion: ''
+      direccion: '',
+      representanteId: persona?.representanteId || undefined
     },
   });
+
+  const fechaNacimiento = form.watch('fechaNacimiento');
+  const cedula = form.watch('cedula');
+  const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
+
+  React.useEffect(() => {
+    if (fechaNacimiento) {
+      const age = calculateAge(fechaNacimiento);
+      setShowRepresentativeField(age < 18 && !cedula);
+    } else {
+      setShowRepresentativeField(false);
+    }
+  }, [fechaNacimiento, cedula]);
+
+  const handleRepresentativeSelect = (p: Persona | null) => {
+    form.setValue('representanteId', p?.id || '', { shouldValidate: true });
+  };
+
 
   React.useEffect(() => {
     const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
@@ -93,7 +128,8 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
           telefono1: persona.telefono1 || '',
           telefono2: persona.telefono2 || '',
           email: persona.email || '',
-          direccion: persona.direccion || ''
+          direccion: persona.direccion || '',
+          representanteId: persona.representanteId || undefined,
         });
     } else {
         form.reset({
@@ -108,7 +144,8 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
             telefono1: '',
             telefono2: '',
             email: '',
-            direccion: ''
+            direccion: '',
+            representanteId: undefined,
         });
     }
   }, [persona, form]);
@@ -254,6 +291,25 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                 </FormItem>
               )}
             />
+            {showRepresentativeField && (
+                <div className="md:col-span-2 space-y-2 rounded-md border border-dashed p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Esta persona es un menor de edad sin cédula y requiere un representante.</p>
+                    <FormField
+                        control={form.control}
+                        name="representanteId"
+                        render={() => (
+                            <FormItem>
+                                <FormLabel>Buscar y Asignar Representante</FormLabel>
+                                <PersonaSearch
+                                    onPersonaSelect={handleRepresentativeSelect}
+                                    placeholder="Buscar por nombre o cédula del representante..."
+                                />
+                                <FormMessage/>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            )}
         </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>

@@ -44,6 +44,7 @@ export interface Persona {
   telefono2?: string;
   email?: string;
   direccion?: string;
+  representanteId?: string;
   // Computed property, not in DB
   nombreCompleto?: string; 
 }
