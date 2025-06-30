@@ -1036,6 +1036,35 @@ export async function deleteCie10Code(code: string): Promise<{ success: boolean 
     return { success: true };
 }
 
+export async function bulkCreateCie10Codes(codes: Cie10Code[]): Promise<{ imported: number; skipped: number }> {
+    await ensureAdminPermission();
+    const db = await getDb();
+    let importedCount = 0;
+
+    await db.exec('BEGIN TRANSACTION');
+    try {
+        const stmt = await db.prepare('INSERT OR IGNORE INTO cie10_codes (code, description) VALUES (?, ?)');
+        for (const code of codes) {
+            const result = await stmt.run(code.code.toUpperCase(), code.description);
+            if (result.changes > 0) {
+                importedCount++;
+            }
+        }
+        await stmt.finalize();
+        await db.exec('COMMIT');
+    } catch (error: any) {
+        await db.exec('ROLLBACK');
+        console.error("Error bulk inserting CIE-10 codes:", error);
+        throw new Error('Error masivo al insertar códigos CIE-10.');
+    }
+
+    revalidatePath('/dashboard/cie10');
+    return {
+        imported: importedCount,
+        skipped: codes.length - importedCount,
+    };
+}
+
 
 export async function searchCie10Codes(query: string): Promise<Cie10Code[]> {
     const db = await getDb();

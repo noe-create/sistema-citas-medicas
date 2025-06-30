@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Cie10Code } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { getManagedCie10Codes, createCie10Code, updateCie10Code, deleteCie10Code } from '@/actions/patient-actions';
+import { getManagedCie10Codes, createCie10Code, updateCie10Code, deleteCie10Code, bulkCreateCie10Codes } from '@/actions/patient-actions';
 import { Cie10Form } from './cie10-form';
 import { useDebounce } from '@/hooks/use-debounce';
 import * as XLSX from 'xlsx';
@@ -27,11 +28,13 @@ import { saveAs } from 'file-saver';
 export function Cie10Management() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isUploading, setIsUploading] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [codes, setCodes] = React.useState<Cie10Code[]>([]);
   const [selectedCode, setSelectedCode] = React.useState<Cie10Code | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const refreshCodes = React.useCallback(async (currentSearch: string) => {
       setIsLoading(true);
@@ -110,6 +113,60 @@ export function Cie10Management() {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const dataArray: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        const codesToImport = dataArray
+          .map(row => ({
+            code: row[0] ? String(row[0]).trim() : '',
+            description: row[1] ? String(row[1]).trim() : '',
+          }))
+          .filter(row => row.code && row.description);
+
+        if (codesToImport.length === 0) {
+          throw new Error('El archivo CSV está vacío o no tiene el formato correcto (columna 1: código, columna 2: descripción).');
+        }
+
+        const result = await bulkCreateCie10Codes(codesToImport);
+        
+        toast({
+          title: '¡Importación Exitosa!',
+          description: `${result.imported} códigos fueron añadidos. ${result.skipped} duplicados fueron ignorados.`,
+          variant: 'success'
+        });
+
+        await refreshCodes(debouncedSearch);
+      } catch (error: any) {
+        toast({
+          title: 'Error de Importación',
+          description: error.message || 'No se pudo procesar el archivo.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   return (
     <>
       <Card>
@@ -128,9 +185,20 @@ export function Cie10Management() {
               className="max-w-sm"
             />
             <div className="flex gap-2">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                    className="hidden"
+                />
+                <Button variant="outline" onClick={handleImportClick} disabled={isUploading}>
+                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    Importar
+                </Button>
                 <Button variant="outline" onClick={handleExportCsv}>
                     <Download className="mr-2 h-4 w-4" />
-                    Exportar CSV
+                    Exportar
                 </Button>
                 <Button onClick={() => handleOpenForm(null)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
