@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import * as React from 'react';
 import type { Cie10Code } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download, Upload } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,8 @@ import { useDebounce } from '@/hooks/use-debounce';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
+const PAGE_SIZE = 15;
+
 export function Cie10Management() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(true);
@@ -36,11 +39,16 @@ export function Cie10Management() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const refreshCodes = React.useCallback(async (currentSearch: string) => {
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const refreshCodes = React.useCallback(async (currentSearch: string, page: number) => {
       setIsLoading(true);
       try {
-        const data = await getManagedCie10Codes(currentSearch);
+        const { codes: data, totalCount: count } = await getManagedCie10Codes(currentSearch, page, PAGE_SIZE);
         setCodes(data);
+        setTotalCount(count);
       } catch (error) {
         console.error("Error fetching CIE-10 codes:", error);
         toast({ title: 'Error', description: 'No se pudieron cargar los códigos CIE-10.', variant: 'destructive' });
@@ -49,9 +57,15 @@ export function Cie10Management() {
       }
   }, [toast]);
 
+  // Reset page to 1 when search changes
   React.useEffect(() => {
-    refreshCodes(debouncedSearch);
-  }, [debouncedSearch, refreshCodes]);
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  // Fetch data when page or search changes
+  React.useEffect(() => {
+    refreshCodes(debouncedSearch, currentPage);
+  }, [debouncedSearch, currentPage, refreshCodes]);
 
   const handleOpenForm = (code: Cie10Code | null) => {
     setSelectedCode(code);
@@ -73,7 +87,7 @@ export function Cie10Management() {
         toast({ title: '¡Código Creado!', description: `El código ${values.code} ha sido añadido.` });
       }
       handleCloseDialog();
-      await refreshCodes(debouncedSearch);
+      await refreshCodes(debouncedSearch, currentPage);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'No se pudo guardar el código.', variant: 'destructive' });
     }
@@ -83,7 +97,11 @@ export function Cie10Management() {
     try {
         await deleteCie10Code(code);
         toast({ title: '¡Código Eliminado!', description: 'El código CIE-10 ha sido eliminado.' });
-        await refreshCodes(debouncedSearch);
+        if (codes.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            await refreshCodes(debouncedSearch, currentPage);
+        }
     } catch (error: any) {
         toast({ title: 'Error al Eliminar', description: error.message, variant: 'destructive' });
     }
@@ -92,7 +110,7 @@ export function Cie10Management() {
   const handleExportCsv = async () => {
     toast({ title: 'Generando archivo...', description: 'Exportando el catálogo completo.' });
     try {
-      const allCodes = await getManagedCie10Codes(); // Fetch all codes, not just filtered ones
+      const { codes: allCodes } = await getManagedCie10Codes();
       if (allCodes.length === 0) {
         toast({ title: 'No hay datos para exportar', variant: 'destructive' });
         return;
@@ -150,7 +168,7 @@ export function Cie10Management() {
           variant: 'success'
         });
 
-        await refreshCodes(debouncedSearch);
+        await refreshCodes(debouncedSearch, 1);
       } catch (error: any) {
         toast({
           title: 'Error de Importación',
@@ -240,71 +258,96 @@ export function Cie10Management() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[120px]">Código</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead className="text-right w-[100px]">Acciones</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {codes.length > 0 ? (
-                  codes.map((code) => (
-                    <TableRow key={code.code}>
-                    <TableCell className="font-mono font-semibold">{code.code}</TableCell>
-                    <TableCell>{code.description}</TableCell>
-                    <TableCell className="text-right">
-                        <AlertDialog>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menú</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleOpenForm(code)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  <span>Editar</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Eliminar</span>
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Esto eliminará permanentemente el código CIE-10 del catálogo. No podrá eliminar códigos que estén actualmente en uso.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteCode(code.code)} className="bg-destructive hover:bg-destructive/90">
-                                        Sí, eliminar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
-                            No se encontraron códigos. Pruebe a crear uno nuevo.
-                        </TableCell>
-                    </TableRow>
-                )}
-                </TableBody>
-            </Table>
+            <>
+            <div className="rounded-md border">
+              <Table>
+                  <TableHeader>
+                  <TableRow>
+                      <TableHead className="w-[120px]">Código</TableHead>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                  </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {codes.length > 0 ? (
+                    codes.map((code) => (
+                      <TableRow key={code.code}>
+                      <TableCell className="font-mono font-semibold">{code.code}</TableCell>
+                      <TableCell>{code.description}</TableCell>
+                      <TableCell className="text-right">
+                          <AlertDialog>
+                              <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Abrir menú</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleOpenForm(code)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    <span>Editar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          <span>Eliminar</span>
+                                      </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                              </DropdownMenu>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Esta acción no se puede deshacer. Esto eliminará permanentemente el código CIE-10 del catálogo. No podrá eliminar códigos que estén actualmente en uso.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteCode(code.code)} className="bg-destructive hover:bg-destructive/90">
+                                          Sí, eliminar
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                      <TableRow>
+                          <TableCell colSpan={3} className="h-24 text-center">
+                              No se encontraron códigos. Pruebe a crear uno nuevo.
+                          </TableCell>
+                      </TableRow>
+                  )}
+                  </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages || 1}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage <= 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

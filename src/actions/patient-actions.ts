@@ -979,17 +979,37 @@ export async function deletePersona(personaId: string): Promise<{ success: boole
 
 
 // --- CIE-10 Actions ---
-export async function getManagedCie10Codes(query?: string): Promise<Cie10Code[]> {
-    const db = await getDb();
-    let selectQuery = 'SELECT * FROM cie10_codes';
-    const params: any[] = [];
-    if (query && query.trim().length > 0) {
-        const searchQuery = `%${query.trim()}%`;
-        selectQuery += ' WHERE code LIKE ? OR description LIKE ?';
-        params.push(searchQuery, searchQuery);
-    }
-    selectQuery += ' ORDER BY code';
-    return db.all(selectQuery, ...params);
+export async function getManagedCie10Codes(
+  query?: string,
+  page?: number,
+  pageSize?: number
+): Promise<{ codes: Cie10Code[]; totalCount: number }> {
+  const db = await getDb();
+
+  const whereParams: any[] = [];
+  let whereClause = '';
+  if (query && query.trim().length > 0) {
+    const searchQuery = `%${query.trim()}%`;
+    whereClause = ' WHERE code LIKE ? OR description LIKE ?';
+    whereParams.push(searchQuery, searchQuery);
+  }
+
+  const countQuery = `SELECT COUNT(*) as count FROM cie10_codes${whereClause}`;
+  const totalResult = await db.get(countQuery, ...whereParams);
+  const totalCount = totalResult?.count || 0;
+
+  let selectQuery = `SELECT * FROM cie10_codes${whereClause} ORDER BY code`;
+  const selectParams = [...whereParams];
+
+  if (page && pageSize) {
+    const offset = (page - 1) * pageSize;
+    selectQuery += ' LIMIT ? OFFSET ?';
+    selectParams.push(pageSize, offset);
+  }
+
+  const codes = await db.all(selectQuery, ...selectParams);
+
+  return { codes, totalCount };
 }
 
 export async function createCie10Code(data: Cie10Code): Promise<Cie10Code> {
