@@ -192,10 +192,39 @@ export function Cie10Management() {
                     accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                     className="hidden"
                 />
-                <Button variant="outline" onClick={handleImportClick} disabled={isUploading}>
-                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    Importar
-                </Button>
+                
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" disabled={isUploading}>
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            Importar
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Formato para Importación CSV</AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                               <div className="text-left space-y-3 pt-2">
+                                <p>Para asegurar una importación exitosa, su archivo CSV o Excel debe tener la siguiente estructura:</p>
+                                <ul className="list-disc list-inside text-sm bg-muted/50 p-4 rounded-md space-y-1 border">
+                                    <li>Debe contener exactamente <strong>dos columnas</strong>.</li>
+                                    <li><strong>Columna 1:</strong> El Código CIE-10 (ej. J00).</li>
+                                    <li><strong>Columna 2:</strong> La Descripción completa del código.</li>
+                                    <li>No incluya una fila de encabezado (títulos de columna).</li>
+                                </ul>
+                                <p>El sistema ignorará automáticamente cualquier código que ya exista en la base de datos para evitar duplicados.</p>
+                               </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleImportClick}>
+                                Continuar e Importar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
                 <Button variant="outline" onClick={handleExportCsv}>
                     <Download className="mr-2 h-4 w-4" />
                     Exportar
