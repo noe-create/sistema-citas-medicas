@@ -58,7 +58,11 @@ async function ensureDataEntryPermission() {
 // --- Persona Actions (Centralized Person Management) ---
 
 async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string }): Promise<string> {
-    const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
+    let existingPersona;
+    if (personaData.cedula) {
+        existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
+    }
+    
     if (existingPersona) {
         return existingPersona.id;
     }
@@ -207,7 +211,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
 
 
 export async function createTitular(data: {
-    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula' | 'nombreCompleto'> & { fechaNacimiento: Date; cedula: string };
+    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula' | 'nombreCompleto'> & { fechaNacimiento: Date; cedula: string | null };
     tipo: TitularType;
     empresaId?: string;
 } | {
@@ -260,10 +264,12 @@ export async function updateTitular(titularId: string, personaId: string, data: 
 
     try {
         await db.exec('BEGIN TRANSACTION');
-
-        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
-        if (existingPersona) {
-            throw new Error('Ya existe otra persona con la misma cédula.');
+        
+        if (data.cedula) {
+            const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
+            if (existingPersona) {
+                throw new Error('Ya existe otra persona con la misma cédula.');
+            }
         }
 
         await db.run(
@@ -272,7 +278,7 @@ export async function updateTitular(titularId: string, personaId: string, data: 
             data.segundoNombre,
             data.primerApellido,
             data.segundoApellido,
-            data.cedula,
+            data.cedula || null,
             data.fechaNacimiento.toISOString(),
             data.genero,
             data.telefono1,
@@ -432,7 +438,7 @@ export async function updateBeneficiario(beneficiarioId: string, personaId: stri
     await db.run(
         'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
         data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
-        data.cedula,
+        data.cedula || null,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono1, data.telefono2,
@@ -881,9 +887,11 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     await ensureDataEntryPermission();
     const db = await getDb();
     
-    const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
-    if (existingPersona) {
-        throw new Error('Ya existe una persona con esa cédula.');
+    if (data.cedula) {
+        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+        if (existingPersona) {
+            throw new Error('Ya existe una persona con esa cédula.');
+        }
     }
 
     const personaId = generateId('p');
@@ -924,16 +932,18 @@ export async function bulkCreatePersonas(
     await db.exec('BEGIN TRANSACTION');
     try {
         for (const [index, data] of personasData.entries()) {
-            if (!data.primerNombre || !data.primerApellido || !data.cedula || !data.fechaNacimiento || !data.genero) {
+            if (!data.primerNombre || !data.primerApellido || !data.fechaNacimiento || !data.genero) {
                 skippedCount++;
-                errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos (primer nombre, primer apellido, cédula, fecha de nacimiento, género).`);
+                errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos (primer nombre, primer apellido, fecha de nacimiento, género).`);
                 continue;
             }
-
-            const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
-            if (existingPersona) {
-                skippedCount++;
-                continue;
+            
+            if (data.cedula) {
+                const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+                if (existingPersona) {
+                    skippedCount++;
+                    continue;
+                }
             }
 
             const personaId = generateId('p');
@@ -945,7 +955,7 @@ export async function bulkCreatePersonas(
                 data.segundoNombre,
                 data.primerApellido,
                 data.segundoApellido,
-                data.cedula,
+                data.cedula || null,
                 new Date(data.fechaNacimiento).toISOString(),
                 data.genero,
                 data.telefono1,
@@ -978,15 +988,17 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
     await ensureDataEntryPermission();
     const db = await getDb();
 
-    const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
-    if (existingPersonaWithCedula) {
-        throw new Error('Ya existe otra persona con la misma cédula.');
+    if (data.cedula) {
+        const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
+        if (existingPersonaWithCedula) {
+            throw new Error('Ya existe otra persona con la misma cédula.');
+        }
     }
 
     await db.run(
         'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ? WHERE id = ?',
         data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
-        data.cedula,
+        data.cedula || null,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono1,
@@ -1102,7 +1114,7 @@ export async function deleteCie10Code(code: string): Promise<{ success: boolean 
         throw new Error('Este código CIE-10 está en uso y no puede ser eliminado.');
     }
     
-    const result = await db.run('DELETE FROM cie10_codes WHERE code = ?', code);
+    const result = await db.run('DELETE FROM cie10_codes WHERE id = ?', code);
     if (result.changes === 0) throw new Error('Código CIE-10 no encontrado para eliminar');
     revalidatePath('/dashboard/cie10');
     return { success: true };
@@ -1299,6 +1311,16 @@ export async function updateTreatmentOrderStatus(orderId: string, status: 'En Pr
     const db = await getDb();
 
     if (status === 'Completado') {
+        const executions = await db.get(
+            `SELECT COUNT(*) as count FROM treatment_executions te
+             JOIN treatment_order_items toi ON te.treatmentOrderItemId = toi.id
+             WHERE toi.treatmentOrderId = ?`,
+            orderId
+        );
+        if (executions.count === 0) {
+            throw new Error('No se puede completar una orden de tratamiento sin haber registrado al menos una ejecución.');
+        }
+
         const pendingItems = await db.get(
             `SELECT COUNT(*) as count FROM treatment_order_items WHERE treatmentOrderId = ? AND status = 'Pendiente'`,
             orderId

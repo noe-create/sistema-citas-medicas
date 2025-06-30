@@ -59,6 +59,55 @@ async function migratePersonaSchema(dbInstance: Database) {
     }
 }
 
+async function migrateCedulaToNullable(dbInstance: Database) {
+    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
+    const cedulaCol = cols.find(c => c.name === 'cedula');
+
+    if (cedulaCol && cedulaCol.notnull) { // notnull is 1 if NOT NULL, 0 otherwise
+        console.log("Migrating 'personas.cedula' to be nullable...");
+        
+        await dbInstance.exec('PRAGMA foreign_keys=OFF;');
+        await dbInstance.exec('BEGIN TRANSACTION;');
+
+        try {
+            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_temp_migration;');
+            
+            // Re-create the table with the new schema
+            await dbInstance.exec(`
+                CREATE TABLE personas (
+                    id TEXT PRIMARY KEY,
+                    primerNombre TEXT NOT NULL,
+                    segundoNombre TEXT,
+                    primerApellido TEXT NOT NULL,
+                    segundoApellido TEXT,
+                    cedula TEXT UNIQUE,
+                    fechaNacimiento TEXT NOT NULL,
+                    genero TEXT NOT NULL,
+                    telefono1 TEXT,
+                    telefono2 TEXT,
+                    email TEXT,
+                    direccion TEXT
+                );
+            `);
+            
+            // Copy the data over explicitly
+            await dbInstance.exec(`
+                INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion)
+                SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion FROM personas_temp_migration;
+            `);
+
+            await dbInstance.exec('DROP TABLE personas_temp_migration;');
+            await dbInstance.exec('COMMIT;');
+            console.log("Migration of 'personas.cedula' successful.");
+        } catch (e) {
+            console.error("Migration failed, rolling back.", e);
+            await dbInstance.exec('ROLLBACK;');
+        } finally {
+            await dbInstance.exec('PRAGMA foreign_keys=ON;');
+        }
+    }
+}
+
 
 async function initializeDb(): Promise<Database> {
     const dbPath = path.join(process.cwd(), 'database.db');
@@ -71,6 +120,7 @@ async function initializeDb(): Promise<Database> {
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
     
     await migratePersonaSchema(dbInstance);
+    await migrateCedulaToNullable(dbInstance);
     
     // --- Safe Migration for Treatment Tables ---
     const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
@@ -138,7 +188,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             segundoNombre TEXT,
             primerApellido TEXT NOT NULL,
             segundoApellido TEXT,
-            cedula TEXT NOT NULL UNIQUE,
+            cedula TEXT UNIQUE,
             fechaNacimiento TEXT NOT NULL,
             genero TEXT NOT NULL,
             telefono1 TEXT,

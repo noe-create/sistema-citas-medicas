@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,23 +16,25 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, CreditCard, CalendarDays, Users as UsersIcon, Globe } from 'lucide-react';
 import type { Beneficiario, Persona } from '@/lib/types';
 import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 const beneficiarySchema = z.object({
-  nombreCompleto: z.string().min(3, { message: 'El nombre es requerido.' }),
-  cedula: z.string().min(5, { message: 'La cédula es requerida.' }),
-  fechaNacimiento: z.date({
-    required_error: 'La fecha de nacimiento es requerida.',
-  }),
-  genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
-    required_error: 'El género es requerido.',
-  }),
+  primerNombre: z.string().min(1, 'El primer nombre es requerido.'),
+  segundoNombre: z.string().optional(),
+  primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
+  segundoApellido: z.string().optional(),
+  nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
+  cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
+  fechaNacimiento: z.date({ required_error: 'La fecha de nacimiento es requerida.' }),
+  genero: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'El género es requerido.' }),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
-  telefono: z.string().optional(),
-  telefonoCelular: z.string().optional(),
+  telefono1: z.string().optional(),
+  telefono2: z.string().optional(),
+  direccion: z.string().optional(),
 });
 
 type BeneficiaryFormValues = z.infer<typeof beneficiarySchema>;
@@ -50,41 +53,53 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
   const form = useForm<BeneficiaryFormValues>({
     resolver: zodResolver(beneficiarySchema),
     defaultValues: {
-      nombreCompleto: beneficiario?.persona.nombreCompleto || '',
-      cedula: beneficiario?.persona.cedula || '',
-      fechaNacimiento: beneficiario?.persona.fechaNacimiento ? new Date(beneficiario.persona.fechaNacimiento) : undefined,
-      genero: beneficiario?.persona.genero || undefined,
-      email: beneficiario?.persona.email || '',
-      telefono: beneficiario?.persona.telefono || '',
-      telefonoCelular: beneficiario?.persona.telefonoCelular || '',
+        primerNombre: '',
+        segundoNombre: '',
+        primerApellido: '',
+        segundoApellido: '',
+        nacionalidad: 'V',
+        cedula: '',
+        telefono1: '',
+        telefono2: '',
+        email: '',
+        direccion: ''
     },
   });
 
   const isPersonaSelected = !!selectedPersona;
+  
+  const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
+    if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
+    const match = cedulaStr.match(/^([VE])-?(\d+)$/);
+    if (match) {
+        return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
+    }
+    return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
+  }
 
   React.useEffect(() => {
-    // This effect will run when `selectedPersona` or `beneficiario` changes.
-    // It prioritizes the `selectedPersona` to populate the form.
-    // If no persona is selected, it falls back to the `beneficiario` prop for editing.
+    let personaToLoad: Persona | null = null;
     if (selectedPersona) {
-      form.reset({
-        nombreCompleto: selectedPersona.nombreCompleto,
-        cedula: selectedPersona.cedula,
-        fechaNacimiento: new Date(selectedPersona.fechaNacimiento),
-        genero: selectedPersona.genero,
-        email: selectedPersona.email || '',
-        telefono: selectedPersona.telefono || '',
-        telefonoCelular: selectedPersona.telefonoCelular || '',
-      });
+        personaToLoad = selectedPersona;
     } else if (beneficiario) {
+        personaToLoad = beneficiario.persona;
+    }
+
+    if (personaToLoad) {
+      const { nacionalidad, cedula } = parseCedula(personaToLoad.cedula);
       form.reset({
-        nombreCompleto: beneficiario.persona.nombreCompleto,
-        cedula: beneficiario.persona.cedula,
-        fechaNacimiento: new Date(beneficiario.persona.fechaNacimiento),
-        genero: beneficiario.persona.genero,
-        email: beneficiario.persona.email || '',
-        telefono: beneficiario.persona.telefono || '',
-        telefonoCelular: beneficiario.persona.telefonoCelular || '',
+        primerNombre: personaToLoad.primerNombre || '',
+        segundoNombre: personaToLoad.segundoNombre || '',
+        primerApellido: personaToLoad.primerApellido || '',
+        segundoApellido: personaToLoad.segundoApellido || '',
+        nacionalidad,
+        cedula,
+        fechaNacimiento: new Date(personaToLoad.fechaNacimiento),
+        genero: personaToLoad.genero,
+        email: personaToLoad.email || '',
+        telefono1: personaToLoad.telefono1 || '',
+        telefono2: personaToLoad.telefono2 || '',
+        direccion: personaToLoad.direccion || '',
       });
     }
   }, [selectedPersona, beneficiario, form.reset]);
@@ -93,10 +108,13 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
     setIsSubmitting(true);
     if (selectedPersona) {
       await onSubmitted({ personaId: selectedPersona.id });
-    } else if (beneficiario) {
-      await onSubmitted(values) // For updates
     } else {
-      await onSubmitted({ persona: values }); // For new person creation
+        const submissionData = {
+            ...values,
+            cedula: values.cedula ? `${values.nacionalidad}-${values.cedula}` : null,
+        };
+        delete (submissionData as any).nacionalidad;
+        await onSubmitted({ persona: submissionData }); // For new/update person
     }
     setIsSubmitting(false);
   }
@@ -116,31 +134,37 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
             </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
+            <FormField control={form.control} name="primerNombre" render={({ field }) => ( <FormItem><FormLabel>Primer Nombre</FormLabel><FormControl><Input placeholder="Ej. Ana" {...field} disabled={isPersonaSelected} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoNombre" render={({ field }) => ( <FormItem><FormLabel>Segundo Nombre</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="primerApellido" render={({ field }) => ( <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input placeholder="Ej. Pérez" {...field} disabled={isPersonaSelected} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoApellido" render={({ field }) => ( <FormItem><FormLabel>Segundo Apellido</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} /></FormControl><FormMessage /></FormItem>)} />
+            
             <FormField
-              control={form.control}
-              name="nombreCompleto"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre Completo</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej. Ana Pérez" {...field} disabled={isPersonaSelected} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+                control={form.control}
+                name="nacionalidad"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel className="flex items-center gap-2"><Globe className="h-4 w-4 text-muted-foreground" />Nacionalidad</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} value={field.value} defaultValue="V" className="flex items-center space-x-4 pt-1" disabled={isPersonaSelected}>
+                                <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="V" id="v" /></FormControl><Label htmlFor="v" className="font-normal">Venezolano</Label></FormItem>
+                                <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="E" id="e" /></FormControl><Label htmlFor="e" className="font-normal">Extranjero</Label></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                         <FormMessage />
+                    </FormItem>
+                )}
             />
-            <FormField
-              control={form.control}
-              name="cedula"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cédula</FormLabel>
-                  <FormControl>
-                    <Input placeholder="V-23456789" {...field} disabled={isPersonaSelected}/>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+             <FormField
+                control={form.control}
+                name="cedula"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-muted-foreground" />Número de Cédula (Opcional)</FormLabel>
+                        <FormControl><Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} disabled={isPersonaSelected}/></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
             />
              <FormField
                 control={form.control}
@@ -182,57 +206,19 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
 
                     return (
                         <FormItem className="md:col-span-2">
-                            <FormLabel>Fecha de Nacimiento</FormLabel>
+                            <FormLabel className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-muted-foreground" />Fecha de Nacimiento</FormLabel>
                             <div className="grid grid-cols-3 gap-2">
-                                <Select
-                                    onValueChange={(value) => handleDateChange('day', value)}
-                                    value={selectedDay ? String(selectedDay) : ''}
-                                    disabled={isPersonaSelected}
-                                >
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Día" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                    {days.map((d) => (
-                                        <SelectItem key={d} value={String(d)}>{d}</SelectItem>
-                                    ))}
-                                    </SelectContent>
+                                <Select onValueChange={(value) => handleDateChange('day', value)} value={selectedDay ? String(selectedDay) : ''} disabled={isPersonaSelected}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Día" /></SelectTrigger></FormControl>
+                                    <SelectContent>{days.map((d) => (<SelectItem key={d} value={String(d)}>{d}</SelectItem>))}</SelectContent>
                                 </Select>
-                                <Select
-                                    onValueChange={(value) => handleDateChange('month', value)}
-                                    value={selectedMonth ? String(selectedMonth) : ''}
-                                    disabled={isPersonaSelected}
-                                >
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Mes" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                    {months.map((m) => (
-                                        <SelectItem key={m.value} value={String(m.value)}>
-                                        <span className="capitalize">{m.label}</span>
-                                        </SelectItem>
-                                    ))}
-                                    </SelectContent>
+                                <Select onValueChange={(value) => handleDateChange('month', value)} value={selectedMonth ? String(selectedMonth) : ''} disabled={isPersonaSelected}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger></FormControl>
+                                    <SelectContent>{months.map((m) => (<SelectItem key={m.value} value={String(m.value)}><span className="capitalize">{m.label}</span></SelectItem>))}</SelectContent>
                                 </Select>
-                                <Select
-                                    onValueChange={(value) => handleDateChange('year', value)}
-                                    value={selectedYear ? String(selectedYear) : ''}
-                                    disabled={isPersonaSelected}
-                                >
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Año" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                    {years.map((y) => (
-                                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                    ))}
-                                    </SelectContent>
+                                <Select onValueChange={(value) => handleDateChange('year', value)} value={selectedYear ? String(selectedYear) : ''} disabled={isPersonaSelected}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger></FormControl>
+                                    <SelectContent>{years.map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}</SelectContent>
                                 </Select>
                             </div>
                             <FormMessage />
@@ -245,7 +231,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
                 name="genero"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Género</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><UsersIcon className="h-4 w-4 text-muted-foreground" />Género</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isPersonaSelected}>
                         <FormControl>
                         <SelectTrigger>

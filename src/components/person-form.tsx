@@ -29,7 +29,7 @@ const personSchema = z.object({
   primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
   segundoApellido: z.string().optional(),
   nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
-  cedula: z.string().regex(/^[0-9]+$/, "La cédula solo debe contener números.").min(5, { message: 'La cédula debe tener al menos 5 dígitos.' }),
+  cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
   fechaNacimiento: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
@@ -117,7 +117,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
     setIsSubmitting(true);
     const submissionData: any = {
         ...values,
-        cedula: `${values.nacionalidad}-${values.cedula}`,
+        cedula: values.cedula ? `${values.nacionalidad}-${values.cedula}` : null,
     };
     delete submissionData.nacionalidad;
     await onSubmitted(submissionData);
@@ -129,9 +129,9 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
             <FormField control={form.control} name="primerNombre" render={({ field }) => ( <FormItem><FormLabel>Primer Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="segundoNombre" render={({ field }) => ( <FormItem><FormLabel>Segundo Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoNombre" render={({ field }) => ( <FormItem><FormLabel>Segundo Nombre (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="primerApellido" render={({ field }) => ( <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="segundoApellido" render={({ field }) => ( <FormItem><FormLabel>Segundo Apellido</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoApellido" render={({ field }) => ( <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
             
             <FormField
                 control={form.control}
@@ -159,7 +159,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                       <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        Número de Cédula
+                        Número de Cédula (Opcional)
                       </FormLabel>
                       <FormControl>
                           <Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/>
@@ -229,15 +229,15 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                     </FormItem>
                 )}
             />
-            <FormField control={form.control} name="telefono1" render={({ field }) => ( <FormItem><FormLabel>Teléfono 1</FormLabel><FormControl><Input placeholder="0212-5551234" {...field} value={field.value || ''}/></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="telefono2" render={({ field }) => ( <FormItem><FormLabel>Teléfono 2</FormLabel><FormControl><Input placeholder="0414-1234567" {...field} value={field.value || ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="telefono1" render={({ field }) => ( <FormItem><FormLabel>Teléfono 1 (Opcional)</FormLabel><FormControl><Input placeholder="0212-5551234" {...field} value={field.value || ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="telefono2" render={({ field }) => ( <FormItem><FormLabel>Teléfono 2 (Opcional)</FormLabel><FormControl><Input placeholder="0414-1234567" {...field} value={field.value || ''}/></FormControl><FormMessage /></FormItem>)} />
             
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />Email</FormLabel>
+                  <FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />Email (Opcional)</FormLabel>
                   <FormControl><Input placeholder="juan.perez@email.com" {...field} value={field.value || ''} type="email" /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -248,7 +248,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
               name="direccion"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />Dirección</FormLabel>
+                  <FormLabel className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />Dirección (Opcional)</FormLabel>
                   <FormControl><Textarea placeholder="Av. Principal, Edificio Central, Piso 4, Oficina 4B, Caracas" {...field} value={field.value || ''} /></FormControl>
                   <FormMessage />
                 </FormItem>
