@@ -302,6 +302,12 @@ export async function updateTitular(titularId: string, personaId: string, data: 
 export async function deleteTitular(id: string): Promise<{ success: boolean }> {
     await ensureDataEntryPermission();
     const db = await getDb();
+
+    const beneficiaryCount = await db.get('SELECT COUNT(*) as count FROM beneficiarios WHERE titularId = ?', id);
+    if (beneficiaryCount.count > 0) {
+        throw new Error('No se puede eliminar el titular porque tiene beneficiarios asociados. Elimine o reasigne los beneficiarios primero.');
+    }
+
     const result = await db.run('DELETE FROM titulares WHERE id = ?', id);
     if (result.changes === 0) {
         throw new Error('Titular no encontrado para eliminar');
@@ -1037,6 +1043,15 @@ export async function updatePersona(personaId: string, data: Omit<Persona, 'id' 
 export async function deletePersona(personaId: string): Promise<{ success: boolean }> {
     await ensureDataEntryPermission();
     const db = await getDb();
+
+    // Check if the person is a titular with beneficiaries before deleting
+    const titular = await db.get('SELECT id FROM titulares WHERE personaId = ?', personaId);
+    if (titular) {
+        const beneficiaryCount = await db.get('SELECT COUNT(*) as count FROM beneficiarios WHERE titularId = ?', titular.id);
+        if (beneficiaryCount.count > 0) {
+            throw new Error('No se puede eliminar esta persona porque es un titular con beneficiarios asociados. Por favor, gestione los beneficiarios primero desde el módulo de Titulares.');
+        }
+    }
     
     // ON DELETE CASCADE will handle relationships in titulares, beneficiarios, pacientes, waitlist.
     const result = await db.run('DELETE FROM personas WHERE id = ?', personaId);
