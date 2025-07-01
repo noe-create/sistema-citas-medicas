@@ -28,8 +28,8 @@ const beneficiarySchema = z.object({
   segundoNombre: z.string().optional(),
   primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
   segundoApellido: z.string().optional(),
-  nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
-  cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
+  nacionalidad: z.enum(['V', 'E']).optional(),
+  cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
   fechaNacimiento: z.date({ required_error: 'La fecha de nacimiento es requerida.' }),
   genero: z.enum(['Masculino', 'Femenino'], { required_error: 'El género es requerido.' }),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
@@ -40,7 +40,7 @@ const beneficiarySchema = z.object({
 }).refine(data => {
     if (data.fechaNacimiento) {
         const age = calculateAge(data.fechaNacimiento);
-        if (age < 18 && !data.cedula) {
+        if (age < 18 && !data.cedulaNumero) {
             return !!data.representanteId;
         }
     }
@@ -72,7 +72,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
         primerApellido: '',
         segundoApellido: '',
         nacionalidad: 'V',
-        cedula: '',
+        cedulaNumero: '',
         telefono1: '',
         telefono2: '',
         email: '',
@@ -84,7 +84,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
   const isPersonaSelected = !!selectedPersona;
   
   const fechaNacimiento = form.watch('fechaNacimiento');
-  const cedula = form.watch('cedula');
+  const cedulaNumero = form.watch('cedulaNumero');
   const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
 
   React.useEffect(() => {
@@ -94,24 +94,16 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
     }
     if (fechaNacimiento) {
       const age = calculateAge(fechaNacimiento);
-      setShowRepresentativeField(age < 18 && !cedula);
+      setShowRepresentativeField(age < 18 && !cedulaNumero);
     } else {
       setShowRepresentativeField(false);
     }
-  }, [fechaNacimiento, cedula, isPersonaSelected]);
+  }, [fechaNacimiento, cedulaNumero, isPersonaSelected]);
 
   const handleRepresentativeSelect = (p: Persona | null) => {
     form.setValue('representanteId', p?.id || '', { shouldValidate: true });
   };
 
-  const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
-    if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
-    const match = cedulaStr.match(/^([VE])-?(\d+)$/);
-    if (match) {
-        return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
-    }
-    return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
-  }
 
   React.useEffect(() => {
     let personaToLoad: Persona | null = null;
@@ -122,14 +114,13 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
     }
 
     if (personaToLoad) {
-      const { nacionalidad, cedula } = parseCedula(personaToLoad.cedula);
       form.reset({
         primerNombre: personaToLoad.primerNombre || '',
         segundoNombre: personaToLoad.segundoNombre || '',
         primerApellido: personaToLoad.primerApellido || '',
         segundoApellido: personaToLoad.segundoApellido || '',
-        nacionalidad,
-        cedula,
+        nacionalidad: personaToLoad.nacionalidad,
+        cedulaNumero: personaToLoad.cedulaNumero,
         fechaNacimiento: new Date(personaToLoad.fechaNacimiento),
         genero: personaToLoad.genero,
         email: personaToLoad.email || '',
@@ -146,12 +137,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
     if (selectedPersona) {
       await onSubmitted({ personaId: selectedPersona.id });
     } else {
-        const submissionData = {
-            ...values,
-            cedula: values.cedula ? `${values.nacionalidad}-${values.cedula}` : null,
-        };
-        delete (submissionData as any).nacionalidad;
-        await onSubmitted({ persona: submissionData }); // For new/update person
+        await onSubmitted({ persona: values }); // For new/update person
     }
     setIsSubmitting(false);
   }
@@ -194,7 +180,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
             />
              <FormField
                 control={form.control}
-                name="cedula"
+                name="cedulaNumero"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-muted-foreground" />Número de Cédula (Opcional)</FormLabel>

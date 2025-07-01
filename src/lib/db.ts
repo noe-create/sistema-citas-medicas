@@ -13,108 +13,80 @@ import { calculateAge } from './utils';
 
 let db: Database | null = null;
 
-async function migratePersonaSchema(dbInstance: Database) {
-    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    
-    if (cols.some(c => c.name === 'nombreCompleto')) {
-        console.log("Old 'personas' schema with 'nombreCompleto' detected. Migrating...");
-        try {
-            await dbInstance.exec('BEGIN TRANSACTION;');
-            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_old;');
-            
-            await createTables(dbInstance);
 
-            await dbInstance.exec(`
-                INSERT INTO personas (id, primerNombre, primerApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email)
-                SELECT 
-                    id,
-                    SUBSTR(nombreCompleto, 1, INSTR(nombreCompleto, ' ') - 1),
-                    SUBSTR(nombreCompleto, INSTR(nombreCompleto, ' ') + 1),
-                    cedula,
-                    fechaNacimiento,
-                    genero,
-                    telefono,
-                    telefonoCelular,
-                    email
-                FROM personas_old;
-            `);
+async function runMigrations(dbInstance: Database) {
+    console.log('Checking database schema...');
+    await dbInstance.exec('PRAGMA foreign_keys=OFF;');
+
+    // Universal migration for 'personas' table
+    const personasCols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
+    const hasOldNombreCompleto = personasCols.some(c => c.name === 'nombreCompleto');
+    const hasOldCedulaNotNull = personasCols.some(c => c.name === 'cedula' && c.notnull);
+    const hasOldSingleCedula = personasCols.some(c => c.name === 'cedula');
+    const hasNewCedula = personasCols.some(c => c.name === 'nacionalidad');
+
+    if (personasCols.length > 0 && !hasNewCedula) {
+        console.log("Old 'personas' schema detected. Running unified migration...");
+        await dbInstance.exec('BEGIN TRANSACTION;');
+        try {
+            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_old;');
+            await createTables(dbInstance); // Creates the new clean schema
+
+            const oldColumns = (await dbInstance.all("PRAGMA table_info('personas_old')")).map(c => c.name);
+
+            const selectExpressions = [
+                'id',
+                hasOldNombreCompleto ? `SUBSTR(nombreCompleto, 1, INSTR(nombreCompleto, ' ') - 1)` : 'primerNombre',
+                hasOldNombreCompleto ? `NULL` : 'segundoNombre',
+                hasOldNombreCompleto ? `SUBSTR(nombreCompleto, INSTR(nombreCompleto, ' ') + 1)` : 'primerApellido',
+                hasOldNombreCompleto ? `NULL` : 'segundoApellido',
+                hasOldSingleCedula ? `CASE WHEN cedula IS NOT NULL AND INSTR(cedula, '-') > 0 THEN SUBSTR(cedula, 1, INSTR(cedula, '-') - 1) ELSE NULL END` : 'NULL', // nacionalidad
+                hasOldSingleCedula ? `CASE WHEN cedula IS NOT NULL AND INSTR(cedula, '-') > 0 THEN SUBSTR(cedula, INSTR(cedula, '-') + 1) ELSE NULL END` : 'NULL', // cedulaNumero
+                'fechaNacimiento',
+                'genero',
+                oldColumns.includes('telefono') ? 'telefono' : (oldColumns.includes('telefono1') ? 'telefono1' : 'NULL'), // telefono1
+                oldColumns.includes('telefonoCelular') ? 'telefonoCelular' : (oldColumns.includes('telefono2') ? 'telefono2' : 'NULL'), // telefono2
+                'email',
+                'direccion',
+                'representanteId'
+            ];
+            
+            const fieldsToInsert = 'id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId';
+
+            await dbInstance.exec(`INSERT INTO personas (${fieldsToInsert}) SELECT ${selectExpressions.join(', ')} FROM personas_old;`);
 
             await dbInstance.exec('DROP TABLE personas_old;');
             await dbInstance.exec('COMMIT;');
-            console.log("Persona schema migration from 'nombreCompleto' completed successfully.");
+            console.log("Unified 'personas' migration successful.");
         } catch (error) {
             await dbInstance.exec('ROLLBACK;');
-            console.error("Failed to migrate from 'nombreCompleto' schema, rolling back.", error);
-            await dbInstance.exec('DROP TABLE IF EXISTS personas;');
-            await dbInstance.exec('ALTER TABLE personas_old RENAME TO personas;');
+            console.error("Failed to migrate 'personas' schema, rolling back.", error);
+            const tableExists = await dbInstance.get("SELECT name FROM sqlite_master WHERE type='table' AND name='personas_old';");
+            if (tableExists) {
+                await dbInstance.exec('DROP TABLE IF EXISTS personas;');
+                await dbInstance.exec('ALTER TABLE personas_old RENAME TO personas;');
+            }
             throw new Error("Database migration for personas table failed.");
         }
     }
-}
 
-async function migratePersonasTable(dbInstance: Database) {
-    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    if (cols.length === 0) {
-        return; // Table doesn't exist, will be created by createTables.
+    // Migration for treatment_orders (if old schema exists)
+    const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
+    if (treatmentOrdersCols.length > 0 && treatmentOrdersCols.some(col => col.name === 'procedureDescription')) {
+        console.log("Old treatment table structure detected. Migrating to new schema...");
+        await dbInstance.exec('DROP TABLE IF EXISTS treatment_executions;');
+        await dbInstance.exec('DROP TABLE IF EXISTS treatment_orders;');
+        await createTables(dbInstance); // Re-create just the needed tables
+        console.log("Old treatment tables dropped and new ones created.");
     }
 
-    const cedulaCol = cols.find(c => c.name === 'cedula');
-    const needsCedulaMigration = cedulaCol && cedulaCol.notnull;
-    const needsRepresentanteMigration = !cols.some(c => c.name === 'representanteId');
-
-    if (!needsCedulaMigration && !needsRepresentanteMigration) {
-        return; // Schema is up to date.
+    // Migration for roles (if hasSpecialty column is missing)
+    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')").catch(() => []);
+    if (rolesCols.length > 0 && !rolesCols.some(col => col.name === 'hasSpecialty')) {
+        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
     }
 
-    console.log("Old 'personas' schema detected. Migrating to add nullable cedula and/or representanteId...");
-
-    await dbInstance.exec('PRAGMA foreign_keys=OFF;');
-    await dbInstance.exec('BEGIN TRANSACTION;');
-
-    try {
-        await dbInstance.exec(`
-            CREATE TABLE personas_new (
-                id TEXT PRIMARY KEY,
-                primerNombre TEXT NOT NULL,
-                segundoNombre TEXT,
-                primerApellido TEXT NOT NULL,
-                segundoApellido TEXT,
-                cedula TEXT UNIQUE,
-                fechaNacimiento TEXT NOT NULL,
-                genero TEXT NOT NULL,
-                telefono1 TEXT,
-                telefono2 TEXT,
-                email TEXT,
-                direccion TEXT,
-                representanteId TEXT,
-                FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
-            );
-        `);
-        
-        const existingCols = cols.map(c => c.name);
-        const columnsToSelect = [
-            'id', 'primerNombre', 'segundoNombre', 'primerApellido', 'segundoApellido',
-            'cedula', 'fechaNacimiento', 'genero', 'telefono1', 'telefono2', 'email', 'direccion'
-        ].filter(colName => existingCols.includes(colName));
-
-        await dbInstance.exec(`
-            INSERT INTO personas_new (${columnsToSelect.join(', ')})
-            SELECT ${columnsToSelect.join(', ')} FROM personas;
-        `);
-
-        await dbInstance.exec('DROP TABLE personas;');
-        await dbInstance.exec('ALTER TABLE personas_new RENAME TO personas;');
-
-        await dbInstance.exec('COMMIT;');
-        console.log("Migration of 'personas' table successful.");
-
-    } catch (e) {
-        console.error("Migration of 'personas' table failed, rolling back.", e);
-        await dbInstance.exec('ROLLBACK;');
-        throw new Error("Database migration for personas table failed.");
-    } finally {
-        await dbInstance.exec('PRAGMA foreign_keys=ON;');
-    }
+    await dbInstance.exec('PRAGMA foreign_keys=ON;');
 }
 
 
@@ -128,24 +100,8 @@ async function initializeDb(): Promise<Database> {
 
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
     
-    // Run migrations sequentially and safely
-    await migratePersonaSchema(dbInstance);
-    await migratePersonasTable(dbInstance);
-    
-    const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
-    if (treatmentOrdersCols.length > 0 && treatmentOrdersCols.some(col => col.name === 'procedureDescription')) {
-        console.log("Old treatment table structure detected. Migrating to new schema...");
-        await dbInstance.exec('DROP TABLE IF EXISTS treatment_executions;');
-        await dbInstance.exec('DROP TABLE IF EXISTS treatment_orders;');
-        console.log("Old treatment tables dropped.");
-    }
-
     await createTables(dbInstance);
-
-    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')");
-    if (!rolesCols.some(col => col.name === 'hasSpecialty')) {
-        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
-    }
+    await runMigrations(dbInstance);
     
     await seedDb(dbInstance);
 
@@ -194,7 +150,8 @@ async function createTables(dbInstance: Database): Promise<void> {
             segundoNombre TEXT,
             primerApellido TEXT NOT NULL,
             segundoApellido TEXT,
-            cedula TEXT UNIQUE,
+            nacionalidad TEXT,
+            cedulaNumero TEXT,
             fechaNacimiento TEXT NOT NULL,
             genero TEXT NOT NULL,
             telefono1 TEXT,
@@ -202,6 +159,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             email TEXT,
             direccion TEXT,
             representanteId TEXT,
+            UNIQUE(nacionalidad, cedulaNumero),
             FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
         );
 
@@ -388,16 +346,16 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const personaCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM personas');
     if (personaCountResult.count === 0) {
         const personas = [
-             { id: "p1", primerNombre: "Carlos", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-12345678", fechaNacimiento: "1985-02-20T05:00:00.000Z", genero: "Masculino", telefono1: "0212-555-1234", telefono2: "0414-1234567", email: "carlos.r@email.com", direccion: "Av. Urdaneta" },
-             { id: "p2", primerNombre: "Ana", segundoNombre: null, primerApellido: "Martinez", segundoApellido: null, cedula: "V-87654321", fechaNacimiento: "1990-08-10T04:00:00.000Z", genero: "Femenino", telefono1: "0241-555-5678", telefono2: "0412-7654321", email: "ana.m@email.com", direccion: null },
-             { id: "p3", primerNombre: "Luis", segundoNombre: null, primerApellido: "Hernandez", segundoApellido: null, cedula: "E-98765432", fechaNacimiento: "1978-12-05T05:00:00.000Z", genero: "Masculino", telefono1: "0261-555-9012", telefono2: "0424-9876543", email: "luis.h@email.com", direccion: null },
-             { id: "p4", primerNombre: "Sofia", segundoNombre: null, primerApellido: "Gomez", segundoApellido: null, cedula: "V-23456789", fechaNacimiento: "1995-04-30T04:00:00.000Z", genero: "Femenino", telefono1: "0212-555-3456", telefono2: "0416-2345678", email: "sofia.g@email.com", direccion: null },
-             { id: "p5", primerNombre: "Laura", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-29876543", fechaNacimiento: "2010-06-15T04:00:00.000Z", genero: "Femenino", email: "laura.r@email.com", direccion: null },
-             { id: "p6", primerNombre: "David", segundoNombre: null, primerApellido: "Rodriguez", segundoApellido: null, cedula: "V-29876544", fechaNacimiento: "2012-09-20T04:00:00.000Z", genero: "Masculino", email: "david.r@email.com", direccion: null },
+             { id: "p1", p_nombre: "Carlos", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "12345678", fecha: "1985-02-20T05:00:00.000Z", gen: "Masculino", tel1: "0212-555-1234", tel2: "0414-1234567", email: "carlos.r@email.com", dir: "Av. Urdaneta" },
+             { id: "p2", p_nombre: "Ana", s_nombre: null, p_apellido: "Martinez", s_apellido: null, nac: 'V', ced: "87654321", fecha: "1990-08-10T04:00:00.000Z", gen: "Femenino", tel1: "0241-555-5678", tel2: "0412-7654321", email: "ana.m@email.com", dir: null },
+             { id: "p3", p_nombre: "Luis", s_nombre: null, p_apellido: "Hernandez", s_apellido: null, nac: 'E', ced: "98765432", fecha: "1978-12-05T05:00:00.000Z", gen: "Masculino", tel1: "0261-555-9012", tel2: "0424-9876543", email: "luis.h@email.com", dir: null },
+             { id: "p4", p_nombre: "Sofia", s_nombre: null, p_apellido: "Gomez", s_apellido: null, nac: 'V', ced: "23456789", fecha: "1995-04-30T04:00:00.000Z", gen: "Femenino", tel1: "0212-555-3456", tel2: "0416-2345678", email: "sofia.g@email.com", dir: null },
+             { id: "p5", p_nombre: "Laura", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876543", fecha: "2010-06-15T04:00:00.000Z", gen: "Femenino", email: "laura.r@email.com", dir: null },
+             { id: "p6", p_nombre: "David", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876544", fecha: "2012-09-20T04:00:00.000Z", gen: "Masculino", email: "david.r@email.com", dir: null },
         ];
-        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)');
+        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)');
         for (const p of personas) {
-            await personaStmt.run(p.id, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion);
+            await personaStmt.run(p.id, p.p_nombre, p.s_nombre, p.p_apellido, p.s_apellido, p.nac, p.ced, p.fecha, p.gen, p.tel1, p.tel2, p.email, p.dir);
         }
         await personaStmt.finalize();
 

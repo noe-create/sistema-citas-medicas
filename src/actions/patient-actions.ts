@@ -34,12 +34,10 @@ import { calculateAge } from '@/lib/utils';
 
 // --- Helpers ---
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
-const getFullName = (p: { primerNombre: string, segundoNombre?: string, primerApellido: string, segundoApellido?: string}) => {
-    return [p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido].filter(Boolean).join(' ');
-}
 const fullNameSql = `TRIM(p.primerNombre || ' ' || COALESCE(p.segundoNombre, '') || ' ' || p.primerApellido || ' ' || COALESCE(p.segundoApellido, ''))`;
 const titularNameSql = `TRIM(p_titular.primerNombre || ' ' || COALESCE(p_titular.segundoNombre, '') || ' ' || p_titular.primerApellido || ' ' || COALESCE(p_titular.segundoApellido, ''))`;
-
+const fullCedulaSql = `CASE WHEN p.nacionalidad IS NOT NULL AND p.cedulaNumero IS NOT NULL THEN p.nacionalidad || '-' || p.cedulaNumero ELSE NULL END`;
+const fullCedulaSearchSql = `(p.nacionalidad || '-' || p.cedulaNumero)`;
 
 // --- Authorization Helpers ---
 async function ensureAdminPermission() {
@@ -60,8 +58,8 @@ async function ensureDataEntryPermission() {
 
 async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string; representanteId?: string; }) {
     let existingPersona;
-    if (personaData.cedula) {
-        existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
+    if (personaData.nacionalidad && personaData.cedulaNumero) {
+        existingPersona = await db.get('SELECT id FROM personas WHERE nacionalidad = ? AND cedulaNumero = ?', personaData.nacionalidad, personaData.cedulaNumero);
     }
     
     if (existingPersona) {
@@ -69,19 +67,20 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
     }
     
     const age = calculateAge(new Date(personaData.fechaNacimiento));
-    if (age < 18 && !personaData.cedula && !personaData.representanteId) {
+    if (age < 18 && !personaData.cedulaNumero && !personaData.representanteId) {
         throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
     }
     
     const personaId = generateId('p');
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         personaData.primerNombre,
         personaData.segundoNombre,
         personaData.primerApellido,
         personaData.segundoApellido,
-        personaData.cedula,
+        personaData.nacionalidad,
+        personaData.cedulaNumero,
         personaData.fechaNacimiento,
         personaData.genero,
         personaData.telefono1,
@@ -99,8 +98,9 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
 export async function getPersonas(query?: string): Promise<Persona[]> {
     const db = await getDb();
     let selectQuery = `
-        SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId,
-        ${fullNameSql} as nombreCompleto
+        SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId,
+        ${fullNameSql} as nombreCompleto,
+        ${fullCedulaSql} as cedula
         FROM personas p
     `;
     const params: any[] = [];
@@ -108,7 +108,7 @@ export async function getPersonas(query?: string): Promise<Persona[]> {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
             WHERE ${fullNameSql} LIKE ? 
-            OR cedula LIKE ? 
+            OR ${fullCedulaSearchSql} LIKE ?
             OR email LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
@@ -129,7 +129,7 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
     let selectQuery = `
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
-            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion,
+            ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.nacionalidad, p.cedulaNumero,
             e.name as empresaName,
             (SELECT COUNT(*) FROM beneficiarios b WHERE b.titularId = t.id) as beneficiariosCount
         FROM titulares t
@@ -142,7 +142,7 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
             WHERE ${fullNameSql} LIKE ? 
-            OR p.cedula LIKE ? 
+            OR ${fullCedulaSearchSql} LIKE ?
             OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
         `;
         params.push(searchQuery, searchQuery, searchQuery);
@@ -162,6 +162,8 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
             id: row.personaId,
             nombreCompleto: row.nombreCompleto,
             cedula: row.cedula,
+            nacionalidad: row.nacionalidad,
+            cedulaNumero: row.cedulaNumero,
             fechaNacimiento: new Date(row.fechaNacimiento),
             genero: row.genero,
             primerNombre: row.primerNombre,
@@ -182,7 +184,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     const row = await db.get(`
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
-            ${fullNameSql} as nombreCompleto, p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId,
+            ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.nacionalidad, p.cedulaNumero, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId,
             e.name as empresaName
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
@@ -202,6 +204,8 @@ export async function getTitularById(id: string): Promise<Titular | null> {
             id: row.personaId,
             nombreCompleto: row.nombreCompleto,
             cedula: row.cedula,
+            nacionalidad: row.nacionalidad,
+            cedulaNumero: row.cedulaNumero,
             fechaNacimiento: new Date(row.fechaNacimiento),
             genero: row.genero,
             primerNombre: row.primerNombre,
@@ -219,7 +223,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
 
 
 export async function createTitular(data: {
-    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'cedula' | 'nombreCompleto'> & { fechaNacimiento: Date; cedula: string | null };
+    persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date };
     tipo: TitularType;
     empresaId?: string;
 } | {
@@ -244,7 +248,7 @@ export async function createTitular(data: {
             personaId = data.personaId;
         } else {
             const personaData = { ...data.persona, fechaNacimiento: data.persona.fechaNacimiento.toISOString() };
-            personaId = await getOrCreatePersona(db, personaData);
+            personaId = await getOrCreatePersona(db, personaData as any);
         }
 
         await db.run(
@@ -266,7 +270,7 @@ export async function createTitular(data: {
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
@@ -322,10 +326,8 @@ export async function getBeneficiarios(titularId: string): Promise<Beneficiario[
         ORDER BY p.primerNombre, p.primerApellido
     `, titularId);
     return rows.map(row => ({
-        id: row.id,
-        personaId: row.personaId,
-        titularId: row.titularId,
-        persona: { ...row, fechaNacimiento: new Date(row.fechaNacimiento) }
+        ...row,
+        persona: { ...row, fechaNacimiento: new Date(row.fechaNacimiento), cedula: `${row.nacionalidad}-${row.cedulaNumero}` }
     }));
 }
 
@@ -337,7 +339,9 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
             b.personaId, 
             b.titularId,
             ${fullNameSql} as nombreCompleto,
-            p.cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion,
+            ${fullCedulaSql} as cedula,
+            p.nacionalidad, p.cedulaNumero,
+            p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.direccion,
             p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido,
             ${titularNameSql} as titularNombre
         FROM beneficiarios b
@@ -351,7 +355,7 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
             WHERE ${fullNameSql} LIKE ? 
-            OR p.cedula LIKE ? 
+            OR ${fullCedulaSearchSql} LIKE ?
             OR ${titularNameSql} LIKE ?
         `;
         params.push(searchQuery, searchQuery, searchQuery);
@@ -370,7 +374,7 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
 }
 
 
-export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
+export async function createBeneficiario(titularId: string, data: { persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date } } | { personaId: string }): Promise<Beneficiario> {
     await ensureDataEntryPermission();
     const db = await getDb();
     const beneficiarioId = generateId('b');
@@ -418,13 +422,13 @@ export async function createBeneficiario(titularId: string, data: { persona: Omi
 }
 
 
-export async function updateBeneficiario(beneficiarioId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
+export async function updateBeneficiario(beneficiarioId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date }): Promise<Beneficiario> {
     await ensureDataEntryPermission();
     const db = await getDb();
     
-    await updatePersona(personaId, data);
+    await updatePersona(personaId, data as any);
 
-    const updatedRow = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p WHERE id = ?`, personaId);
+    const updatedRow = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p WHERE id = ?`, personaId);
     const beneficiarioRow = await db.get('SELECT titularId FROM beneficiarios WHERE id = ?', beneficiarioId);
 
     revalidatePath(`/dashboard/pacientes/${beneficiarioRow.titularId}/beneficiarios`);
@@ -465,9 +469,9 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
     const hasQuery = query && query.trim().length > 0;
 
     const personasQuery = `
-        SELECT *, ${fullNameSql} as nombreCompleto
+        SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula
         FROM personas p
-        ${hasQuery ? `WHERE ${fullNameSql} LIKE ? OR cedula LIKE ?` : ''}
+        ${hasQuery ? `WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?` : ''}
         ORDER BY primerNombre, primerApellido
         LIMIT 20
     `;
@@ -671,7 +675,7 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ? ORDER BY orderDate DESC', paciente.id);
     const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
         const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
-        const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, order.pacienteId);
+        const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, order.pacienteId);
         return {
             type: 'lab_order' as const,
             data: {
@@ -862,17 +866,17 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 
 // --- Central Person Management Actions ---
 
-export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date, representanteId?: string }) {
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date, representanteId?: string }) {
     await ensureDataEntryPermission();
     const db = await getDb();
     
     const age = calculateAge(data.fechaNacimiento);
-    if (age < 18 && !data.cedula && !data.representanteId) {
+    if (age < 18 && !data.cedulaNumero && !data.representanteId) {
         throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
     }
 
-    if (data.cedula) {
-        const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+    if (data.nacionalidad && data.cedulaNumero) {
+        const existingPersona = await db.get('SELECT id FROM personas WHERE nacionalidad = ? AND cedulaNumero = ?', data.nacionalidad, data.cedulaNumero);
         if (existingPersona) {
             throw new Error('Ya existe una persona con esa cédula.');
         }
@@ -881,13 +885,14 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     const personaId = generateId('p');
 
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         data.primerNombre,
         data.segundoNombre,
         data.primerApellido,
         data.segundoApellido,
-        data.cedula,
+        data.nacionalidad || null,
+        data.cedulaNumero || null,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono1,
@@ -922,9 +927,25 @@ export async function bulkCreatePersonas(
                 errorMessages.push(`Fila ${index + 1}: Faltan campos requeridos (primer nombre, primer apellido, fecha de nacimiento, género).`);
                 continue;
             }
+
+            const { cedula: cedulaCompleta, ...restOfData } = data;
+            let nacionalidad: string | null = null;
+            let cedulaNumero: string | null = null;
+
+            if (cedulaCompleta) {
+                const parts = cedulaCompleta.split('-');
+                if (parts.length === 2 && (parts[0] === 'V' || parts[0] === 'E') && /^\d+$/.test(parts[1])) {
+                    nacionalidad = parts[0];
+                    cedulaNumero = parts[1];
+                } else {
+                    errorMessages.push(`Fila ${index + 1}: Formato de cédula inválido '${cedulaCompleta}'. Se esperaba V-######## o E-########.`);
+                    skippedCount++;
+                    continue;
+                }
+            }
             
-            if (data.cedula) {
-                const existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', data.cedula);
+            if (nacionalidad && cedulaNumero) {
+                const existingPersona = await db.get('SELECT id FROM personas WHERE nacionalidad = ? AND cedulaNumero = ?', nacionalidad, cedulaNumero);
                 if (existingPersona) {
                     skippedCount++;
                     continue;
@@ -934,13 +955,14 @@ export async function bulkCreatePersonas(
             const personaId = generateId('p');
             
             await db.run(
-                'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 personaId,
                 data.primerNombre,
                 data.segundoNombre,
                 data.primerApellido,
                 data.segundoApellido,
-                data.cedula || null,
+                nacionalidad,
+                cedulaNumero,
                 new Date(data.fechaNacimiento).toISOString(),
                 data.genero,
                 data.telefono1,
@@ -969,26 +991,27 @@ export async function bulkCreatePersonas(
 }
 
 
-export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto'> & { fechaNacimiento: Date; representanteId?: string; }) {
+export async function updatePersona(personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; representanteId?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
     const age = calculateAge(data.fechaNacimiento);
-    if (age < 18 && !data.cedula && !data.representanteId) {
+    if (age < 18 && !data.cedulaNumero && !data.representanteId) {
         throw new Error('Un menor de edad sin cédula debe tener un representante asignado.');
     }
 
-    if (data.cedula) {
-        const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE cedula = ? AND id != ?', data.cedula, personaId);
+    if (data.nacionalidad && data.cedulaNumero) {
+        const existingPersonaWithCedula = await db.get('SELECT id FROM personas WHERE nacionalidad = ? AND cedulaNumero = ? AND id != ?', data.nacionalidad, data.cedulaNumero, personaId);
         if (existingPersonaWithCedula) {
             throw new Error('Ya existe otra persona con la misma cédula.');
         }
     }
 
     await db.run(
-        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, cedula = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ?, representanteId = ? WHERE id = ?',
+        'UPDATE personas SET primerNombre = ?, segundoNombre = ?, primerApellido = ?, segundoApellido = ?, nacionalidad = ?, cedulaNumero = ?, fechaNacimiento = ?, genero = ?, telefono1 = ?, telefono2 = ?, email = ?, direccion = ?, representanteId = ? WHERE id = ?',
         data.primerNombre, data.segundoNombre, data.primerApellido, data.segundoApellido,
-        data.cedula || null,
+        data.nacionalidad || null,
+        data.cedulaNumero || null,
         data.fechaNacimiento.toISOString(),
         data.genero,
         data.telefono1,
@@ -1158,7 +1181,9 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         SELECT
             p.id,
             ${fullNameSql} as nombreCompleto,
-            p.cedula,
+            ${fullCedulaSql} as cedula,
+            p.nacionalidad,
+            p.cedulaNumero,
             p.fechaNacimiento,
             p.genero,
             p.telefono1,
@@ -1180,7 +1205,7 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
     // Condition 2: Search query
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        whereConditions.push(`(${fullNameSql} LIKE ? OR p.cedula LIKE ? OR p.email LIKE ?)`);
+        whereConditions.push(`(${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ? OR p.email LIKE ?)`);
         params.push(searchQuery, searchQuery, searchQuery);
     }
     
@@ -1219,7 +1244,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
         SELECT
             o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
             ${fullNameSql} as pacienteNombre,
-            p.cedula as pacienteCedula,
+            ${fullCedulaSql} as pacienteCedula,
             (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
         FROM treatment_orders o
         JOIN pacientes pac ON o.pacienteId = pac.id
@@ -1229,7 +1254,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         selectQuery += `
-            WHERE ${fullNameSql} LIKE ? OR p.cedula LIKE ?
+            WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?
         `;
         params.push(searchQuery, searchQuery);
     }

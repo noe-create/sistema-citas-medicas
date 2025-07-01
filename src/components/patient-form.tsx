@@ -38,8 +38,8 @@ const patientSchema = z.object({
   segundoNombre: z.string().optional(),
   primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
   segundoApellido: z.string().optional(),
-  nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
-  cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
+  nacionalidad: z.enum(['V', 'E']).optional(),
+  cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
   fechaNacimiento: z.date({ required_error: 'La fecha de nacimiento es requerida.' }),
   genero: z.enum(['Masculino', 'Femenino'], { required_error: 'El género es requerido.' }),
   telefono1: z.string().optional(),
@@ -60,7 +60,7 @@ const patientSchema = z.object({
 }).refine(data => {
     if (data.fechaNacimiento) {
         const age = calculateAge(data.fechaNacimiento);
-        if (age < 18 && !data.cedula) {
+        if (age < 18 && !data.cedulaNumero) {
             return !!data.representanteId;
         }
     }
@@ -102,7 +102,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
         primerApellido: '',
         segundoApellido: '',
         nacionalidad: 'V',
-        cedula: '',
+        cedulaNumero: '',
         telefono1: '',
         telefono2: '',
         email: '',
@@ -115,7 +115,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
   const isPersonaSelected = !!selectedPersona;
 
   const fechaNacimiento = form.watch('fechaNacimiento');
-  const cedula = form.watch('cedula');
+  const cedulaNumero = form.watch('cedulaNumero');
   const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
 
   React.useEffect(() => {
@@ -125,25 +125,15 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     }
     if (fechaNacimiento) {
       const age = calculateAge(fechaNacimiento);
-      setShowRepresentativeField(age < 18 && !cedula);
+      setShowRepresentativeField(age < 18 && !cedulaNumero);
     } else {
       setShowRepresentativeField(false);
     }
-  }, [fechaNacimiento, cedula, isPersonaSelected]);
+  }, [fechaNacimiento, cedulaNumero, isPersonaSelected]);
 
   const handleRepresentativeSelect = (p: Persona | null) => {
     form.setValue('representanteId', p?.id || '', { shouldValidate: true });
   };
-
-
-  const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
-    if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
-    const match = cedulaStr.match(/^([VE])-?(\d+)$/);
-    if (match) {
-        return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
-    }
-    return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
-  }
 
   React.useEffect(() => {
     let personaToLoad: Persona | null = null;
@@ -154,15 +144,14 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     }
     
     if (personaToLoad) {
-        const { nacionalidad, cedula } = parseCedula(personaToLoad.cedula);
         form.reset({
           ...form.getValues(), // Keep `tipo` and `empresaId` if they were set
           primerNombre: personaToLoad.primerNombre || '',
           segundoNombre: personaToLoad.segundoNombre || '',
           primerApellido: personaToLoad.primerApellido || '',
           segundoApellido: personaToLoad.segundoApellido || '',
-          nacionalidad,
-          cedula,
+          nacionalidad: personaToLoad.nacionalidad,
+          cedulaNumero: personaToLoad.cedulaNumero,
           fechaNacimiento: new Date(personaToLoad.fechaNacimiento),
           genero: personaToLoad.genero,
           telefono1: personaToLoad.telefono1,
@@ -183,14 +172,9 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
     let submissionData: any;
-    const personaData = {
-        ...values,
-        cedula: values.cedula ? `${values.nacionalidad}-${values.cedula}` : null,
-    };
-    delete (personaData as any).nacionalidad;
 
     if (titular) { // UPDATE
-        await onSubmitted(titular.id, titular.personaId, personaData);
+        await onSubmitted(titular.id, titular.personaId, values);
     } else { // CREATE
         if (selectedPersona) {
             submissionData = {
@@ -200,7 +184,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
             };
         } else {
             submissionData = {
-                persona: personaData,
+                persona: values,
                 tipo: values.tipo,
                 empresaId: values.empresaId,
             };
@@ -263,7 +247,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
             />
             <FormField
                   control={form.control}
-                  name="cedula"
+                  name="cedulaNumero"
                   render={({ field }) => (
                       <FormItem>
                       <FormLabel className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-muted-foreground" />Número de Cédula (Opcional)</FormLabel>

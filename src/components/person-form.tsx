@@ -31,8 +31,8 @@ const personSchema = z.object({
   segundoNombre: z.string().optional(),
   primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
   segundoApellido: z.string().optional(),
-  nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
-  cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
+  nacionalidad: z.enum(['V', 'E']).optional(),
+  cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
   fechaNacimiento: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
@@ -47,7 +47,7 @@ const personSchema = z.object({
 }).refine(data => {
     if (data.fechaNacimiento) {
         const age = calculateAge(data.fechaNacimiento);
-        if (age < 18 && !data.cedula) {
+        if (age < 18 && !data.cedulaNumero) {
             return !!data.representanteId;
         }
     }
@@ -77,7 +77,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
       primerApellido: '',
       segundoApellido: '',
       nacionalidad: 'V',
-      cedula: '',
+      cedulaNumero: '',
       telefono1: '',
       telefono2: '',
       email: '',
@@ -87,17 +87,17 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
   });
 
   const fechaNacimiento = form.watch('fechaNacimiento');
-  const cedula = form.watch('cedula');
+  const cedulaNumero = form.watch('cedulaNumero');
   const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
 
   React.useEffect(() => {
     if (fechaNacimiento) {
       const age = calculateAge(fechaNacimiento);
-      setShowRepresentativeField(age < 18 && !cedula);
+      setShowRepresentativeField(age < 18 && !cedulaNumero);
     } else {
       setShowRepresentativeField(false);
     }
-  }, [fechaNacimiento, cedula]);
+  }, [fechaNacimiento, cedulaNumero]);
 
   const handleRepresentativeSelect = (p: Persona | null) => {
     form.setValue('representanteId', p?.id || '', { shouldValidate: true });
@@ -105,24 +105,14 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
 
 
   React.useEffect(() => {
-    const parseCedula = (cedulaStr?: string): { nacionalidad: 'V' | 'E', cedula: string } => {
-        if (!cedulaStr) return { nacionalidad: 'V', cedula: '' };
-        const match = cedulaStr.match(/^([VE])-?(\d+)$/);
-        if (match) {
-            return { nacionalidad: match[1] as 'V' | 'E', cedula: match[2] };
-        }
-        return { nacionalidad: 'V', cedula: cedulaStr.replace(/\D/g, '') };
-    }
-    
     if (persona) {
-        const { nacionalidad, cedula } = parseCedula(persona.cedula);
         form.reset({
           primerNombre: persona.primerNombre || '',
           segundoNombre: persona.segundoNombre || '',
           primerApellido: persona.primerApellido || '',
           segundoApellido: persona.segundoApellido || '',
-          nacionalidad: nacionalidad,
-          cedula: cedula,
+          nacionalidad: persona.nacionalidad,
+          cedulaNumero: persona.cedulaNumero,
           fechaNacimiento: persona.fechaNacimiento ? new Date(persona.fechaNacimiento) : undefined,
           genero: persona.genero || undefined,
           telefono1: persona.telefono1 || '',
@@ -138,7 +128,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
             primerApellido: '',
             segundoApellido: '',
             nacionalidad: 'V',
-            cedula: '',
+            cedulaNumero: '',
             fechaNacimiento: undefined,
             genero: undefined,
             telefono1: '',
@@ -152,12 +142,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
 
   async function onSubmit(values: PersonFormValues) {
     setIsSubmitting(true);
-    const submissionData: any = {
-        ...values,
-        cedula: values.cedula ? `${values.nacionalidad}-${values.cedula}` : null,
-    };
-    delete submissionData.nacionalidad;
-    await onSubmitted(submissionData);
+    await onSubmitted(values);
     setIsSubmitting(false);
   }
 
@@ -191,7 +176,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
             />
             <FormField
                   control={form.control}
-                  name="cedula"
+                  name="cedulaNumero"
                   render={({ field }) => (
                       <FormItem>
                       <FormLabel className="flex items-center gap-2">

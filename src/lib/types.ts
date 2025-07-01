@@ -37,7 +37,8 @@ export interface Persona {
   segundoNombre?: string;
   primerApellido: string;
   segundoApellido?: string;
-  cedula: string;
+  nacionalidad?: 'V' | 'E';
+  cedulaNumero?: string;
   fechaNacimiento: Date;
   genero: Genero;
   telefono1?: string;
@@ -45,8 +46,9 @@ export interface Persona {
   email?: string;
   direccion?: string;
   representanteId?: string;
-  // Computed property, not in DB
+  // Computed properties, not in DB
   nombreCompleto?: string; 
+  cedula?: string;
 }
 
 export interface Paciente {
@@ -90,7 +92,7 @@ export interface BeneficiarioConTitular extends Beneficiario {
 
 // For Check-in Search
 export interface SearchResult {
-  persona: Persona & { nombreCompleto: string };
+  persona: Persona & { nombreCompleto: string; cedula: string; };
   // A person can be a titular, a beneficiary of one or more titulares, or both.
   titularInfo?: {
     id: string; // titular record id
