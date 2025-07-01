@@ -14,21 +14,16 @@ import { calculateAge } from './utils';
 let db: Database | null = null;
 
 async function migratePersonaSchema(dbInstance: Database) {
-    // Check if migration is needed by looking for an old column
     const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
     
     if (cols.some(c => c.name === 'nombreCompleto')) {
-        console.log("Old 'personas' schema detected. Migrating to new schema...");
+        console.log("Old 'personas' schema with 'nombreCompleto' detected. Migrating...");
         try {
             await dbInstance.exec('BEGIN TRANSACTION;');
-
-            // 1. Rename old table
             await dbInstance.exec('ALTER TABLE personas RENAME TO personas_old;');
             
-            // 2. Create new table with the correct schema
             await createTables(dbInstance);
 
-            // 3. Migrate data from old table to new table
             await dbInstance.exec(`
                 INSERT INTO personas (id, primerNombre, primerApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email)
                 SELECT 
@@ -44,15 +39,12 @@ async function migratePersonaSchema(dbInstance: Database) {
                 FROM personas_old;
             `);
 
-            // 4. Drop the old table
             await dbInstance.exec('DROP TABLE personas_old;');
-            
             await dbInstance.exec('COMMIT;');
-            console.log("Persona schema migration completed successfully.");
+            console.log("Persona schema migration from 'nombreCompleto' completed successfully.");
         } catch (error) {
             await dbInstance.exec('ROLLBACK;');
-            console.error("Failed to migrate persona schema, rolling back.", error);
-            // If migration fails, try to restore the old table
+            console.error("Failed to migrate from 'nombreCompleto' schema, rolling back.", error);
             await dbInstance.exec('DROP TABLE IF EXISTS personas;');
             await dbInstance.exec('ALTER TABLE personas_old RENAME TO personas;');
             throw new Error("Database migration for personas table failed.");
@@ -60,86 +52,68 @@ async function migratePersonaSchema(dbInstance: Database) {
     }
 }
 
-async function migrateCedulaToNullable(dbInstance: Database) {
+async function migratePersonasTable(dbInstance: Database) {
     const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    const cedulaCol = cols.find(c => c.name === 'cedula');
-
-    if (cedulaCol && cedulaCol.notnull) { // notnull is 1 if NOT NULL, 0 otherwise
-        console.log("Migrating 'personas.cedula' to be nullable...");
-        
-        await dbInstance.exec('PRAGMA foreign_keys=OFF;');
-        await dbInstance.exec('BEGIN TRANSACTION;');
-
-        try {
-            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_temp_migration;');
-            
-            // Re-create the table with the new schema
-            await dbInstance.exec(`
-                CREATE TABLE personas (
-                    id TEXT PRIMARY KEY,
-                    primerNombre TEXT NOT NULL,
-                    segundoNombre TEXT,
-                    primerApellido TEXT NOT NULL,
-                    segundoApellido TEXT,
-                    cedula TEXT UNIQUE,
-                    fechaNacimiento TEXT NOT NULL,
-                    genero TEXT NOT NULL,
-                    telefono1 TEXT,
-                    telefono2 TEXT,
-                    email TEXT,
-                    direccion TEXT,
-                    representanteId TEXT,
-                    FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
-                );
-            `);
-            
-            // Copy the data over explicitly
-            await dbInstance.exec(`
-                INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion)
-                SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion FROM personas_temp_migration;
-            `);
-
-            await dbInstance.exec('DROP TABLE personas_temp_migration;');
-            await dbInstance.exec('COMMIT;');
-            console.log("Migration of 'personas.cedula' successful.");
-        } catch (e) {
-            console.error("Migration failed, rolling back.", e);
-            await dbInstance.exec('ROLLBACK;');
-        } finally {
-            await dbInstance.exec('PRAGMA foreign_keys=ON;');
-        }
+    if (cols.length === 0) {
+        return; // Table doesn't exist, will be created by createTables.
     }
-}
 
-async function migrateRepresentanteId(dbInstance: Database) {
-    const cols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    if (cols.length > 0 && !cols.some(c => c.name === 'representanteId')) {
-        console.log("Migrating 'personas' to add 'representanteId' column...");
+    const cedulaCol = cols.find(c => c.name === 'cedula');
+    const needsCedulaMigration = cedulaCol && cedulaCol.notnull;
+    const needsRepresentanteMigration = !cols.some(c => c.name === 'representanteId');
+
+    if (!needsCedulaMigration && !needsRepresentanteMigration) {
+        return; // Schema is up to date.
+    }
+
+    console.log("Old 'personas' schema detected. Migrating to add nullable cedula and/or representanteId...");
+
+    await dbInstance.exec('PRAGMA foreign_keys=OFF;');
+    await dbInstance.exec('BEGIN TRANSACTION;');
+
+    try {
+        await dbInstance.exec(`
+            CREATE TABLE personas_new (
+                id TEXT PRIMARY KEY,
+                primerNombre TEXT NOT NULL,
+                segundoNombre TEXT,
+                primerApellido TEXT NOT NULL,
+                segundoApellido TEXT,
+                cedula TEXT UNIQUE,
+                fechaNacimiento TEXT NOT NULL,
+                genero TEXT NOT NULL,
+                telefono1 TEXT,
+                telefono2 TEXT,
+                email TEXT,
+                direccion TEXT,
+                representanteId TEXT,
+                FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
+            );
+        `);
         
-        await dbInstance.exec('PRAGMA foreign_keys=OFF;');
-        await dbInstance.exec('BEGIN TRANSACTION;');
+        const existingCols = cols.map(c => c.name);
+        const columnsToSelect = [
+            'id', 'primerNombre', 'segundoNombre', 'primerApellido', 'segundoApellido',
+            'cedula', 'fechaNacimiento', 'genero', 'telefono1', 'telefono2', 'email', 'direccion'
+        ].filter(colName => existingCols.includes(colName));
 
-        try {
-            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_temp_representante_migration;');
-            
-            // Re-create the table with the new schema including representanteId
-            await createTables(dbInstance);
-            
-            // Copy the data over explicitly
-            await dbInstance.exec(`
-                INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion)
-                SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, cedula, fechaNacimiento, genero, telefono1, telefono2, email, direccion FROM personas_temp_representante_migration;
-            `);
+        await dbInstance.exec(`
+            INSERT INTO personas_new (${columnsToSelect.join(', ')})
+            SELECT ${columnsToSelect.join(', ')} FROM personas;
+        `);
 
-            await dbInstance.exec('DROP TABLE personas_temp_representante_migration;');
-            await dbInstance.exec('COMMIT;');
-            console.log("Migration for 'representanteId' successful.");
-        } catch (e) {
-            console.error("Migration for 'representanteId' failed, rolling back.", e);
-            await dbInstance.exec('ROLLBACK;');
-        } finally {
-            await dbInstance.exec('PRAGMA foreign_keys=ON;');
-        }
+        await dbInstance.exec('DROP TABLE personas;');
+        await dbInstance.exec('ALTER TABLE personas_new RENAME TO personas;');
+
+        await dbInstance.exec('COMMIT;');
+        console.log("Migration of 'personas' table successful.");
+
+    } catch (e) {
+        console.error("Migration of 'personas' table failed, rolling back.", e);
+        await dbInstance.exec('ROLLBACK;');
+        throw new Error("Database migration for personas table failed.");
+    } finally {
+        await dbInstance.exec('PRAGMA foreign_keys=ON;');
     }
 }
 
@@ -154,11 +128,10 @@ async function initializeDb(): Promise<Database> {
 
     await dbInstance.exec('PRAGMA foreign_keys = ON;');
     
+    // Run migrations sequentially and safely
     await migratePersonaSchema(dbInstance);
-    await migrateCedulaToNullable(dbInstance);
-    await migrateRepresentanteId(dbInstance);
+    await migratePersonasTable(dbInstance);
     
-    // --- Safe Migration for Treatment Tables ---
     const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
     if (treatmentOrdersCols.length > 0 && treatmentOrdersCols.some(col => col.name === 'procedureDescription')) {
         console.log("Old treatment table structure detected. Migrating to new schema...");
@@ -169,7 +142,6 @@ async function initializeDb(): Promise<Database> {
 
     await createTables(dbInstance);
 
-    // Simple migration: check for hasSpecialty column in roles table
     const rolesCols = await dbInstance.all("PRAGMA table_info('roles')");
     if (!rolesCols.some(col => col.name === 'hasSpecialty')) {
         await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
@@ -183,7 +155,6 @@ async function initializeDb(): Promise<Database> {
 
 async function createTables(dbInstance: Database): Promise<void> {
      await dbInstance.exec(`
-        -- RBAC Tables
         CREATE TABLE IF NOT EXISTS roles (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
@@ -198,7 +169,6 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE CASCADE
         );
 
-        -- Main Application Tables
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
@@ -316,12 +286,11 @@ async function createTables(dbInstance: Database): Promise<void> {
             description TEXT NOT NULL
         );
         
-        -- NEW Treatment Schema
         CREATE TABLE IF NOT EXISTS treatment_orders (
             id TEXT PRIMARY KEY,
             pacienteId TEXT NOT NULL,
             consultationId TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'Pendiente', -- Pendiente, En Progreso, Completado, Cancelado
+            status TEXT NOT NULL DEFAULT 'Pendiente', 
             createdAt TEXT NOT NULL,
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE,
             FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
@@ -336,7 +305,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             frecuencia TEXT,
             duracion TEXT,
             instrucciones TEXT,
-            status TEXT NOT NULL DEFAULT 'Pendiente', -- Pendiente, Administrado
+            status TEXT NOT NULL DEFAULT 'Pendiente', 
             FOREIGN KEY (treatmentOrderId) REFERENCES treatment_orders(id) ON DELETE CASCADE
         );
 
