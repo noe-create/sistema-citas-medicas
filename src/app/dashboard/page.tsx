@@ -46,7 +46,7 @@ const menuOptions: MenuOption[] = [
    {
     href: '/dashboard/hce',
     icon: <FileHeart className="h-8 w-8 text-primary" />,
-    title: 'Historia Clínica (HCE)',
+    title: 'Historia Clínica',
     description: 'Busque y consulte el historial de los pacientes.',
     roles: ['doctor', 'superuser'],
   },

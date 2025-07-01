@@ -44,7 +44,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', permission: '*', group: 'Principal' },
   { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
   { href: '/dashboard/consulta', icon: <ClipboardPlus />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
-  { href: '/dashboard/hce', icon: <FileHeart />, title: 'HCE', permission: 'hce.view', group: 'Atención' },
+  { href: '/dashboard/hce', icon: <FileHeart />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Principal' },
   
