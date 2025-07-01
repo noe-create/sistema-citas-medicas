@@ -6,11 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Badge } from './ui/badge';
 import type { PacienteConInfo } from '@/lib/types';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { getListaPacientes } from '@/actions/patient-actions';
 import { Loader2 } from 'lucide-react';
+import { calculateAge } from '@/lib/utils';
 
 export function PatientListView() {
   const { toast } = useToast();
@@ -73,7 +72,7 @@ export function PatientListView() {
                     <TableRow key={paciente.id}>
                     <TableCell className="font-medium">{paciente.nombreCompleto}</TableCell>
                     <TableCell>{paciente.cedula}</TableCell>
-                    <TableCell>{paciente.age} años</TableCell>
+                    <TableCell>{calculateAge(new Date(paciente.fechaNacimiento))} años</TableCell>
                     <TableCell>
                         {paciente.roles.map(role => (
                            <Badge key={role} variant="secondary" className="mr-1">{role}</Badge>
