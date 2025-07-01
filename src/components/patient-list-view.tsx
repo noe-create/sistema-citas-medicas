@@ -5,25 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from './ui/badge';
-import type { PacienteConInfo, Persona } from '@/lib/types';
+import type { PacienteConInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getListaPacientes, createPersona } from '@/actions/patient-actions';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { getListaPacientes } from '@/actions/patient-actions';
+import { Loader2 } from 'lucide-react';
 import { calculateAge } from '@/lib/utils';
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { useUser } from './app-shell';
-import { PersonForm } from './person-form';
 
 export function PatientListView() {
   const { toast } = useToast();
-  const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [pacientes, setPacientes] = React.useState<PacienteConInfo[]>([]);
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-
-  const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
 
   const refreshPacientes = React.useCallback(async (currentSearch: string) => {
       setIsLoading(true);
@@ -47,18 +39,6 @@ export function PatientListView() {
     return () => clearTimeout(timer);
   }, [search, refreshPacientes]);
 
-  const handleFormSubmitted = async (values: any) => {
-    try {
-      await createPersona(values);
-      toast({ title: '¡Paciente Creado!', description: `${values.primerNombre} ${values.primerApellido} ha sido añadido.` });
-      setIsFormOpen(false);
-      await refreshPacientes(search);
-    } catch (error: any) {
-      console.error("Error creating person:", error);
-      toast({ title: 'Error', description: error.message || 'No se pudo crear el paciente.', variant: 'destructive' });
-    }
-  };
-
   return (
     <>
         <Card>
@@ -76,12 +56,6 @@ export function PatientListView() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="max-w-sm"
             />
-            {canManage && (
-                <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Añadir Paciente
-                </Button>
-            )}
             </div>
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
@@ -116,7 +90,7 @@ export function PatientListView() {
                     ) : (
                     <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
-                        No se encontraron pacientes.
+                        No se encontraron pacientes con historial clínico.
                         </TableCell>
                     </TableRow>
                     )}
@@ -125,18 +99,6 @@ export function PatientListView() {
             )}
         </CardContent>
         </Card>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Añadir Nuevo Paciente</DialogTitle>
-                </DialogHeader>
-                <PersonForm
-                    persona={null}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={() => setIsFormOpen(false)}
-                />
-            </DialogContent>
-        </Dialog>
     </>
   );
 }

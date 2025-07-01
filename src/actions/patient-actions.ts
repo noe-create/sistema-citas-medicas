@@ -58,7 +58,7 @@ async function ensureDataEntryPermission() {
 
 // --- Persona Actions (Centralized Person Management) ---
 
-async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string; representanteId?: string; }): Promise<string> {
+async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fechaNacimiento'> & { fechaNacimiento: string; representanteId?: string; }) {
     let existingPersona;
     if (personaData.cedula) {
         existingPersona = await db.get('SELECT id FROM personas WHERE cedula = ?', personaData.cedula);
@@ -786,6 +786,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/hce');
     revalidatePath('/dashboard/bitacora');
+    revalidatePath('/dashboard/lista-pacientes');
     
     const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
     
@@ -1171,14 +1172,20 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         LEFT JOIN beneficiarios b ON p.id = b.personaId
     `;
     const params: any[] = [];
+    const whereConditions: string[] = [];
+
+    // Condition 1: Must have a consultation history
+    whereConditions.push('EXISTS (SELECT 1 FROM consultations c WHERE c.pacienteId = pac.id)');
+    
+    // Condition 2: Search query
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        selectQuery += `
-            WHERE ${fullNameSql} LIKE ? 
-            OR p.cedula LIKE ? 
-            OR p.email LIKE ?
-        `;
+        whereConditions.push(`(${fullNameSql} LIKE ? OR p.cedula LIKE ? OR p.email LIKE ?)`);
         params.push(searchQuery, searchQuery, searchQuery);
+    }
+    
+    if (whereConditions.length > 0) {
+        selectQuery += ` WHERE ${whereConditions.join(' AND ')}`;
     }
     
     selectQuery += ' GROUP BY p.id ORDER BY p.primerNombre, p.primerApellido';
