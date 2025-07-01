@@ -39,13 +39,18 @@ function formatSeconds(seconds: number): string {
 
 export function OperationalReport() {
   const { toast } = useToast();
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
-    to: new Date(),
-  });
+  const [date, setDate] = React.useState<DateRange | undefined>();
 
   const [reportData, setReportData] = React.useState<OperationalReportData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Set initial date on client-side to prevent hydration mismatch
+    setDate({
+      from: subDays(new Date(), 29),
+      to: new Date(),
+    });
+  }, []);
 
   const handleGenerateReport = React.useCallback(async () => {
     if (!date?.from || !date?.to) {
@@ -74,8 +79,10 @@ export function OperationalReport() {
   }, [date, toast]);
   
   React.useEffect(() => {
-    handleGenerateReport();
-  }, [handleGenerateReport]);
+    if (date) {
+        handleGenerateReport();
+    }
+  }, [date, handleGenerateReport]);
 
   const chartData = React.useMemo(() => {
     return reportData?.patientsPerDay.map(item => ({

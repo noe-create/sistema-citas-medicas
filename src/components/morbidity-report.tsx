@@ -30,10 +30,7 @@ const accountTypes: AccountType[] = ['Empleado', 'Afiliado Corporativo', 'Privad
 
 export function MorbidityReport() {
     const { toast } = useToast();
-    const [date, setDate] = React.useState<DateRange | undefined>({
-        from: subDays(new Date(), 29),
-        to: new Date(),
-    });
+    const [date, setDate] = React.useState<DateRange | undefined>();
     const [accountType, setAccountType] = React.useState<string>('all');
     const [company, setCompany] = React.useState<string>('all');
     
@@ -42,6 +39,11 @@ export function MorbidityReport() {
     const [isLoading, setIsLoading] = React.useState(false);
 
     React.useEffect(() => {
+        // Set initial date range on client-side to prevent hydration mismatch
+        setDate({
+            from: subDays(new Date(), 29),
+            to: new Date(),
+        });
         getEmpresas().then(setCompanies).catch(console.error);
     }, []);
 
@@ -78,8 +80,11 @@ export function MorbidityReport() {
     }, [date, accountType, company, toast]);
     
     React.useEffect(() => {
-        handleGenerateReport();
-    }, [handleGenerateReport]);
+        // Do not run report until date is initialized on the client
+        if (date) {
+            handleGenerateReport();
+        }
+    }, [date, handleGenerateReport]);
 
     const handleExport = (format: 'csv' | 'xlsx') => {
         if (reportData.length === 0) {
@@ -89,7 +94,7 @@ export function MorbidityReport() {
 
         const dataToExport = reportData.map(row => ({
             'Código CIE-10': row.cie10Code,
-            'Descripción': row.cie10Description,
+            'Descripción': row.description,
             'Frecuencia': row.frequency,
         }));
         
@@ -101,7 +106,7 @@ export function MorbidityReport() {
             XLSX.writeFile(workbook, 'ReporteMorbosidad.xlsx');
         } else { // CSV
             const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
-            const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([`\uFEFF${csvOutput}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
             saveAs(blob, 'ReporteMorbosidad.csv');
         }
     };
