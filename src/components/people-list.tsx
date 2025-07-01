@@ -232,7 +232,7 @@ export function PeopleList() {
                                             <li><strong className="font-semibold">Columna B:</strong> Segundo Nombre (Texto, Opcional)</li>
                                             <li><strong className="font-semibold">Columna C:</strong> Primer Apellido (Texto, Requerido)</li>
                                             <li><strong className="font-semibold">Columna D:</strong> Segundo Apellido (Texto, Opcional)</li>
-                                            <li><strong className="font-semibold">Columna E:</strong> Cédula (Texto, Requerido, ej: V-12345678)</li>
+                                            <li><strong className="font-semibold">Columna E:</strong> Cédula (Texto, Requerido). <strong>Importante:</strong> Debe incluir el prefijo de nacionalidad. Ejemplos: "V-12345678" o "E-87654321".</li>
                                             <li><strong className="font-semibold">Columna F:</strong> Teléfono 1 (Texto, Opcional, ej: 0212-5551234)</li>
                                             <li><strong className="font-semibold">Columna G:</strong> Teléfono 2 (Texto, Opcional, ej: 0414-1234567)</li>
                                             <li><strong className="font-semibold">Columna H:</strong> Dirección (Texto, Opcional)</li>
