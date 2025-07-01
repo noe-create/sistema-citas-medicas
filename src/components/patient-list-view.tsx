@@ -62,6 +62,7 @@ export function PatientListView() {
                 <TableRow>
                 <TableHead>Nombre Completo</TableHead>
                 <TableHead>Cédula</TableHead>
+                <TableHead>Edad</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Email</TableHead>
                 </TableRow>
@@ -72,6 +73,7 @@ export function PatientListView() {
                     <TableRow key={paciente.id}>
                     <TableCell className="font-medium">{paciente.nombreCompleto}</TableCell>
                     <TableCell>{paciente.cedula}</TableCell>
+                    <TableCell>{paciente.age} años</TableCell>
                     <TableCell>
                         {paciente.roles.map(role => (
                            <Badge key={role} variant="secondary" className="mr-1">{role}</Badge>
@@ -82,7 +84,7 @@ export function PatientListView() {
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                     No se encontraron pacientes.
                     </TableCell>
                 </TableRow>

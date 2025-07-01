@@ -289,6 +289,7 @@ export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'cons
 export interface PacienteConInfo extends Persona {
     roles: string[];
     nombreCompleto: string;
+    age: number;
 }
 
 export interface CreateTreatmentExecutionInput {

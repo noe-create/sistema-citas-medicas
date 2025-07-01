@@ -1189,10 +1189,12 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         const roles = [];
         if (row.isTitular) roles.push('Titular');
         if (row.isBeneficiario) roles.push('Beneficiario');
+        const birthDate = new Date(row.fechaNacimiento);
         
         return {
             ...row,
-            fechaNacimiento: new Date(row.fechaNacimiento),
+            fechaNacimiento: birthDate,
+            age: calculateAge(birthDate),
             roles: roles.length > 0 ? roles : ['Paciente'],
         };
     });
