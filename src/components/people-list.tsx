@@ -237,7 +237,7 @@ export function PeopleList() {
                                             <li><strong className="font-semibold">Columna G:</strong> Teléfono 2 (Texto, Opcional, ej: 0414-1234567)</li>
                                             <li><strong className="font-semibold">Columna H:</strong> Dirección (Texto, Opcional)</li>
                                             <li><strong className="font-semibold">Columna I:</strong> Fecha de Nacimiento (Fecha, Requerido, formato: DD/MM/AAAA)</li>
-                                            <li><strong className="font-semibold">Columna J:</strong> Sexo (Texto, Requerido, valores: 'Masculino', 'Femenino', 'Otro')</li>
+                                            <li><strong className="font-semibold">Columna J:</strong> Género (Texto, Requerido, valores: 'Masculino', 'Femenino')</li>
                                         </ul>
                                         <p>El sistema ignorará automáticamente cualquier persona cuya cédula ya exista en la base de datos.</p>
                                     </div>

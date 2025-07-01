@@ -41,7 +41,7 @@ const patientSchema = z.object({
   nacionalidad: z.enum(['V', 'E'], { required_error: 'La nacionalidad es requerida.' }),
   cedula: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
   fechaNacimiento: z.date({ required_error: 'La fecha de nacimiento es requerida.' }),
-  genero: z.enum(['Masculino', 'Femenino', 'Otro'], { required_error: 'El género es requerido.' }),
+  genero: z.enum(['Masculino', 'Femenino'], { required_error: 'El género es requerido.' }),
   telefono1: z.string().optional(),
   telefono2: z.string().optional(),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
@@ -328,7 +328,6 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
                         <SelectContent>
                             <SelectItem value="Masculino">Masculino</SelectItem>
                             <SelectItem value="Femenino">Femenino</SelectItem>
-                            <SelectItem value="Otro">Otro</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />

@@ -36,7 +36,7 @@ const personSchema = z.object({
   fechaNacimiento: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
-  genero: z.enum(['Masculino', 'Femenino', 'Otro'], {
+  genero: z.enum(['Masculino', 'Femenino'], {
     required_error: 'El género es requerido.',
   }),
   telefono1: z.string().optional(),
@@ -259,7 +259,6 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                         <SelectContent>
                             <SelectItem value="Masculino">Masculino</SelectItem>
                             <SelectItem value="Femenino">Femenino</SelectItem>
-                            <SelectItem value="Otro">Otro</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />

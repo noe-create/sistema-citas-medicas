@@ -1,6 +1,6 @@
 
 
-export type Genero = 'Masculino' | 'Femenino' | 'Otro';
+export type Genero = 'Masculino' | 'Femenino';
 export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
 export type DoctorSpecialty = 'medico general' | 'medico pediatra';
