@@ -307,7 +307,7 @@ export interface LabOrder {
     status: 'Pendiente' | 'Completado';
     tests: string[];
     // Denormalized for display
-    paciente: Persona & { nombreCompleto?: string };
+    paciente: Persona & { nombreCompleto?: string; cedula?: string; };
 }
 
 export type HistoryEntry =

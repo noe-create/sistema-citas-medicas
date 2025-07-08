@@ -1503,7 +1503,7 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
 
     revalidatePath('/dashboard/hce');
     
-    const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, pacienteId);
+    const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, pacienteId);
 
     return {
         id: orderId,

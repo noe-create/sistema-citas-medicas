@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, File as FileIcon, Trash2, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker, ChevronsUpDown, Check } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker, ChevronsUpDown, Check, File as FileIcon, HeartPulse, BrainCircuit, User, Users, Baby, Pill } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos, CreateTreatmentItemInput } from '@/lib/types';
 import { searchCie10Codes, createConsultation, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -32,6 +32,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Slider } from './ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from './ui/dialog';
 import { LabOrderForm } from './lab-order-form';
+import { Stethoscope } from 'lucide-react';
 
 
 // --- Zod Schema Definition ---
@@ -196,7 +197,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step + 1);
+            setCurrentStep(step => step - 1);
         }
     };
     
