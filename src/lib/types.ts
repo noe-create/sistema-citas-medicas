@@ -327,3 +327,10 @@ export interface OperationalReportData {
   totalPatients: number;
   patientsPerDay: { day: string; patientCount: number }[];
 }
+
+// For AI Patient Summary
+export interface PatientSummary {
+  knownAllergies: string[];
+  chronicOrImportantDiagnoses: string[];
+  currentMedications: string[];
+}

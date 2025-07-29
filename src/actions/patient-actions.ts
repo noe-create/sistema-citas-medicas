@@ -26,12 +26,15 @@ import type {
     LabOrder,
     MotivoConsulta,
     TreatmentOrderItem,
-    User
+    User,
+    PatientSummary
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { calculateAge } from '@/lib/utils';
 import { startOfDay, endOfDay } from 'date-fns';
+import { summarizePatientHistory } from '@/ai/flows/summarize-patient-history';
+
 
 // --- Helpers ---
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
@@ -121,6 +124,18 @@ export async function getPersonas(query?: string): Promise<Persona[]> {
         ...row,
         fechaNacimiento: new Date(row.fechaNacimiento),
     }));
+}
+
+export async function getPersonaById(personaId: string): Promise<Persona | null> {
+    const db = await getDb();
+    const row = await db.get(`
+        SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula
+        FROM personas p
+        WHERE p.id = ?
+    `, personaId);
+
+    if (!row) return null;
+    return { ...row, fechaNacimiento: new Date(row.fechaNacimiento) };
 }
 
 
@@ -1556,4 +1571,51 @@ export async function getTodayRegisteredPeopleCount(): Promise<number> {
         todayEnd
     );
     return result?.count || 0;
+}
+
+
+// --- HCE Patient Summary ---
+export async function getPatientSummary(personaId: string): Promise<PatientSummary> {
+  const history = await getPatientHistory(personaId);
+  
+  if (history.length === 0) {
+    return {
+      knownAllergies: [],
+      chronicOrImportantDiagnoses: [],
+      currentMedications: [],
+    };
+  }
+
+  // Format the history into a single string for the AI prompt
+  const historyString = history
+    .map(entry => {
+      if (entry.type === 'consultation') {
+        const c = entry.data;
+        let entryStr = `Fecha: ${c.consultationDate.toLocaleDateString('es-VE')}\n`;
+        entryStr += `Motivo: ${c.motivoConsulta?.sintomas.join(', ')} ${c.motivoConsulta?.otros || ''}\n`;
+        entryStr += `Enfermedad Actual: ${c.enfermedadActual || 'N/A'}\n`;
+        if (c.antecedentesPersonales?.alergicos?.length) {
+            entryStr += `Alergias Registradas: ${c.antecedentesPersonales.alergicos.join(', ')}\n`;
+        }
+         if (c.antecedentesPersonales?.alergicosOtros) {
+            entryStr += `Otras Alergias: ${c.antecedentesPersonales.alergicosOtros}\n`;
+        }
+        if (c.antecedentesPersonales?.medicamentos) {
+            entryStr += `Medicamentos Anteriores: ${c.antecedentesPersonales.medicamentos}\n`;
+        }
+        entryStr += `Diagnósticos: ${c.diagnoses.map(d => `${d.cie10Description} (${d.cie10Code})`).join('; ')}\n`;
+        entryStr += `Plan de Tratamiento: ${c.treatmentPlan || 'N/A'}\n`;
+        if (c.treatmentOrder?.items.length) {
+            entryStr += `Receta: ${c.treatmentOrder.items.map(i => `${i.medicamentoProcedimiento} ${i.dosis || ''}`).join('; ')}\n`;
+        }
+        return entryStr;
+      }
+      return '';
+    })
+    .join('\n---\n');
+    
+  // Call the AI flow to get the summary
+  const summary = await summarizePatientHistory({ history: historyString });
+
+  return summary;
 }
