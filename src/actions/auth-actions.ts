@@ -73,7 +73,7 @@ export async function login(
   }
 
   revalidatePath('/', 'layout');
-  return { success: true };
+  redirect('/dashboard');
 }
 
 

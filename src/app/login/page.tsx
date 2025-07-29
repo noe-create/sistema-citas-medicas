@@ -23,14 +23,7 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
-
-  React.useEffect(() => {
-    if (state.success) {
-      router.push('/dashboard');
-    }
-  }, [state, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
