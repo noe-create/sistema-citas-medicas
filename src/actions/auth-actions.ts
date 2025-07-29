@@ -72,6 +72,7 @@ export async function login(
     return 'Ha ocurrido un error inesperado.';
   }
 
+  revalidatePath('/', 'layout');
   redirect('/dashboard');
 }
 
