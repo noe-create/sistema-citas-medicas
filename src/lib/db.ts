@@ -301,6 +301,18 @@ async function createTables(dbInstance: Database): Promise<void> {
             testName TEXT NOT NULL,
             FOREIGN KEY (labOrderId) REFERENCES lab_orders(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS appointments (
+            id TEXT PRIMARY KEY,
+            pacienteId TEXT NOT NULL,
+            doctorId TEXT NOT NULL,
+            start TEXT NOT NULL,
+            end TEXT NOT NULL,
+            motivo TEXT,
+            status TEXT NOT NULL,
+            FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE,
+            FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
+        );
     `);
 }
 
@@ -322,9 +334,9 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await stmt.finalize();
 
         const rolePermissions = {
-            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage'],
-            asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
-            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage'],
+            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'agenda.manage'],
+            asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage', 'agenda.manage'],
+            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage', 'agenda.manage'],
             enfermera: ['treatmentlog.manage', 'waitlist.manage'],
         };
 

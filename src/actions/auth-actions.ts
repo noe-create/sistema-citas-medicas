@@ -115,6 +115,34 @@ export async function getUsers(query?: string): Promise<(User & {roleName: strin
     }));
 }
 
+export async function getDoctors(): Promise<(User & { name: string })[]> {
+    const db = await getDb();
+    const rows = await db.all(`
+        SELECT 
+            u.id, 
+            u.username, 
+            u.specialty, 
+            u.personaId, 
+            r.id as roleId, 
+            r.name as roleName,
+            COALESCE(TRIM(p.primerNombre || ' ' || p.primerApellido), u.username) as name
+        FROM users u
+        JOIN roles r ON u.roleId = r.id
+        LEFT JOIN personas p ON u.personaId = p.id
+        WHERE r.name = 'Doctor' OR r.name = 'Superusuario'
+        ORDER BY name
+    `);
+    
+    return rows.map(row => ({
+        id: row.id,
+        username: row.username,
+        name: row.name,
+        role: { id: row.roleId, name: row.roleName },
+        specialty: row.specialty,
+        personaId: row.personaId,
+    }));
+}
+
 export async function createUser(data: {
     username: string;
     password?: string;

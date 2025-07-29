@@ -16,6 +16,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   { id: 'patientlist.view', name: 'Ver Lista de Pacientes', description: 'Permite consultar la lista de todos los pacientes con HCE.', module: 'Admisión' },
 
   // Flujo de Atención
+  { id: 'agenda.manage', name: 'Gestionar Agenda', description: 'Permite ver, crear y modificar citas en la agenda.', module: 'Atención' },
   { id: 'waitlist.manage', name: 'Gestionar Sala de Espera', description: 'Permite registrar pacientes y cambiar su estado en la cola.', module: 'Atención' },
   { id: 'consultation.perform', name: 'Realizar Consulta Médica', description: 'Permite acceder al módulo de consulta para atender pacientes.', module: 'Atención' },
   { id: 'hce.view', name: 'Ver Historia Clínica (HCE)', description: 'Permite buscar y consultar el historial clínico de los pacientes.', module: 'Atención' },

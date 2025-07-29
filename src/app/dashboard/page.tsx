@@ -13,6 +13,7 @@ import {
   Code2,
   AreaChart,
   UserCog,
+  CalendarDays,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { getWaitlistCount, getTodayConsultationsCount, getTodayRegisteredPeopleCount } from '@/actions/patient-actions';
@@ -28,6 +29,13 @@ interface MenuOption {
 }
 
 const menuOptions: MenuOption[] = [
+  {
+    href: '/dashboard/agenda',
+    icon: <CalendarDays className="h-6 w-6 text-primary" />,
+    title: 'Agenda',
+    description: 'Gestione las citas programadas de los pacientes.',
+    permission: 'agenda.manage',
+  },
   {
     href: '/dashboard/sala-de-espera',
     icon: <Clock className="h-6 w-6 text-primary" />,

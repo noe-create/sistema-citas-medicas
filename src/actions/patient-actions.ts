@@ -28,7 +28,8 @@ import type {
     MotivoConsulta,
     TreatmentOrderItem,
     User,
-    PatientSummary
+    PatientSummary,
+    Appointment
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -1626,4 +1627,64 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
   const summary = await summarizePatientHistory({ history: historyString });
 
   return summary;
+}
+
+// --- Agenda / Appointments ---
+
+export async function getAppointments(startDate: Date, endDate: Date): Promise<Appointment[]> {
+    const db = await getDb();
+    const rows = await db.all<any[]>(
+        `SELECT
+            a.id,
+            a.start,
+            a.end,
+            a.pacienteId,
+            a.doctorId,
+            a.motivo,
+            a.status,
+            p.primerNombre || ' ' || p.primerApellido as pacienteName,
+            u_p.primerNombre || ' ' || u_p.primerApellido as doctorName
+         FROM appointments a
+         JOIN pacientes pac ON a.pacienteId = pac.id
+         JOIN personas p ON pac.personaId = p.id
+         JOIN users u ON a.doctorId = u.id
+         LEFT JOIN personas u_p ON u.personaId = u_p.id
+         WHERE a.start BETWEEN ? AND ?`,
+        startDate.toISOString(),
+        endDate.toISOString()
+    );
+    
+    return rows.map(row => ({
+        id: row.id,
+        start: new Date(row.start),
+        end: new Date(row.end),
+        title: `${row.pacienteName} - Dr. ${row.doctorName || 'N/A'}`,
+        pacienteId: row.pacienteId,
+        doctorId: row.doctorId,
+        motivo: row.motivo,
+        status: row.status,
+        pacienteName: row.pacienteName,
+        doctorName: row.doctorName,
+    }));
+}
+
+export async function createAppointment(data: Omit<Appointment, 'id' | 'title' | 'pacienteName' | 'doctorName'>): Promise<Appointment> {
+    const db = await getDb();
+    const newId = generateId('appt');
+    
+    await db.run(
+        'INSERT INTO appointments (id, pacienteId, doctorId, start, end, motivo, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        newId,
+        data.pacienteId,
+        data.doctorId,
+        data.start.toISOString(),
+        data.end.toISOString(),
+        data.motivo,
+        data.status
+    );
+    
+    revalidatePath('/dashboard/agenda');
+
+    const created = await db.get('SELECT * FROM appointments WHERE id = ?', newId);
+    return { ...created, start: new Date(created.start), end: new Date(created.end) };
 }
