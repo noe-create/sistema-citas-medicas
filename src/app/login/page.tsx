@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,7 @@ function LoginButton() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [state, formAction] = useFormState(login, { error: undefined, success: false });
+  const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   React.useEffect(() => {
     if (state.success) {
