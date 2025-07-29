@@ -31,6 +31,7 @@ import type {
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { calculateAge } from '@/lib/utils';
+import { startOfDay, endOfDay } from 'date-fns';
 
 // --- Helpers ---
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
@@ -73,7 +74,7 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
     
     const personaId = generateId('p');
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         personaData.primerNombre,
         personaData.segundoNombre,
@@ -87,7 +88,8 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
         personaData.telefono2,
         personaData.email,
         personaData.direccion,
-        personaData.representanteId || null
+        personaData.representanteId || null,
+        new Date().toISOString()
     );
 
     await getOrCreatePaciente(db, personaId);
@@ -872,7 +874,7 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 
 // --- Central Person Management Actions ---
 
-export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date, representanteId?: string }) {
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula' | 'createdAt'> & { fechaNacimiento: Date, representanteId?: string }) {
     await ensureDataEntryPermission();
     const db = await getDb();
     
@@ -891,7 +893,7 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
     const personaId = generateId('p');
 
     await db.run(
-        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         personaId,
         data.primerNombre,
         data.segundoNombre,
@@ -905,7 +907,8 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
         data.telefono2,
         data.email,
         data.direccion,
-        data.representanteId || null
+        data.representanteId || null,
+        new Date().toISOString()
     );
 
     await getOrCreatePaciente(db, personaId);
@@ -961,7 +964,7 @@ export async function bulkCreatePersonas(
             const personaId = generateId('p');
             
             await db.run(
-                'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 personaId,
                 data.primerNombre,
                 data.segundoNombre,
@@ -974,7 +977,8 @@ export async function bulkCreatePersonas(
                 data.telefono1,
                 data.telefono2,
                 data.email,
-                data.direccion
+                data.direccion,
+                new Date().toISOString()
             );
             
             await getOrCreatePaciente(db, personaId);
@@ -1517,4 +1521,39 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
             fechaNacimiento: new Date(persona.fechaNacimiento),
         }
     };
+}
+
+
+// --- Dashboard KPI Actions ---
+
+export async function getWaitlistCount(): Promise<number> {
+    const db = await getDb();
+    const result = await db.get("SELECT COUNT(*) as count FROM waitlist WHERE status NOT IN ('Completado', 'Cancelado')");
+    return result?.count || 0;
+}
+
+export async function getTodayConsultationsCount(): Promise<number> {
+    const db = await getDb();
+    const todayStart = startOfDay(new Date()).toISOString();
+    const todayEnd = endOfDay(new Date()).toISOString();
+    
+    const result = await db.get(
+        "SELECT COUNT(*) as count FROM consultations WHERE consultationDate BETWEEN ? AND ?",
+        todayStart,
+        todayEnd
+    );
+    return result?.count || 0;
+}
+
+export async function getTodayRegisteredPeopleCount(): Promise<number> {
+    const db = await getDb();
+    const todayStart = startOfDay(new Date()).toISOString();
+    const todayEnd = endOfDay(new Date()).toISOString();
+    
+    const result = await db.get(
+        "SELECT COUNT(*) as count FROM personas WHERE createdAt BETWEEN ? AND ?",
+        todayStart,
+        todayEnd
+    );
+    return result?.count || 0;
 }

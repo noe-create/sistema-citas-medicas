@@ -85,6 +85,12 @@ async function runMigrations(dbInstance: Database) {
     if (rolesCols.length > 0 && !rolesCols.some(col => col.name === 'hasSpecialty')) {
         await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
     }
+    
+    // Migration to add createdAt to personas
+    if (personasCols.length > 0 && !personasCols.some(c => c.name === 'createdAt')) {
+        await dbInstance.exec('ALTER TABLE personas ADD COLUMN createdAt TEXT');
+        console.log("Added createdAt column to personas table.");
+    }
 
     await dbInstance.exec('PRAGMA foreign_keys=ON;');
 }
@@ -160,6 +166,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             email TEXT,
             direccion TEXT,
             representanteId TEXT,
+            createdAt TEXT,
             UNIQUE(nacionalidad, cedulaNumero),
             FOREIGN KEY (representanteId) REFERENCES personas(id) ON DELETE SET NULL
         );
@@ -354,9 +361,9 @@ async function seedDb(dbInstance: Database): Promise<void> {
              { id: "p5", p_nombre: "Laura", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876543", fecha: "2010-06-15T04:00:00.000Z", gen: "Femenino", email: "laura.r@email.com", dir: null },
              { id: "p6", p_nombre: "David", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876544", fecha: "2012-09-20T04:00:00.000Z", gen: "Masculino", email: "david.r@email.com", dir: null },
         ];
-        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)');
+        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)');
         for (const p of personas) {
-            await personaStmt.run(p.id, p.p_nombre, p.s_nombre, p.p_apellido, p.s_apellido, p.nac, p.ced, p.fecha, p.gen, p.tel1, p.tel2, p.email, p.dir);
+            await personaStmt.run(p.id, p.p_nombre, p.s_nombre, p.p_apellido, p.s_apellido, p.nac, p.ced, p.fecha, p.gen, p.tel1, p.tel2, p.email, p.dir, new Date(p.fecha).toISOString());
         }
         await personaStmt.finalize();
 
@@ -376,7 +383,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { id: "b1", personaId: "p5", titularId: "t1" },
             { id: "b2", personaId: "p6", titularId: "t1" },
         ];
-        const beneficiarioStmt = await dbInstance.prepare('INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?, ?)');
+        const beneficiarioStmt = await dbInstance.prepare('INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)');
         for (const b of beneficiarios) {
             await beneficiarioStmt.run(b.id, b.personaId, b.titularId);
         }

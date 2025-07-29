@@ -46,6 +46,7 @@ export interface Persona {
   email?: string;
   direccion?: string;
   representanteId?: string;
+  createdAt?: string;
   // Computed properties, not in DB
   nombreCompleto?: string; 
   cedula?: string;
