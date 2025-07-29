@@ -1,6 +1,4 @@
-import { authorize } from "@/lib/auth";
 
 export default async function RolesLayout({ children }: { children: React.ReactNode }) {
-  await authorize('roles.manage');
   return <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">{children}</div>;
 }
