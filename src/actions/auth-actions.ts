@@ -13,15 +13,15 @@ import 'server-only';
 import { revalidatePath } from 'next/cache';
 
 export async function login(
-  prevState: string | undefined,
+  prevState: any,
   formData: FormData
-): Promise<string | undefined> {
+): Promise<{ error?: string; success?: boolean }> {
   const db = await getDb();
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
   if (!username || !password) {
-    return 'Por favor, ingrese usuario y contraseña.';
+    return { error: 'Por favor, ingrese usuario y contraseña.' };
   }
 
   try {
@@ -38,13 +38,13 @@ export async function login(
     );
 
     if (!userRow) {
-      return 'Usuario o contraseña incorrectos.';
+      return { error: 'Usuario o contraseña incorrectos.' };
     }
 
     const passwordMatch = await bcrypt.compare(password, userRow.password);
 
     if (!passwordMatch) {
-      return 'Usuario o contraseña incorrectos.';
+      return { error: 'Usuario o contraseña incorrectos.' };
     }
 
     const session = await getIronSession<SessionData>(cookies(), sessionOptions);
@@ -69,11 +69,11 @@ export async function login(
     
   } catch (error) {
     console.error('Login error:', error);
-    return 'Ha ocurrido un error inesperado.';
+    return { error: 'Ha ocurrido un error inesperado.' };
   }
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  return { success: true };
 }
 
 

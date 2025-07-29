@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
 import { Loader2 } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function LoginButton() {
@@ -21,7 +22,14 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const [errorMessage, formAction] = React.useActionState(login, undefined);
+  const router = useRouter();
+  const [state, formAction] = useFormState(login, { error: undefined, success: false });
+
+  React.useEffect(() => {
+    if (state.success) {
+      router.push('/dashboard');
+    }
+  }, [state, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
@@ -45,10 +53,10 @@ export default function LoginPage() {
               <Label htmlFor="password">Contraseña</Label>
               <Input id="password" name="password" type="password" required />
             </div>
-             {errorMessage && (
+             {state.error && (
                 <Alert variant="destructive">
                     <AlertTitle>Error de Autenticación</AlertTitle>
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription>{state.error}</AlertDescription>
                 </Alert>
             )}
           </CardContent>
