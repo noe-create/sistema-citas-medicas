@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Loader2, User, Calendar, Clock, Stethoscope } from 'lucide-react';
 import type { Persona, User as Doctor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getPacienteByPersonaId, createAppointment, getDoctors } from '@/actions/patient-actions';
+import { getPacienteByPersonaId, createAppointment } from '@/actions/patient-actions';
+import { getDoctors } from '@/actions/auth-actions';
 import { PersonaSearch } from './persona-search';
 import { addMinutes, format } from 'date-fns';
 
