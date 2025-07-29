@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Role, Permission } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -103,7 +103,7 @@ export function RoleManagement() {
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : roles.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -113,8 +113,7 @@ export function RoleManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {roles.length > 0 ? (
-                  roles.map((role) => (
+                {roles.map((role) => (
                     <TableRow key={role.id}>
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell>{role.description}</TableCell>
@@ -158,16 +157,15 @@ export function RoleManagement() {
                         </AlertDialog>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
-                      No se encontraron roles.
-                    </TableCell>
-                  </TableRow>
-                )}
+                  ))}
               </TableBody>
             </Table>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Shield className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No se han encontrado roles</h3>
+                <p className="text-sm">Puede crear el primer rol de seguridad usando el botón de arriba.</p>
+            </div>
           )}
         </CardContent>
       </Card>

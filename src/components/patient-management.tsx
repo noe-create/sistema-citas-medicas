@@ -147,7 +147,7 @@ export function PatientManagement() {
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : titulares.length > 0 ? (
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -160,8 +160,7 @@ export function PatientManagement() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {titulares.length > 0 ? (
-                    titulares.map((titular) => (
+                    {titulares.map((titular) => (
                         <TableRow key={titular.id}>
                         <TableCell className="font-medium">{titular.persona.nombreCompleto}</TableCell>
                         <TableCell>{titular.persona.cedula}</TableCell>
@@ -224,16 +223,15 @@ export function PatientManagement() {
                             </AlertDialog>
                         </TableCell>
                         </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                            No se encontraron titulares.
-                        </TableCell>
-                    </TableRow>
-                )}
+                    ))}
                 </TableBody>
             </Table>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Users className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No se encontraron titulares</h3>
+                <p className="text-sm">Puede crear un nuevo titular usando el botón de arriba.</p>
+            </div>
           )}
         </CardContent>
       </Card>

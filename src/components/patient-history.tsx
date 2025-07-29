@@ -53,10 +53,10 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-secondary/50 rounded-lg">
-        <ClipboardCheck className="h-10 w-10 mb-2" />
-        <p className="font-semibold">No hay historial clínico</p>
-        <p className="text-sm">Esta es la primera visita del paciente.</p>
+      <div className="flex flex-col items-center justify-center h-96 text-center text-muted-foreground bg-card rounded-lg border border-dashed">
+        <ClipboardCheck className="h-12 w-12 mb-4" />
+        <h3 className="text-xl font-semibold">No hay historial clínico</h3>
+        <p className="text-sm max-w-sm">Esta persona aún no tiene consultas ni órdenes de laboratorio registradas en el sistema.</p>
       </div>
     );
   }

@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import type { Cie10Code } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Download, Upload, ChevronLeft, ChevronRight, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -257,7 +257,7 @@ export function Cie10Management() {
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : codes.length > 0 ? (
             <>
             <div className="rounded-md border">
               <Table>
@@ -269,8 +269,7 @@ export function Cie10Management() {
                   </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {codes.length > 0 ? (
-                    codes.map((code) => (
+                    {codes.map((code) => (
                       <TableRow key={code.code}>
                       <TableCell className="font-mono font-semibold">{code.code}</TableCell>
                       <TableCell>{code.description}</TableCell>
@@ -315,14 +314,7 @@ export function Cie10Management() {
                           </AlertDialog>
                       </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                      <TableRow>
-                          <TableCell colSpan={3} className="h-24 text-center">
-                              No se encontraron códigos. Pruebe a crear uno nuevo.
-                          </TableCell>
-                      </TableRow>
-                  )}
+                    ))}
                   </TableBody>
               </Table>
             </div>
@@ -348,6 +340,12 @@ export function Cie10Management() {
                 </Button>
             </div>
             </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Code2 className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No se encontraron códigos CIE-10</h3>
+                <p className="text-sm">Puede añadir el primer código manualmente o importar un catálogo.</p>
+            </div>
           )}
         </CardContent>
       </Card>

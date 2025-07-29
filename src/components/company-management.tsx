@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Empresa } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -74,7 +74,7 @@ export function CompanyManagement() {
       handleCloseDialog();
       const empresasData = await getEmpresas(search);
       setEmpresas(empresasData);
-    } catch (error: any) {
+    } catch (error: any) => {
       console.error("Error al guardar empresa:", error);
       toast({ title: 'Error', description: error.message || 'No se pudo guardar la empresa.', variant: 'destructive' });
     }
@@ -91,6 +91,8 @@ export function CompanyManagement() {
         toast({ title: 'Error al Eliminar', description: error.message || 'No se pudo eliminar la empresa.', variant: 'destructive' });
     }
   }
+
+  const canCreate = user.role.id === 'superuser' || user.role.id === 'administrator';
 
   return (
     <>
@@ -109,7 +111,7 @@ export function CompanyManagement() {
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm"
             />
-            {(user.role.id === 'superuser' || user.role.id === 'administrator') && (
+            {canCreate && (
               <Button onClick={() => handleOpenForm(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Añadir Empresa
@@ -120,7 +122,7 @@ export function CompanyManagement() {
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : empresas.length > 0 ? (
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -132,15 +134,14 @@ export function CompanyManagement() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {empresas.length > 0 ? (
-                  empresas.map((empresa) => (
+                  {empresas.map((empresa) => (
                     <TableRow key={empresa.id}>
                     <TableCell className="font-medium">{empresa.name}</TableCell>
                     <TableCell>{empresa.rif}</TableCell>
                     <TableCell>{empresa.telefono}</TableCell>
                     <TableCell className="max-w-xs truncate">{empresa.direccion}</TableCell>
                     <TableCell className="text-right">
-                        {(user.role.id === 'superuser' || user.role.id === 'administrator') && (
+                        {canCreate && (
                             <AlertDialog>
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -182,16 +183,15 @@ export function CompanyManagement() {
                         )}
                     </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                            No se encontraron empresas.
-                        </TableCell>
-                    </TableRow>
-                )}
+                  ))}
                 </TableBody>
             </Table>
+          ) : (
+             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Building2 className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No se han encontrado empresas</h3>
+                <p className="text-sm">Puede crear la primera empresa usando el botón de arriba.</p>
+            </div>
           )}
         </CardContent>
       </Card>

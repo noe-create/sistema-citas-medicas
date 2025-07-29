@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { getAllBeneficiarios } from '@/actions/patient-actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 
 export function BeneficiaryList() {
   const { toast } = useToast();
@@ -57,7 +57,7 @@ export function BeneficiaryList() {
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-        ) : (
+        ) : beneficiarios.length > 0 ? (
             <Table>
             <TableHeader>
                 <TableRow>
@@ -69,8 +69,7 @@ export function BeneficiaryList() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {beneficiarios.length > 0 ? (
-                beneficiarios.map((beneficiario) => (
+                {beneficiarios.map((beneficiario) => (
                     <TableRow key={beneficiario.id}>
                     <TableCell className="font-medium">{beneficiario.persona.nombreCompleto}</TableCell>
                     <TableCell>{beneficiario.persona.cedula}</TableCell>
@@ -80,16 +79,15 @@ export function BeneficiaryList() {
                         <Badge variant="secondary">{beneficiario.titularNombre}</Badge>
                     </TableCell>
                     </TableRow>
-                ))
-                ) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                    No se encontraron beneficiarios.
-                    </TableCell>
-                </TableRow>
-                )}
+                ))}
             </TableBody>
             </Table>
+        ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Users className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No se encontraron beneficiarios</h3>
+                <p className="text-sm">Pruebe a cambiar su búsqueda o añada beneficiarios a un titular.</p>
+            </div>
         )}
       </CardContent>
     </Card>

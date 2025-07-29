@@ -8,7 +8,7 @@ import { Badge } from './ui/badge';
 import type { PacienteConInfo } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getListaPacientes } from '@/actions/patient-actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { calculateAge } from '@/lib/utils';
 
 export function PatientListView() {
@@ -61,7 +61,7 @@ export function PatientListView() {
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-            ) : (
+            ) : pacientes.length > 0 ? (
                 <Table>
                 <TableHeader>
                     <TableRow>
@@ -73,8 +73,7 @@ export function PatientListView() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {pacientes.length > 0 ? (
-                    pacientes.map((paciente) => (
+                    {pacientes.map((paciente) => (
                         <TableRow key={paciente.id}>
                         <TableCell className="font-medium">{paciente.nombreCompleto}</TableCell>
                         <TableCell>{paciente.cedula}</TableCell>
@@ -86,16 +85,15 @@ export function PatientListView() {
                         </TableCell>
                         <TableCell>{paciente.email || 'N/A'}</TableCell>
                         </TableRow>
-                    ))
-                    ) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                        No se encontraron pacientes con historial clínico.
-                        </TableCell>
-                    </TableRow>
-                    )}
+                    ))}
                 </TableBody>
                 </Table>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                    <Users className="h-12 w-12 mb-4" />
+                    <h3 className="text-xl font-semibold">No se encontraron pacientes</h3>
+                    <p className="text-sm">Parece que ningún paciente tiene un historial clínico aún.</p>
+                </div>
             )}
         </CardContent>
         </Card>

@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import * as React from 'react';
 import type { TreatmentOrder, TreatmentOrderItem } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, CheckCircle, XCircle, ClipboardCheck } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, CheckCircle, XCircle, ClipboardCheck, Syringe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -118,10 +119,9 @@ export function TreatmentLogManagement() {
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : orders.length > 0 ? (
             <Accordion type="single" collapsible className="w-full">
-                {orders.length > 0 ? (
-                  orders.map((order) => (
+                {orders.map((order) => (
                     <AccordionItem value={order.id} key={order.id}>
                         <AccordionTrigger>
                            <div className="flex justify-between items-center w-full pr-4">
@@ -181,13 +181,14 @@ export function TreatmentLogManagement() {
                            </div>
                         </AccordionContent>
                     </AccordionItem>
-                  ))
-                ) : (
-                  <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
-                    No se encontraron órdenes de tratamiento pendientes.
-                  </div>
-                )}
+                ))}
               </Accordion>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                <Syringe className="h-12 w-12 mb-4" />
+                <h3 className="text-xl font-semibold">No hay órdenes de tratamiento</h3>
+                <p className="text-sm">Las órdenes de tratamiento se generan desde el módulo de consulta.</p>
+            </div>
           )}
         </CardContent>
       </Card>

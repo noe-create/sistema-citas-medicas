@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { getPersonas, createPersona, updatePersona, deletePersona, bulkCreatePersonas } from '@/actions/patient-actions';
-import { Loader2, MoreHorizontal, Pencil, PlusCircle, Trash2, Upload } from 'lucide-react';
+import { Loader2, MoreHorizontal, Pencil, PlusCircle, Trash2, Upload, Contact } from 'lucide-react';
 import { Button } from './ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -38,7 +38,7 @@ export function PeopleList() {
       try {
         const data = await getPersonas(currentSearch);
         setPersonas(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al buscar personas:", error);
         toast({ title: 'Error', description: 'No se pudieron cargar las personas.', variant: 'destructive' });
       } finally {
@@ -262,7 +262,7 @@ export function PeopleList() {
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-            ) : (
+            ) : personas.length > 0 ? (
                 <Table>
                 <TableHeader>
                     <TableRow>
@@ -275,8 +275,7 @@ export function PeopleList() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {personas.length > 0 ? (
-                    personas.map((persona) => (
+                    {personas.map((persona) => (
                         <TableRow key={persona.id}>
                         <TableCell className="font-medium">{persona.nombreCompleto}</TableCell>
                         <TableCell>{persona.cedula}</TableCell>
@@ -325,16 +324,15 @@ export function PeopleList() {
                         )}
                         </TableCell>
                         </TableRow>
-                    ))
-                    ) : (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                        No se encontraron personas.
-                        </TableCell>
-                    </TableRow>
-                    )}
+                    ))}
                 </TableBody>
                 </Table>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
+                    <Contact className="h-12 w-12 mb-4" />
+                    <h3 className="text-xl font-semibold">No se han encontrado personas</h3>
+                    <p className="text-sm">Puede crear la primera persona usando el botón de arriba.</p>
+                </div>
             )}
         </CardContent>
         </Card>

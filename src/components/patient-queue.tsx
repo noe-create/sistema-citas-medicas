@@ -12,6 +12,7 @@ import {
   PlayCircle,
   MoreHorizontal,
   XCircle,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus, User } from '@/lib/types';
@@ -212,6 +213,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     return 'md:grid-cols-3';
   }, [visibleServices.length]);
 
+  const totalPatientsInQueue = (patients || []).length;
 
   return (
     <>
@@ -230,7 +232,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                     <div className="space-y-4">
                     {(!groupedPatients[service] || groupedPatients[service].length === 0) ? (
                         <div className="flex items-center justify-center h-full text-sm text-muted-foreground pt-10">
-                            No hay pacientes en espera.
+                            No hay pacientes en esta cola.
                         </div>
                     ) : (
                         groupedPatients[service].map((patient) => {
@@ -321,6 +323,13 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
             </CardContent>
           </Card>
         ))}
+        {totalPatientsInQueue === 0 && (
+            <div className={`col-span-1 ${gridColsClass} flex flex-col items-center justify-center h-96 text-center text-muted-foreground bg-card rounded-md border border-dashed`}>
+                <ClipboardCheck className="h-16 w-16 mb-4" />
+                <h3 className="text-2xl font-semibold">Sala de Espera Despejada</h3>
+                <p className="text-md">No hay pacientes en cola en este momento.</p>
+            </div>
+        )}
       </div>
 
       {selectedPatient && (
