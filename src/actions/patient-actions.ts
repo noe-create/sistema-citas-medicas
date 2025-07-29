@@ -662,7 +662,10 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     const db = await getDb();
     
     const paciente = await db.get('SELECT id FROM pacientes WHERE personaId = ?', personaId);
-    if (!paciente) return [];
+    if (!paciente) {
+        console.log(`No patient record found for personaId: ${personaId}`);
+        return [];
+    }
 
     const consultationsRows = await db.all(
         'SELECT * FROM consultations WHERE pacienteId = ? ORDER BY consultationDate DESC',

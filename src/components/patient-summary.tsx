@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getPatientSummary, getPersonaById } from '@/actions/patient-actions';
+import { getPatientSummary } from '@/actions/patient-actions';
 import type { PatientSummary, Persona } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, BrainCircuit, HeartPulse, Loader2, Thermometer, User, FileText, Pill, Siren } from 'lucide-react';
@@ -29,9 +29,7 @@ export function PatientSummary({ persona }: PatientSummaryProps) {
       if (!persona?.id) return;
       setIsLoading(true);
       try {
-        const [summaryData] = await Promise.all([
-          getPatientSummary(persona.id)
-        ]);
+        const summaryData = await getPatientSummary(persona.id);
         setSummary(summaryData);
       } catch (error) {
         console.error('Error fetching patient summary:', error);
@@ -47,34 +45,13 @@ export function PatientSummary({ persona }: PatientSummaryProps) {
 
     fetchSummary();
   }, [persona, toast]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex justify-center items-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="ml-2">Analizando historial clínico con IA...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!summary) {
-    return (
-      <Card>
-        <CardContent className="flex justify-center items-center h-96 text-muted-foreground">
-          No se pudo generar el resumen.
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
   const age = calculateAge(new Date(persona.fechaNacimiento));
   
-  const hasContent = 
+  const hasContent = summary && (
     summary.knownAllergies.length > 0 ||
     summary.chronicOrImportantDiagnoses.length > 0 ||
-    summary.currentMedications.length > 0;
+    summary.currentMedications.length > 0);
 
   return (
     <div className="space-y-4">
