@@ -661,15 +661,12 @@ function parseConsultation(row: any) {
 export async function getPatientHistory(personaId: string): Promise<HistoryEntry[]> {
     const db = await getDb();
     
-    const paciente = await db.get('SELECT id FROM pacientes WHERE personaId = ?', personaId);
-    if (!paciente) {
-        console.log(`No patient record found for personaId: ${personaId}`);
-        return [];
-    }
-
     const consultationsRows = await db.all(
-        'SELECT * FROM consultations WHERE pacienteId = ? ORDER BY consultationDate DESC',
-        paciente.id
+        `SELECT c.* FROM consultations c
+         JOIN pacientes pac ON c.pacienteId = pac.id
+         WHERE pac.personaId = ?
+         ORDER BY c.consultationDate DESC`,
+        personaId
     );
 
     const consultations: HistoryEntry[] = await Promise.all(
@@ -698,10 +695,17 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
         })
     );
 
-    const labOrdersRows = await db.all('SELECT * FROM lab_orders WHERE pacienteId = ? ORDER BY orderDate DESC', paciente.id);
+    const labOrdersRows = await db.all(
+        `SELECT lo.* FROM lab_orders lo
+         JOIN pacientes pac ON lo.pacienteId = pac.id
+         WHERE pac.personaId = ?
+         ORDER BY lo.orderDate DESC`,
+        personaId
+    );
+    
     const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
         const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
-        const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, order.pacienteId);
+        const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p WHERE p.id = ?`, personaId);
         return {
             type: 'lab_order' as const,
             data: {
