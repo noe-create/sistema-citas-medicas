@@ -1,6 +1,7 @@
 
 
 'use server';
+import 'dotenv/config';
 
 import { getDb } from '@/lib/db';
 import type { 
