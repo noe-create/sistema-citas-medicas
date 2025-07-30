@@ -56,8 +56,8 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
         sidebar: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
           border: 'hsl(var(--border))',
           ring: 'hsl(var(--ring))',
           accent: 'hsl(var(--primary) / 0.1)',

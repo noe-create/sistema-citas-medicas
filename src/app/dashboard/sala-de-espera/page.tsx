@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,28 +6,20 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { PatientQueue } from '@/components/patient-queue';
-import { PatientCheckinForm, type RegistrationData } from '@/components/patient-checkin-form';
+import { PatientCheckinForm } from '@/components/patient-checkin-form';
 import { PlusCircle, RefreshCw } from 'lucide-react';
-import type { Patient, TitularType, AccountType, ServiceType, SearchResult, PatientKind } from '@/lib/types';
+import type { Patient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getWaitlist, addPatientToWaitlist, getTitularTypeByTitularId } from '@/actions/patient-actions';
+import { addPatientToWaitlist, createUnifiedPatientAndCheckin, getWaitlist } from '@/actions/patient-actions';
 import { useUser } from '@/components/app-shell';
 import { RealTimeClock } from '@/components/real-time-clock';
-
-const titularTypeToAccountType = (titularType: TitularType): AccountType => {
-  switch (titularType) {
-    case 'internal_employee': return 'Empleado';
-    case 'corporate_affiliate': return 'Afiliado Corporativo';
-    case 'private': return 'Privado';
-    default: return 'Privado';
-  }
-};
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UnifiedPatientForm, type UnifiedPatientFormValues } from '@/components/unified-patient-form';
 
 export default function SalaDeEsperaPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -60,64 +53,24 @@ export default function SalaDeEsperaPage() {
   }, [fetchWaitlist]);
 
 
-  const handleRegistrationSubmit = async (data: RegistrationData) => {
-    const { searchResult, serviceType } = data;
-    const persona = searchResult.persona;
-
-    if (patientQueue.some(p => p.personaId === persona.id && p.status !== 'Completado')) {
-      toast({
-        title: 'Paciente ya en cola',
-        description: `${persona.nombreCompleto} ya se encuentra en la cola de espera.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleSearchCheckin = async (data: any) => {
     try {
-      let accountType: AccountType;
-      let kind: PatientKind;
-
-      // Prioritize Titular role
-      if (searchResult.titularInfo) {
-          kind = 'titular';
-          accountType = titularTypeToAccountType(searchResult.titularInfo.tipo);
-      } else if (searchResult.beneficiarioDe && searchResult.beneficiarioDe.length > 0) {
-          kind = 'beneficiario';
-          // If beneficiary of multiple, pick the first one to determine account type.
-          const titularId = searchResult.beneficiarioDe[0].titularId;
-          const titularType = await getTitularTypeByTitularId(titularId);
-          if (!titularType) throw new Error("No se pudo determinar el tipo de cuenta del titular.");
-          accountType = titularTypeToAccountType(titularType);
-      } else {
-           toast({
-            title: 'No se puede registrar',
-            description: `${persona.nombreCompleto} no es un miembro válido (titular o beneficiario).`,
-            variant: 'destructive',
-          });
-          return;
-      }
-
-      const newPatientData: Omit<Patient, 'id' | 'pacienteId'> = {
-          personaId: persona.id,
-          name: persona.nombreCompleto,
-          kind: kind,
-          serviceType: serviceType,
-          accountType: accountType,
-          status: 'Esperando',
-          checkInTime: new Date(),
-          fechaNacimiento: persona.fechaNacimiento,
-      };
-      
-      await addPatientToWaitlist(newPatientData);
-
-      toast({
-          variant: 'success',
-          title: '¡Paciente Registrado!',
-          description: `${newPatientData.name} ha sido añadido a la cola.`,
-      });
-      fetchWaitlist(); // Re-fetch immediately
-      setIsDialogOpen(false);
-
+        await addPatientToWaitlist({
+            personaId: data.searchResult.persona.id,
+            name: data.searchResult.persona.nombreCompleto,
+            kind: data.searchResult.titularInfo ? 'titular' : 'beneficiario',
+            serviceType: data.serviceType,
+            accountType: 'Privado', // This needs to be determined properly
+            status: 'Esperando',
+            checkInTime: new Date(),
+        });
+        toast({
+            variant: 'success',
+            title: '¡Paciente Registrado!',
+            description: `${data.searchResult.persona.nombreCompleto} ha sido añadido a la cola.`,
+        });
+        fetchWaitlist(); // Re-fetch immediately
+        setIsDialogOpen(false);
     } catch (error) {
       console.error("Error al registrar paciente:", error);
       toast({
@@ -128,9 +81,29 @@ export default function SalaDeEsperaPage() {
     }
   };
 
+  const handleCreateCheckin = async (values: UnifiedPatientFormValues) => {
+    try {
+        await createUnifiedPatientAndCheckin(values);
+        toast({
+            variant: 'success',
+            title: '¡Paciente Creado y Registrado!',
+            description: `${values.persona.primerNombre} ${values.persona.primerApellido} ha sido creado y añadido a la cola.`,
+        });
+        fetchWaitlist(); // Re-fetch immediately
+        setIsDialogOpen(false);
+    } catch (error) {
+         console.error("Error al crear y registrar paciente:", error);
+         toast({
+            title: 'Error al Crear Paciente',
+            description: (error as Error).message || 'No se pudo crear el nuevo paciente.',
+            variant: 'destructive',
+         });
+    }
+  }
+
   return (
     <>
-      <div className="flex items-start justify-between space-y-2">
+      <div className="flex items-center justify-between space-y-2 bg-background p-4 rounded-lg shadow-sm border">
         <div>
           <h2 className="font-headline text-3xl font-bold tracking-tight">Sala de Espera y Registro</h2>
           <RealTimeClock />
@@ -146,14 +119,22 @@ export default function SalaDeEsperaPage() {
                 Registrar Paciente
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Registro de Paciente</DialogTitle>
-                <DialogDescription>
-                  Busque una persona y seleccione el servicio para añadirla a la cola.
-                </DialogDescription>
               </DialogHeader>
-              <PatientCheckinForm onSubmitted={handleRegistrationSubmit} />
+               <Tabs defaultValue="search" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="search">Buscar Paciente Existente</TabsTrigger>
+                    <TabsTrigger value="create">Crear Nuevo Paciente</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="search">
+                    <PatientCheckinForm onSubmitted={handleSearchCheckin} />
+                  </TabsContent>
+                   <TabsContent value="create">
+                    <UnifiedPatientForm onSubmitted={handleCreateCheckin} onCancel={() => setIsDialogOpen(false)} />
+                  </TabsContent>
+                </Tabs>
             </DialogContent>
           </Dialog>
         </div>
@@ -162,3 +143,5 @@ export default function SalaDeEsperaPage() {
     </>
   );
 }
+
+    

@@ -2,17 +2,16 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Clock,
-  ClipboardPlus,
   Users,
   Building,
   HeartPulse,
   UsersRound,
   ClipboardCheck,
   BookText,
-  BarChart3,
+  AreaChart,
   UserCog,
   MessageSquareQuote,
-  LayoutDashboard,
+  LayoutGrid,
   ShieldCheck,
   User,
   KeyRound,
@@ -77,7 +76,7 @@ const menuOptions: MenuOption[] = [
   },
   {
     href: '/dashboard/reportes',
-    icon: <BarChart3 className="h-6 w-6 text-primary" />,
+    icon: <AreaChart className="h-6 w-6 text-primary" />,
     title: 'Reportes',
     description: 'Visualice métricas y reportes de morbilidad.',
     permission: 'reports.view',
@@ -150,7 +149,7 @@ const KpiCard = async ({ option }: { option: MenuOption }) => {
         <CardContent className="flex-grow flex flex-col justify-end">
           {kpiValue !== undefined ? (
             <div>
-              <p className="text-4xl font-bold">{kpiValue}</p>
+              <p className="text-4xl font-bold text-primary">{kpiValue}</p>
               <p className="text-sm text-muted-foreground">{option.kpiDescription}</p>
             </div>
           ) : (
@@ -178,7 +177,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-center justify-between space-y-2 bg-background p-4 rounded-lg shadow-sm border">
         <h2 className="font-headline text-3xl font-bold tracking-tight">Dashboard Principal</h2>
       </div>
       <div className="grid gap-6 transition-all duration-300 ease-in-out md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

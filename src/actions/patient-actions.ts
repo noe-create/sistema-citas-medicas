@@ -36,6 +36,7 @@ import { getSession } from '@/lib/auth';
 import { calculateAge } from '@/lib/utils';
 import { startOfDay, endOfDay } from 'date-fns';
 import { summarizePatientHistory } from '@/ai/flows/summarize-patient-history';
+import type { UnifiedPatientFormValues } from '@/components/unified-patient-form';
 
 
 // --- Helpers ---
@@ -102,30 +103,44 @@ async function getOrCreatePersona(db: any, personaData: Omit<Persona, 'id' | 'fe
 }
 
 
-export async function getPersonas(query?: string): Promise<Persona[]> {
+export async function getPersonas(query?: string, page: number = 1, pageSize: number = 20): Promise<{ personas: Persona[], totalCount: number }> {
     const db = await getDb();
+
+    const whereParams: any[] = [];
+    let whereClause = '';
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        whereClause = `
+            WHERE ${fullNameSql} LIKE ? 
+            OR ${fullCedulaSearchSql} LIKE ?
+            OR email LIKE ?
+        `;
+        whereParams.push(searchQuery, searchQuery, searchQuery);
+    }
+
+    const countQuery = `SELECT COUNT(*) as count FROM personas p${whereClause}`;
+    const totalResult = await db.get(countQuery, ...whereParams);
+    const totalCount = totalResult?.count || 0;
+
+    const offset = (page - 1) * pageSize;
     let selectQuery = `
         SELECT id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId,
         ${fullNameSql} as nombreCompleto,
         ${fullCedulaSql} as cedula
         FROM personas p
+        ${whereClause}
+        ORDER BY primerNombre, primerApellido
+        LIMIT ? OFFSET ?
     `;
-    const params: any[] = [];
-    if (query && query.trim().length > 1) {
-        const searchQuery = `%${query.trim()}%`;
-        selectQuery += `
-            WHERE ${fullNameSql} LIKE ? 
-            OR ${fullCedulaSearchSql} LIKE ?
-            OR email LIKE ?
-        `;
-        params.push(searchQuery, searchQuery, searchQuery);
-    }
-    selectQuery += ' ORDER BY primerNombre, primerApellido';
-    const rows = await db.all(selectQuery, ...params);
-    return rows.map((row: any) => ({
+    const selectParams = [...whereParams, pageSize, offset];
+    
+    const rows = await db.all(selectQuery, ...selectParams);
+    const personas = rows.map((row: any) => ({
         ...row,
         fechaNacimiento: new Date(row.fechaNacimiento),
     }));
+
+    return { personas, totalCount };
 }
 
 export async function getPersonaById(personaId: string): Promise<Persona | null> {
@@ -143,8 +158,31 @@ export async function getPersonaById(personaId: string): Promise<Persona | null>
 
 // --- Titular Actions ---
 
-export async function getTitulares(query?: string): Promise<Titular[]> {
+export async function getTitulares(query?: string, page: number = 1, pageSize: number = 10): Promise<{ titulares: Titular[], totalCount: number }> {
     const db = await getDb();
+    
+    const whereParams: any[] = [];
+    let whereClause = '';
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        whereClause = `
+            WHERE ${fullNameSql} LIKE ? 
+            OR ${fullCedulaSearchSql} LIKE ?
+            OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
+        `;
+        whereParams.push(searchQuery, searchQuery, searchQuery);
+    }
+
+    const countQuery = `
+        SELECT COUNT(*) as count 
+        FROM titulares t 
+        JOIN personas p ON t.personaId = p.id
+        LEFT JOIN empresas e ON t.empresaId = e.id
+        ${whereClause}`;
+    const totalResult = await db.get(countQuery, ...whereParams);
+    const totalCount = totalResult?.count || 0;
+
+    const offset = (page - 1) * pageSize;
     let selectQuery = `
         SELECT 
             t.id, t.personaId, t.tipo, t.empresaId,
@@ -154,23 +192,15 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
         LEFT JOIN empresas e ON t.empresaId = e.id
+        ${whereClause}
+        ORDER BY p.primerNombre, p.primerApellido
+        LIMIT ? OFFSET ?
     `;
-    const params: any[] = [];
-
-    if (query && query.trim().length > 1) {
-        const searchQuery = `%${query.trim()}%`;
-        selectQuery += `
-            WHERE ${fullNameSql} LIKE ? 
-            OR ${fullCedulaSearchSql} LIKE ?
-            OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
-        `;
-        params.push(searchQuery, searchQuery, searchQuery);
-    }
+    const selectParams = [...whereParams, pageSize, offset];
     
-    selectQuery += ' ORDER BY p.primerNombre, p.primerApellido';
-    const rows = await db.all(selectQuery, ...params);
+    const rows = await db.all(selectQuery, ...selectParams);
     
-    return rows.map(row => ({
+    const titulares = rows.map(row => ({
         id: row.id,
         personaId: row.personaId,
         tipo: row.tipo,
@@ -195,6 +225,8 @@ export async function getTitulares(query?: string): Promise<Titular[]> {
             direccion: row.direccion
         }
     }));
+
+    return { titulares, totalCount };
 }
 
 
@@ -868,17 +900,28 @@ export async function createConsultation(data: CreateConsultationInput): Promise
 
 // --- Company Actions (Largely unchanged) ---
 
-export async function getEmpresas(query?: string): Promise<Empresa[]> {
+export async function getEmpresas(query?: string, page: number = 1, pageSize: number = 10): Promise<{ empresas: Empresa[], totalCount: number }> {
     const db = await getDb();
-    let selectQuery = 'SELECT * FROM empresas';
-    const params: any[] = [];
+    
+    const whereParams: any[] = [];
+    let whereClause = '';
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        selectQuery += ' WHERE name LIKE ? OR rif LIKE ?';
-        params.push(searchQuery, searchQuery);
+        whereClause = ' WHERE name LIKE ? OR rif LIKE ?';
+        whereParams.push(searchQuery, searchQuery);
     }
-    selectQuery += ' ORDER BY name';
-    return db.all(selectQuery, ...params);
+    
+    const countQuery = `SELECT COUNT(*) as count FROM empresas${whereClause}`;
+    const totalResult = await db.get(countQuery, ...whereParams);
+    const totalCount = totalResult?.count || 0;
+
+    const offset = (page - 1) * pageSize;
+    let selectQuery = `SELECT * FROM empresas${whereClause} ORDER BY name LIMIT ? OFFSET ?`;
+    const selectParams = [...whereParams, pageSize, offset];
+
+    const empresas = await db.all(selectQuery, ...selectParams);
+    
+    return { empresas, totalCount };
 }
 
 export async function createEmpresa(data: Omit<Empresa, 'id'>): Promise<Empresa> {
@@ -1196,7 +1239,7 @@ export async function deleteCie10Code(code: string): Promise<{ success: boolean 
         throw new Error('Este código CIE-10 está en uso y no puede ser eliminado.');
     }
     
-    const result = await db.run('DELETE FROM cie10_codes WHERE code = ?', code);
+    const result = await db.run('DELETE FROM cie10_codes WHERE id = ?', code);
     if (result.changes === 0) throw new Error('Código CIE-10 no encontrado para eliminar');
     revalidatePath('/dashboard/cie10');
     return { success: true };
@@ -1657,7 +1700,7 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
 // --- Service Catalog Actions ---
 
 export async function getServices(query?: string): Promise<Service[]> {
-  await authorize('services.manage');
+  await ensureAdminPermission();
   const db = await getDb();
   let selectQuery = 'SELECT * FROM services';
   const params: any[] = [];
@@ -1671,7 +1714,7 @@ export async function getServices(query?: string): Promise<Service[]> {
 }
 
 export async function createService(data: Omit<Service, 'id'>): Promise<Service> {
-  await authorize('services.manage');
+  await ensureAdminPermission();
   const db = await getDb();
   const newServiceData = { ...data, id: generateId('serv') };
   await db.run(
@@ -1683,7 +1726,7 @@ export async function createService(data: Omit<Service, 'id'>): Promise<Service>
 }
 
 export async function updateService(id: string, data: Omit<Service, 'id'>): Promise<Service> {
-  await authorize('services.manage');
+  await ensureAdminPermission();
   const db = await getDb();
   await db.run(
     'UPDATE services SET name = ?, description = ?, price = ? WHERE id = ?',
@@ -1694,7 +1737,7 @@ export async function updateService(id: string, data: Omit<Service, 'id'>): Prom
 }
 
 export async function deleteService(id: string): Promise<{ success: boolean }> {
-  await authorize('services.manage');
+  await ensureAdminPermission();
   const db = await getDb();
   const usageCount = await db.get('SELECT COUNT(*) as count FROM invoice_items WHERE serviceId = ?', id);
     if (usageCount.count > 0) {
@@ -1704,3 +1747,80 @@ export async function deleteService(id: string): Promise<{ success: boolean }> {
   revalidatePath('/dashboard/servicios');
   return { success: true };
 }
+
+// --- Unified Patient Creation and Check-in ---
+export async function createUnifiedPatientAndCheckin(values: UnifiedPatientFormValues): Promise<void> {
+    await ensureDataEntryPermission();
+    const db = await getDb();
+    
+    await db.exec('BEGIN TRANSACTION');
+    try {
+        const { persona: personaData, role: roleData, checkin: checkinData } = values;
+        
+        // 1. Create Persona
+        const personaId = await getOrCreatePersona(db, { ...personaData, fechaNacimiento: personaData.fechaNacimiento.toISOString() });
+        const fullName = `${personaData.primerNombre} ${personaData.primerApellido}`;
+
+        // 2. Create Titular or Beneficiario
+        let titularIdForCheckin: string | undefined;
+        let kind: PatientKind;
+        let accountType: AccountType;
+
+        if (roleData.type === 'titular') {
+            const titularId = generateId('t');
+            await db.run(
+                'INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)',
+                titularId,
+                personaId,
+                roleData.titularType,
+                roleData.titularType === 'corporate_affiliate' ? roleData.empresaId : null
+            );
+            kind = 'titular';
+            accountType = roleData.titularType === 'corporate_affiliate' ? 'Afiliado Corporativo' : (roleData.titularType === 'internal_employee' ? 'Empleado' : 'Privado');
+        } else { // Beneficiario
+            if (!roleData.titularId) {
+                throw new Error('ID de titular es requerido para crear un beneficiario.');
+            }
+            await db.run(
+                'INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)',
+                generateId('b'),
+                personaId,
+                roleData.titularId
+            );
+            kind = 'beneficiario';
+            const titularType = await getTitularTypeByTitularId(roleData.titularId);
+            accountType = titularType === 'corporate_affiliate' ? 'Afiliado Corporativo' : (titularType === 'internal_employee' ? 'Empleado' : 'Privado');
+        }
+
+        // 3. Create Patient record if not exists (already handled by getOrCreatePersona)
+        const pacienteId = await getOrCreatePaciente(db, personaId);
+
+        // 4. Add to Waitlist
+        await db.run(
+            'INSERT INTO waitlist (id, personaId, pacienteId, name, kind, serviceType, accountType, status, checkInTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            generateId('q'),
+            personaId,
+            pacienteId,
+            fullName,
+            kind,
+            checkinData.serviceType,
+            accountType,
+            'Esperando',
+            new Date().toISOString()
+        );
+        
+        await db.exec('COMMIT');
+
+        revalidatePath('/dashboard/sala-de-espera');
+        revalidatePath('/dashboard/personas');
+        revalidatePath('/dashboard/pacientes');
+        revalidatePath('/dashboard/beneficiarios');
+
+    } catch (error) {
+        await db.exec('ROLLBACK');
+        console.error("Unified patient creation failed:", error);
+        throw error;
+    }
+}
+
+    

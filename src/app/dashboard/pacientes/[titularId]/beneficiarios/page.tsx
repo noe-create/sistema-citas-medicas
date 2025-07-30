@@ -15,7 +15,7 @@ export default async function BeneficiariosPage({ params }: { params: { titularI
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-center justify-between space-y-2 bg-background p-4 rounded-lg shadow-sm border">
          <div>
             <Button variant="outline" asChild className="mb-4">
                 <Link href="/dashboard/pacientes">

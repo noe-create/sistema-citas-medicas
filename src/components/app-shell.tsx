@@ -27,7 +27,7 @@ import {
     HeartPulse, 
     ClipboardCheck, 
     BookText, 
-    BarChart3, 
+    AreaChart, 
     UserCog, 
     KeyRound, 
     MessageSquareQuote,
@@ -35,8 +35,8 @@ import {
     ShieldCheck,
     UsersRound,
     Stethoscope,
-    CalendarDays,
-    Calendar
+    Calendar,
+    Building2
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -63,7 +63,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   
-  { href: '/dashboard/reportes', icon: <BarChart3 />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
+  { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
   { href: '/dashboard/encuestas', icon: <MessageSquareQuote />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
   
   { href: '/dashboard/personas', icon: <User />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
@@ -71,7 +71,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/pacientes', icon: <ShieldCheck />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
   { href: '/dashboard/beneficiarios', icon: <UsersRound />, title: 'Beneficiarios', permission: 'beneficiaries.manage', group: 'Admisión' },
   
-  { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
+  { href: '/dashboard/empresas', icon: <Building2 />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
   { href: '/dashboard/cie10', icon: <BookText />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
   { href: '/dashboard/servicios', icon: <DollarSign />, title: 'Servicios y Tarifas', permission: 'services.manage', group: 'Parametrización' },
 
@@ -152,7 +152,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
-        <main className="min-h-svh flex-1 flex-col bg-background peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
+        <main className="min-h-svh flex-1 flex-col bg-secondary peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm">
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
             <SidebarTrigger />
             <div className="flex-1">
@@ -162,10 +162,12 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8 flex items-center justify-center bg-muted">
+                     <Avatar className="h-8 w-8 flex items-center justify-center bg-muted">
                         <User className="h-5 w-5 text-muted-foreground" />
-                        <AvatarFallback><span /></AvatarFallback>
-                    </Avatar>
+                        <AvatarFallback>
+                           <span/>
+                        </AvatarFallback>
+                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>

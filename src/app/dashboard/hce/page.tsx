@@ -14,7 +14,7 @@ export default function HcePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-center justify-between space-y-2 bg-background p-4 rounded-lg shadow-sm border">
         <h2 className="font-headline text-3xl font-bold tracking-tight">Historia Clínica Electrónica (HCE)</h2>
       </div>
 
