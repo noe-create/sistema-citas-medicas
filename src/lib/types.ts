@@ -272,8 +272,9 @@ export interface Consultation {
   treatmentPlan: string;
   diagnoses: Diagnosis[];
   documents?: ConsultationDocument[];
-  treatmentOrder?: TreatmentOrder; // Added to nest the order within the consultation history
+  treatmentOrder?: TreatmentOrder;
   surveyInvitationToken?: string;
+  invoice?: Invoice;
 }
 
 export interface CreateConsultationDocumentInput {
@@ -284,10 +285,11 @@ export interface CreateConsultationDocumentInput {
   fileData: string; // as a data URI
 }
 
-export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder' | 'surveyInvitationToken'> {
+export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder' | 'surveyInvitationToken' | 'invoice'> {
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
     treatmentItems?: CreateTreatmentItemInput[];
+    renderedServices?: Service[];
 }
 
 export interface PacienteConInfo extends Persona {
@@ -375,4 +377,29 @@ export interface SurveyResponse {
 export interface PublicSurveyData {
     survey: Survey;
     consultationDate: Date;
+}
+
+// --- Billing ---
+export interface Service {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+}
+
+export interface InvoiceItem {
+    id: string;
+    invoiceId: string;
+    serviceId: string;
+    serviceName: string;
+    price: number;
+}
+
+export interface Invoice {
+    id: string;
+    consultationId: string;
+    totalAmount: number;
+    status: 'Pendiente' | 'Pagada' | 'Anulada';
+    createdAt: Date;
+    items?: InvoiceItem[];
 }

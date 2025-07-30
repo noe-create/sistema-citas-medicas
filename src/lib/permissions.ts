@@ -8,7 +8,8 @@ export const ALL_PERMISSIONS: Permission[] = [
   // Parametrización
   { id: 'companies.manage', name: 'Gestionar Empresas', description: 'Permite administrar el catálogo de empresas afiliadas.', module: 'Parametrización' },
   { id: 'cie10.manage', name: 'Gestionar Catálogo CIE-10', description: 'Permite administrar el catálogo de códigos de diagnóstico.', module: 'Parametrización' },
-  
+  { id: 'services.manage', name: 'Gestionar Servicios y Tarifas', description: 'Permite definir los servicios y sus precios.', module: 'Parametrización' },
+
   // Admisión y Pacientes
   { id: 'people.manage', name: 'Gestionar Personas', description: 'Permite gestionar el repositorio central de personas.', module: 'Admisión' },
   { id: 'titulars.manage', name: 'Gestionar Titulares', description: 'Permite crear, editar y eliminar titulares.', module: 'Admisión' },

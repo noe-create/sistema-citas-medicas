@@ -347,6 +347,33 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (invitationToken) REFERENCES survey_invitations(token) ON DELETE CASCADE,
             FOREIGN KEY (questionId) REFERENCES survey_questions(id) ON DELETE CASCADE
         );
+        
+        -- Billing Tables
+        CREATE TABLE IF NOT EXISTS services (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            price REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY,
+            consultationId TEXT NOT NULL UNIQUE,
+            totalAmount REAL NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pendiente', -- Pendiente, Pagada, Anulada
+            createdAt TEXT NOT NULL,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS invoice_items (
+            id TEXT PRIMARY KEY,
+            invoiceId TEXT NOT NULL,
+            serviceId TEXT NOT NULL,
+            serviceName TEXT NOT NULL,
+            price REAL NOT NULL,
+            FOREIGN KEY (invoiceId) REFERENCES invoices(id) ON DELETE CASCADE,
+            FOREIGN KEY (serviceId) REFERENCES services(id) ON DELETE RESTRICT
+        );
     `);
 }
 
@@ -368,7 +395,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await stmt.finalize();
 
         const rolePermissions = {
-            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'surveys.manage'],
+            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'surveys.manage', 'services.manage'],
             asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
             doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage'],
             enfermera: ['treatmentlog.manage', 'waitlist.manage'],
@@ -503,6 +530,24 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const stmt = await dbInstance.prepare('INSERT INTO survey_questions (id, surveyId, questionText, questionType, displayOrder) VALUES (?, ?, ?, ?, ?)');
         for (const q of questions) {
             await stmt.run(`q-${Date.now()}-${q.order}`, surveyId, q.text, q.type, q.order);
+        }
+        await stmt.finalize();
+    }
+
+    const serviceCount = await dbInstance.get('SELECT COUNT(*) as count FROM services');
+    if (serviceCount.count === 0) {
+        const services = [
+            { id: 'serv-consulta-general', name: 'Consulta Medicina General', description: 'Consulta médica para adultos.', price: 50.00 },
+            { id: 'serv-consulta-ped', name: 'Consulta Pediátrica', description: 'Consulta médica para niños.', price: 60.00 },
+            { id: 'serv-sutura-simple', name: 'Sutura Simple', description: 'Sutura de heridas menores (hasta 5 puntos).', price: 30.00 },
+            { id: 'serv-sutura-compleja', name: 'Sutura Compleja', description: 'Sutura de heridas mayores (más de 5 puntos).', price: 75.00 },
+            { id: 'serv-inyeccion-im', name: 'Inyección Intramuscular', description: 'Aplicación de medicamento vía intramuscular.', price: 10.00 },
+            { id: 'serv-inyeccion-iv', name: 'Aplicación de Tratamiento Intravenoso', description: 'Administración de medicamento o suero vía intravenosa.', price: 25.00 },
+            { id: 'serv-retiro-puntos', name: 'Retiro de Puntos', description: 'Retiro de suturas.', price: 15.00 },
+        ];
+        const stmt = await dbInstance.prepare('INSERT INTO services (id, name, description, price) VALUES (?, ?, ?, ?)');
+        for (const s of services) {
+            await stmt.run(s.id, s.name, s.description, s.price);
         }
         await stmt.finalize();
     }

@@ -19,7 +19,7 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, FileQuestion } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, FileQuestion, DollarSign } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -57,6 +57,7 @@ const allMenuOptions: MenuItem[] = [
   
   { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
   { href: '/dashboard/cie10', icon: <Code2 />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
+  { href: '/dashboard/servicios', icon: <DollarSign />, title: 'Servicios y Tarifas', permission: 'services.manage', group: 'Parametrización' },
 
   { href: '/dashboard/seguridad/usuarios', icon: <UserCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
   { href: '/dashboard/seguridad/roles', icon: <Shield />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
