@@ -6,7 +6,7 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
-import { type SessionData, getSession, authorize, sessionOptions } from '@/lib/auth';
+import { type SessionData, getSession, authorize } from '@/lib/auth';
 import type { User, DoctorSpecialty, Role } from '@/lib/types';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
@@ -46,7 +46,7 @@ export async function login(
       return { error: 'Usuario o contraseña incorrectos.' };
     }
 
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const session = await getSession();
     
     const permissions = await db.all<{permissionId: string}>(
         'SELECT permissionId FROM role_permissions WHERE roleId = ?',
@@ -247,7 +247,7 @@ export async function updateUser(id: string, data: {
 
     revalidatePath('/dashboard/usuarios');
 
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const session = await getSession();
     if (session.isLoggedIn && session.user?.id === id) {
         const userRow: any = await db.get(
            `SELECT 
@@ -286,7 +286,7 @@ export async function updateUser(id: string, data: {
 export async function deleteUser(id: string) {
     await authorize('users.manage');
     
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const session = await getSession();
     if (session.user?.id === id) {
         throw new Error('No puede eliminar su propio usuario.');
     }
@@ -302,7 +302,7 @@ export async function deleteUser(id: string) {
 }
 
 export async function changePasswordForCurrentUser(data: { currentPassword: string; newPassword: string; }) {
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const session = await getSession();
     if (!session.isLoggedIn || !session.user) {
         throw new Error('Acción no autorizada. Debe iniciar sesión.');
     }

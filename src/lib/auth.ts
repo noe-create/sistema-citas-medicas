@@ -3,6 +3,8 @@
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
+import 'dotenv/config';
+
 
 export type SessionData = {
   user?: User;
@@ -16,15 +18,21 @@ export const defaultSession: SessionData = {
   permissions: [],
 };
 
-export const sessionOptions = {
+export async function getSession() {
+  const sessionOptions = {
     password: process.env.SECRET_COOKIE_PASSWORD!,
     cookieName: 'medihub-session',
     cookieOptions: {
         secure: process.env.NODE_ENV === 'production',
     },
-};
+  };
 
-export async function getSession() {
+  if (!sessionOptions.password || sessionOptions.password.length < 32) {
+    // This check is important for debugging and ensuring the secret is loaded.
+    // It will throw an error if the secret is missing in any environment.
+    throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
+  }
+
   const session = await getIronSession<SessionData>(cookies(), sessionOptions);
 
   if (!session.isLoggedIn) {

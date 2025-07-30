@@ -44,7 +44,7 @@ const statusInfo: Record<PatientStatus, { label: string; color: string; badgeVar
 };
 
 interface PatientQueueProps {
-    user: User;
+    user: User | null;
     patients: Patient[];
     onListRefresh: () => void;
 }
@@ -56,7 +56,11 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
   const [patientToReschedule, setPatientToReschedule] = React.useState<Patient | null>(null);
 
-  const canManageStatus = user && ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'].includes(user.role.id);
+  if (!user) {
+    return null;
+  }
+
+  const canManageStatus = ['superuser', 'administrator', 'asistencial', 'doctor', 'enfermera'].includes(user.role.id);
 
   const statusOptionsForRole = React.useMemo(() => {
     if (!user) return [];
@@ -171,7 +175,6 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   };
 
   const visibleServices = React.useMemo(() => {
-    if (!user) return [];
     const allServices = Object.keys(serviceInfo) as ServiceType[];
 
     if (user.role.id === 'superuser' || user.role.id === 'asistencial' || user.role.id === 'administrator') {
