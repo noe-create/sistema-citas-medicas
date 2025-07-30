@@ -336,22 +336,6 @@ export interface PatientSummary {
   currentMedications: string[];
 }
 
-// --- Agenda/Appointments ---
-export type AppointmentStatus = 'programada' | 'confirmada' | 'cancelada' | 'completada';
-
-export interface Appointment {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  pacienteId: string;
-  doctorId: string;
-  motivo: string;
-  status: AppointmentStatus;
-  pacienteName?: string;
-  doctorName?: string;
-}
-
 // --- Surveys ---
 export type SurveyQuestionType = 'escala_1_5' | 'si_no' | 'texto_abierto';
 

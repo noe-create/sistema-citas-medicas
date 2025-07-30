@@ -1,193 +1,83 @@
-'use client';
-
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, User, Calendar, Clock, Stethoscope } from 'lucide-react';
-import type { Persona, User as Doctor } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { getPacienteByPersonaId, createAppointment } from '@/actions/patient-actions';
-import { getDoctors } from '@/actions/auth-actions';
-import { PersonaSearch } from './persona-search';
-import { addMinutes, format } from 'date-fns';
-
-const appointmentSchema = z.object({
-  pacienteId: z.string().min(1, 'Debe seleccionar un paciente.'),
-  doctorId: z.string().min(1, 'Debe seleccionar un médico.'),
-  motivo: z.string().min(3, 'El motivo es requerido.'),
-  duration: z.coerce.number().min(5, 'La duración mínima es de 5 minutos.'),
-});
-
-type AppointmentFormValues = z.infer<typeof appointmentSchema>;
-
-interface AppointmentDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAppointmentCreated: () => void;
-  slotInfo: { start: Date; end: Date };
-}
-
-export function AppointmentDialog({ isOpen, onClose, onAppointmentCreated, slotInfo }: AppointmentDialogProps) {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [doctors, setDoctors] = React.useState<Doctor[]>([]);
-  const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
-
-  const form = useForm<AppointmentFormValues>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      pacienteId: '',
-      doctorId: '',
-      motivo: '',
-      duration: 30,
-    },
-  });
-
-  React.useEffect(() => {
-    async function fetchDocs() {
-      try {
-        const docs = await getDoctors();
-        setDoctors(docs as Doctor[]);
-      } catch (error) {
-        toast({ title: 'Error', description: 'No se pudieron cargar los doctores.', variant: 'destructive' });
-      }
-    }
-    fetchDocs();
-  }, [toast]);
-  
-  React.useEffect(() => {
-    const fetchPacienteId = async () => {
-      if (selectedPersona) {
-        const paciente = await getPacienteByPersonaId(selectedPersona.id);
-        if (paciente) {
-          form.setValue('pacienteId', paciente.id, { shouldValidate: true });
-        } else {
-          toast({
-            title: 'Error',
-            description: 'Esta persona no tiene un registro de paciente asociado. Créelo desde el módulo de Personas.',
-            variant: 'destructive',
-          });
-          form.setValue('pacienteId', '', { shouldValidate: true });
-        }
-      } else {
-        form.setValue('pacienteId', '', { shouldValidate: true });
-      }
-    };
-    fetchPacienteId();
-  }, [selectedPersona, form, toast]);
-
-
-  async function onSubmit(values: AppointmentFormValues) {
-    setIsSubmitting(true);
-    try {
-        const start = slotInfo.start;
-        const end = addMinutes(start, values.duration);
-
-        await createAppointment({
-            pacienteId: values.pacienteId,
-            doctorId: values.doctorId,
-            start,
-            end,
-            motivo: values.motivo,
-            status: 'programada',
-        });
-
-      toast({ title: 'Cita Creada', description: 'La cita ha sido agendada correctamente.' });
-      onAppointmentCreated();
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'No se pudo crear la cita.', variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
+{
+  "name": "nextn",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack --port 9002 --hostname 0.0.0.0",
+    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
+    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@genkit-ai/googleai": "^1.13.0",
+    "@genkit-ai/next": "^1.13.0",
+    "@hookform/resolvers": "^4.1.3",
+    "@radix-ui/react-accordion": "^1.2.3",
+    "@radix-ui/react-alert-dialog": "^1.1.6",
+    "@radix-ui/react-avatar": "^1.1.3",
+    "@radix-ui/react-checkbox": "^1.1.4",
+    "@radix-ui/react-collapsible": "^1.1.11",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-dropdown-menu": "^2.1.6",
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-menubar": "^1.1.6",
+    "@radix-ui/react-popover": "^1.1.6",
+    "@radix-ui/react-progress": "^1.1.2",
+    "@radix-ui/react-radio-group": "^1.2.3",
+    "@radix-ui/react-scroll-area": "^1.2.3",
+    "@radix-ui/react-select": "^2.1.6",
+    "@radix-ui/react-separator": "^1.1.2",
+    "@radix-ui/react-slider": "^1.2.3",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.1.3",
+    "@radix-ui/react-tabs": "^1.1.3",
+    "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.1.8",
+    "@tailwindcss/typography": "^0.5.13",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.0.0",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
+    "embla-carousel-react": "^8.6.0",
+    "file-saver": "^2.0.5",
+    "firebase": "^11.9.1",
+    "framer-motion": "^11.2.10",
+    "genkit": "^1.13.0",
+    "iron-session": "^8.0.2",
+    "lucide-react": "^0.475.0",
+    "next": "15.3.3",
+    "next-themes": "^0.3.0",
+    "patch-package": "^8.0.0",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.54.2",
+    "react-markdown": "^9.0.1",
+    "recharts": "^2.15.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "tailwind-merge": "^3.0.1",
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "genkit-cli": "^1.13.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Agendar Nueva Cita</DialogTitle>
-          <DialogDescription>
-            {format(slotInfo.start, "eeee, d 'de' MMMM 'de' yyyy 'a las' hh:mm a")}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <FormLabel className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground"/>Paciente</FormLabel>
-              <PersonaSearch onPersonaSelect={setSelectedPersona} />
-              <FormField control={form.control} name="pacienteId" render={() => <FormMessage />} />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="doctorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/>Médico</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un médico" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {doctors.map(doc => (
-                        <SelectItem key={doc.id} value={doc.id}>
-                          {doc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="motivo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Motivo de la Cita</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Ej: Consulta de control, evaluación de resultados..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duración (minutos)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="5" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Agendar Cita
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
 }

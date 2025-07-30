@@ -27,8 +27,7 @@ import type {
     MotivoConsulta,
     TreatmentOrderItem,
     User,
-    PatientSummary,
-    Appointment
+    PatientSummary
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -744,6 +743,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     const db = await getDb();
     const consultationId = generateId('c');
     const consultationDate = new Date();
+    const surveyInvitationToken = generateId('inv');
 
     try {
         await db.exec('BEGIN TRANSACTION');
@@ -753,8 +753,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
                 id, pacienteId, waitlistId, consultationDate, motivoConsulta, enfermedadActual, 
                 revisionPorSistemas, antecedentesPersonales, antecedentesFamiliares, 
                 antecedentesGinecoObstetricos, antecedentesPediatricos, signosVitales, 
-                examenFisicoGeneral, treatmentPlan
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                examenFisicoGeneral, treatmentPlan, surveyInvitationToken
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             consultationId, data.pacienteId, data.waitlistId,
             consultationDate.toISOString(),
             data.motivoConsulta ? JSON.stringify(data.motivoConsulta) : null,
@@ -764,7 +764,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             data.antecedentesGinecoObstetricos ? JSON.stringify(data.antecedentesGinecoObstetricos) : null,
             data.antecedentesPediatricos ? JSON.stringify(data.antecedentesPediatricos) : null,
             data.signosVitales ? JSON.stringify(data.signosVitales) : null,
-            data.examenFisicoGeneral, data.treatmentPlan
+            data.examenFisicoGeneral, data.treatmentPlan,
+            surveyInvitationToken
         );
         
         if (data.diagnoses && data.diagnoses.length > 0) {
@@ -808,6 +809,14 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             await itemStmt.finalize();
         }
 
+        const activeSurvey = await db.get("SELECT id FROM surveys WHERE isActive = 1 LIMIT 1");
+        if(activeSurvey) {
+            await db.run(
+                "INSERT INTO survey_invitations (token, consultationId, surveyId, createdAt) VALUES (?, ?, ?, ?)",
+                surveyInvitationToken, consultationId, activeSurvey.id, new Date().toISOString()
+            );
+        }
+
         await db.run('UPDATE waitlist SET status = ? WHERE id = ?', 'Completado', data.waitlistId);
 
         await db.exec('COMMIT');
@@ -836,6 +845,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         ...createdConsultation,
         diagnoses: data.diagnoses || [],
         documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+        surveyInvitationToken
     };
 }
 
@@ -1626,64 +1636,4 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
   const summary = await summarizePatientHistory({ history: historyString });
 
   return summary;
-}
-
-// --- Agenda / Appointments ---
-
-export async function getAppointments(startDate: Date, endDate: Date): Promise<Appointment[]> {
-    const db = await getDb();
-    const rows = await db.all<any[]>(
-        `SELECT
-            a.id,
-            a.start,
-            a.end,
-            a.pacienteId,
-            a.doctorId,
-            a.motivo,
-            a.status,
-            p.primerNombre || ' ' || p.primerApellido as pacienteName,
-            u_p.primerNombre || ' ' || u_p.primerApellido as doctorName
-         FROM appointments a
-         JOIN pacientes pac ON a.pacienteId = pac.id
-         JOIN personas p ON pac.personaId = p.id
-         JOIN users u ON a.doctorId = u.id
-         LEFT JOIN personas u_p ON u.personaId = u_p.id
-         WHERE a.start BETWEEN ? AND ?`,
-        startDate.toISOString(),
-        endDate.toISOString()
-    );
-    
-    return rows.map(row => ({
-        id: row.id,
-        start: new Date(row.start),
-        end: new Date(row.end),
-        title: `${row.pacienteName} - Dr. ${row.doctorName || 'N/A'}`,
-        pacienteId: row.pacienteId,
-        doctorId: row.doctorId,
-        motivo: row.motivo,
-        status: row.status,
-        pacienteName: row.pacienteName,
-        doctorName: row.doctorName,
-    }));
-}
-
-export async function createAppointment(data: Omit<Appointment, 'id' | 'title' | 'pacienteName' | 'doctorName'>): Promise<Appointment> {
-    const db = await getDb();
-    const newId = generateId('appt');
-    
-    await db.run(
-        'INSERT INTO appointments (id, pacienteId, doctorId, start, end, motivo, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        newId,
-        data.pacienteId,
-        data.doctorId,
-        data.start.toISOString(),
-        data.end.toISOString(),
-        data.motivo,
-        data.status
-    );
-    
-    revalidatePath('/dashboard/agenda');
-
-    const created = await db.get('SELECT * FROM appointments WHERE id = ?', newId);
-    return { ...created, start: new Date(created.start), end: new Date(created.end) };
 }

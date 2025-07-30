@@ -13,7 +13,7 @@ import {
   Code2,
   AreaChart,
   UserCog,
-  CalendarDays,
+  FileQuestion,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { getWaitlistCount, getTodayConsultationsCount, getTodayRegisteredPeopleCount } from '@/actions/patient-actions';
@@ -29,13 +29,6 @@ interface MenuOption {
 }
 
 const menuOptions: MenuOption[] = [
-  {
-    href: '/dashboard/agenda',
-    icon: <CalendarDays className="h-6 w-6 text-primary" />,
-    title: 'Agenda',
-    description: 'Gestione las citas programadas de los pacientes.',
-    permission: 'agenda.manage',
-  },
   {
     href: '/dashboard/sala-de-espera',
     icon: <Clock className="h-6 w-6 text-primary" />,
@@ -83,6 +76,13 @@ const menuOptions: MenuOption[] = [
     title: 'Reportes',
     description: 'Visualice métricas y reportes de morbilidad.',
     permission: 'reports.view',
+  },
+    {
+    href: '/dashboard/encuestas',
+    icon: <FileQuestion className="h-6 w-6 text-primary" />,
+    title: 'Encuestas',
+    description: 'Gestione encuestas y vea los resultados.',
+    permission: 'surveys.manage',
   },
   {
     href: '/dashboard/cie10',
