@@ -19,7 +19,7 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, CalendarDays, ClipboardQuestion } from 'lucide-react';
+import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, CalendarDays, FileQuestion } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -49,7 +49,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   
   { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
-  { href: '/dashboard/encuestas', icon: <ClipboardQuestion />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
+  { href: '/dashboard/encuestas', icon: <FileQuestion />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
   
   { href: '/dashboard/personas', icon: <Contact />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
   { href: '/dashboard/lista-pacientes', icon: <ClipboardList />, title: 'Lista de Pacientes', permission: 'patientlist.view', group: 'Admisión' },
