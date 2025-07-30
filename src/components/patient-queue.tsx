@@ -211,7 +211,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
       return 'md:grid-cols-2';
     }
     return 'md:grid-cols-3';
-  }, [visibleServices.length]);
+  }, [visibleServices]);
 
   const totalPatientsInQueue = (patients || []).length;
 

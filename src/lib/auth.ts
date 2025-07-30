@@ -1,5 +1,5 @@
 'server-only';
-import 'dotenv/config';
+
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
