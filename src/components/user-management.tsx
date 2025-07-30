@@ -42,7 +42,7 @@ export function UserManagement({ roles }: UserManagementProps) {
   const refreshUsers = React.useCallback(async (currentSearch: string) => {
       setIsLoading(true);
       try {
-        const data = await getUsers(currentSearch);
+        const { users: data, totalCount } = await getUsers(currentSearch);
         setUsers(data);
       } catch (error: any) {
         console.error("Error fetching users:", error);
