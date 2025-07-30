@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -11,6 +10,9 @@ import { sessionOptions, type SessionData, getSession, authorize } from '@/lib/a
 import type { User, DoctorSpecialty, Role } from '@/lib/types';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
+import { config } from 'dotenv';
+
+config();
 
 export async function login(
   prevState: any,
