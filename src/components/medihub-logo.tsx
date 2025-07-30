@@ -17,22 +17,27 @@ export function MedihubLogo({ className, ...props }: MedihubLogoProps) {
       {...props}
     >
       <defs>
-        <linearGradient id="logo-gradient-component" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="logo-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
           <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))' }} />
           <stop offset="100%" style={{ stopColor: 'hsl(var(--success))' }} />
         </linearGradient>
       </defs>
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M32 59.5C48.42 59.5 54 41.5 54 32C54 22.5 48.42 4.5 32 4.5C15.58 4.5 10 22.5 10 32C10 41.5 15.58 59.5 32 59.5Z"
-        fill="url(#logo-gradient-component)"
+      <path 
+        d="M54.4,16.088c-10.8-11.3-34-11.3-44.8,0c-10.8,11.3,0,32.7,22.4,44.001C54.4,48.788,65.2,27.388,54.4,16.088z" 
+        fill="url(#logo-gradient)"
       />
-      <path
-        d="M32 20V44M20 32H44"
-        stroke="hsl(var(--primary-foreground))"
-        strokeWidth="4"
-        strokeLinecap="round"
+      <path 
+        d="M32.5,23.5v18" 
+        stroke="white" 
+        strokeWidth="4" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      />
+      <path 
+        d="M23.5,32.5h18" 
+        stroke="white" 
+        strokeWidth="4" 
+        strokeLinecap="round" 
         strokeLinejoin="round"
       />
     </svg>

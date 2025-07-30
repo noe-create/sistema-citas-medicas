@@ -32,7 +32,7 @@ export default function LoginPage() {
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <MedihubLogo className="h-12 w-12" />
+                <MedihubLogo className="h-16 w-16" />
             </div>
             <CardTitle className="text-2xl font-bold font-headline">Medihub</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>

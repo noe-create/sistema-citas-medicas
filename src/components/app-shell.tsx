@@ -14,12 +14,29 @@ import {
   SidebarTrigger,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, FileQuestion, DollarSign } from 'lucide-react';
+import { 
+    LayoutGrid, 
+    LogOut, 
+    Users, 
+    User,
+    Building2, 
+    ClipboardPlus, 
+    Clock, 
+    HeartPulse, 
+    ClipboardCheck, 
+    BookText, 
+    AreaChart, 
+    UsersCog, 
+    KeyRound, 
+    MessageSquareQuote,
+    DollarSign,
+    ShieldCheck,
+    UsersRound,
+    Stethoscope,
+    CalendarDays
+} from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -27,9 +44,6 @@ import type { User as UserType } from '@/lib/types';
 import { logout } from '@/actions/auth-actions';
 import { ThemeToggle } from './theme-toggle';
 import { ChangePasswordForm } from './change-password-form';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { MedihubLogo } from './medihub-logo';
 
 interface MenuItem {
@@ -42,26 +56,26 @@ interface MenuItem {
 }
 
 const allMenuOptions: MenuItem[] = [
-  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', permission: '*', group: 'Principal' },
+  { href: '/dashboard', icon: <LayoutGrid />, title: 'Dashboard', permission: '*', group: 'Principal' },
   { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
-  { href: '/dashboard/consulta', icon: <ClipboardPlus />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
-  { href: '/dashboard/hce', icon: <FileHeart />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
+  { href: '/dashboard/consulta', icon: <Stethoscope />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
+  { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   
   { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
-  { href: '/dashboard/encuestas', icon: <FileQuestion />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
+  { href: '/dashboard/encuestas', icon: <MessageSquareQuote />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
   
-  { href: '/dashboard/personas', icon: <Contact />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
-  { href: '/dashboard/lista-pacientes', icon: <ClipboardList />, title: 'Lista de Pacientes', permission: 'patientlist.view', group: 'Admisión' },
-  { href: '/dashboard/pacientes', icon: <Users />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
-  { href: '/dashboard/beneficiarios', icon: <UserIcon />, title: 'Beneficiarios', permission: 'beneficiaries.manage', group: 'Admisión' },
+  { href: '/dashboard/personas', icon: <User />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
+  { href: '/dashboard/lista-pacientes', icon: <Users />, title: 'Lista de Pacientes', permission: 'patientlist.view', group: 'Admisión' },
+  { href: '/dashboard/pacientes', icon: <ShieldCheck />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
+  { href: '/dashboard/beneficiarios', icon: <UsersRound />, title: 'Beneficiarios', permission: 'beneficiaries.manage', group: 'Admisión' },
   
-  { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
-  { href: '/dashboard/cie10', icon: <Code2 />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
+  { href: '/dashboard/empresas', icon: <Building2 />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
+  { href: '/dashboard/cie10', icon: <BookText />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
   { href: '/dashboard/servicios', icon: <DollarSign />, title: 'Servicios y Tarifas', permission: 'services.manage', group: 'Parametrización' },
 
-  { href: '/dashboard/seguridad/usuarios', icon: <UserCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
-  { href: '/dashboard/seguridad/roles', icon: <Shield />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
+  { href: '/dashboard/usuarios', icon: <UsersCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
+  { href: '/dashboard/seguridad/roles', icon: <KeyRound />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
 ];
 
 const menuGroups = ['Principal', 'Atención', 'Admisión', 'Reportes', 'Parametrización', 'Seguridad'];
@@ -104,9 +118,10 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
         <Sidebar collapsible="icon">
           <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
              <Link href="/dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
-                <MedihubLogo className="h-7 w-7" />
+                <MedihubLogo className="h-8 w-8" />
                 <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                   <h2 className="text-lg font-semibold font-headline tracking-wide">Medihub</h2>
+                  <p className="text-xs text-muted-foreground -mt-1">Centro Policlínico Valencia</p>
                 </div>
              </Link>
           </SidebarHeader>
@@ -149,7 +164,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
                         <span className="sr-only">{user.name}</span>
-                        <UserIcon className="h-5 w-5" />
+                        <User className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
                   </Button>
