@@ -1,11 +1,11 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
 <defs>
-<linearGradient id="logo-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
-<stop offset="0%" stop-color="#2A64F5"/>
-<stop offset="100%" stop-color="#3CDBB4"/>
+<linearGradient id="icon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color: #2A64F5;" />
+<stop offset="100%" style="stop-color: #00C6B9;" />
 </linearGradient>
 </defs>
-<path d="M54.4,16.088c-10.8-11.3-34-11.3-44.8,0c-10.8,11.3,0,32.7,22.4,44.001C54.4,48.788,65.2,27.388,54.4,16.088z" fill="url(#logo-gradient)"/>
+<path d="M49.2,9.61C45.07,5.55,39.4,3.5,32,3.5C24.6,3.5,18.93,5.55,14.8,9.61C10.38,13.94,8.5,20.57,8.5,28.2C8.5,37.38,12.56,45.21,21.73,52.01C25.43,54.75,29,56.9,32,59.5C35,56.9,38.57,54.75,42.27,52.01C51.44,45.21,55.5,37.38,55.5,28.2C55.5,20.57,53.62,13.94,49.2,9.61Z" fill="url(#icon-gradient)"/>
 <path d="M32.5,23.5v18" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M23.5,32.5h18" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

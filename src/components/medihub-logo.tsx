@@ -17,27 +17,16 @@ export function MedihubLogo({ className, ...props }: MedihubLogoProps) {
       {...props}
     >
       <defs>
-        <linearGradient id="logo-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" style={{ stopColor: 'hsl(var(--primary))' }} />
-          <stop offset="100%" style={{ stopColor: 'hsl(var(--success))' }} />
+        <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#2A64F5' }} />
+          <stop offset="100%" style={{ stopColor: '#00C6B9' }} />
         </linearGradient>
       </defs>
-      <path 
-        d="M54.4,16.088c-10.8-11.3-34-11.3-44.8,0c-10.8,11.3,0,32.7,22.4,44.001C54.4,48.788,65.2,27.388,54.4,16.088z" 
-        fill="url(#logo-gradient)"
-      />
-      <path 
-        d="M32.5,23.5v18" 
-        stroke="white" 
-        strokeWidth="4" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      />
-      <path 
-        d="M23.5,32.5h18" 
-        stroke="white" 
-        strokeWidth="4" 
-        strokeLinecap="round" 
+      <path
+        d="M32 59.5c15.19 0 27.5-12.31 27.5-27.5S47.19 4.5 32 4.5 4.5 16.81 4.5 32c0 8.76 4.1 16.51 10.53 21.39 1.99 1.51 4.22 2.76 6.53 3.72.76.32 1.54.6 2.33.84 5.33 1.63 11.2-.53 14.8-4.84 2.45-2.94 3.48-6.6 3.01-10.22-.5-3.86-2.81-7.19-5.99-9.1-3.69-2.22-8.1-2.48-12.03-.7-2.62 1.18-4.75 3.42-5.78 6.13-1.04 2.73-.91 5.75.38 8.36 1.77 3.59 5.25 6.01 9.28 6.32 3.86.3 7.55-1.42 9.88-4.32"
+        stroke="url(#logo-gradient)"
+        strokeWidth="5"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>

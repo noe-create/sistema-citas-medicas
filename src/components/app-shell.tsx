@@ -18,16 +18,16 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { 
-    LayoutGrid, 
+    LayoutDashboard, 
     LogOut, 
     Users, 
     User,
-    Building2, 
+    Building, 
     Clock, 
     HeartPulse, 
     ClipboardCheck, 
     BookText, 
-    AreaChart, 
+    BarChart3, 
     UserCog, 
     KeyRound, 
     MessageSquareQuote,
@@ -35,7 +35,8 @@ import {
     ShieldCheck,
     UsersRound,
     Stethoscope,
-    CalendarDays
+    CalendarDays,
+    Calendar
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -56,13 +57,13 @@ interface MenuItem {
 }
 
 const allMenuOptions: MenuItem[] = [
-  { href: '/dashboard', icon: <LayoutGrid />, title: 'Dashboard', permission: '*', group: 'Principal' },
+  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', permission: '*', group: 'Principal' },
   { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
   { href: '/dashboard/consulta', icon: <Stethoscope />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
   { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   
-  { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
+  { href: '/dashboard/reportes', icon: <BarChart3 />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
   { href: '/dashboard/encuestas', icon: <MessageSquareQuote />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
   
   { href: '/dashboard/personas', icon: <User />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
@@ -70,7 +71,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/pacientes', icon: <ShieldCheck />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
   { href: '/dashboard/beneficiarios', icon: <UsersRound />, title: 'Beneficiarios', permission: 'beneficiaries.manage', group: 'Admisión' },
   
-  { href: '/dashboard/empresas', icon: <Building2 />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
+  { href: '/dashboard/empresas', icon: <Building />, title: 'Empresas', permission: 'companies.manage', group: 'Parametrización' },
   { href: '/dashboard/cie10', icon: <BookText />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
   { href: '/dashboard/servicios', icon: <DollarSign />, title: 'Servicios y Tarifas', permission: 'services.manage', group: 'Parametrización' },
 
@@ -121,7 +122,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
                 <MedihubLogo className="h-8 w-8" />
                 <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                   <h2 className="text-lg font-semibold font-headline tracking-wide">Medihub</h2>
-                  <p className="text-xs text-muted-foreground -mt-1">Centro Policlínico Valencia</p>
+                  <p className="text-xs text-muted-foreground -mt-1">Salud Integral CPV</p>
                 </div>
              </Link>
           </SidebarHeader>
