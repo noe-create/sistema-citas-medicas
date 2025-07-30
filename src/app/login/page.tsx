@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Stethoscope } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function LoginButton() {
@@ -26,16 +26,16 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-secondary/40 p-4">
       <Card className="w-full max-w-sm">
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
                 <div className="bg-primary/20 p-3 rounded-xl">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                  <Stethoscope className="h-6 w-6 text-primary"/>
                 </div>
             </div>
-            <CardTitle className="text-2xl font-bold">Medihub</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline">Medihub</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -27,8 +27,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { RescheduleForm } from './reschedule-form';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
-  'medicina general': { icon: <HeartPulse className="h-5 w-5 text-red-500" />, title: 'Medicina General' },
-  'consulta pediatrica': { icon: <Baby className="h-5 w-5 text-blue-500" />, title: 'Consulta Pediátrica' },
+  'medicina general': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina General' },
+  'consulta pediatrica': { icon: <Baby className="h-5 w-5 text-pink-500" />, title: 'Consulta Pediátrica' },
   'servicio de enfermeria': { icon: <Stethoscope className="h-5 w-5 text-green-500" />, title: 'Servicio de Enfermería' },
 };
 
