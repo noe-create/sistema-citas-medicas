@@ -1,4 +1,5 @@
 'server-only';
+import 'dotenv/config';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
@@ -29,7 +30,7 @@ export const sessionOptions = {
 };
 
 export async function getSession() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
 
   if (!session.isLoggedIn) {
