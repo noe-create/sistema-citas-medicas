@@ -10,14 +10,15 @@ import {
   ClipboardCheck,
   BookText,
   AreaChart,
-  UsersCog,
+  UserCog,
   MessageSquareQuote,
   LayoutGrid,
   ShieldCheck,
   User,
   KeyRound,
   DollarSign,
-  CalendarDays
+  CalendarDays,
+  Stethoscope
 } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { getWaitlistCount, getTodayConsultationsCount, getTodayRegisteredPeopleCount } from '@/actions/patient-actions';
@@ -125,7 +126,7 @@ const menuOptions: MenuOption[] = [
   },
   {
     href: '/dashboard/usuarios',
-    icon: <UsersCog className="h-6 w-6 text-primary" />,
+    icon: <UserCog className="h-6 w-6 text-primary" />,
     title: 'Gestión de Usuarios',
     description: 'Administre los usuarios y roles del sistema.',
     permission: 'users.manage',

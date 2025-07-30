@@ -28,7 +28,7 @@ import {
     ClipboardCheck, 
     BookText, 
     AreaChart, 
-    UsersCog, 
+    UserCog, 
     KeyRound, 
     MessageSquareQuote,
     DollarSign,
@@ -74,7 +74,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/cie10', icon: <BookText />, title: 'Catálogo CIE-10', permission: 'cie10.manage', group: 'Parametrización' },
   { href: '/dashboard/servicios', icon: <DollarSign />, title: 'Servicios y Tarifas', permission: 'services.manage', group: 'Parametrización' },
 
-  { href: '/dashboard/usuarios', icon: <UsersCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
+  { href: '/dashboard/usuarios', icon: <UserCog />, title: 'Usuarios', permission: 'users.manage', group: 'Seguridad' },
   { href: '/dashboard/seguridad/roles', icon: <KeyRound />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
 ];
 
