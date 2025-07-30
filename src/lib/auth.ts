@@ -16,14 +16,16 @@ export const defaultSession: SessionData = {
   permissions: [],
 };
 
+export const sessionOptions = {
+    password: process.env.SECRET_COOKIE_PASSWORD!,
+    cookieName: 'medihub-session',
+    cookieOptions: {
+        secure: process.env.NODE_ENV === 'production',
+    },
+};
+
 export async function getSession() {
-    const session = await getIronSession<SessionData>(cookies(), {
-        password: process.env.SECRET_COOKIE_PASSWORD!,
-        cookieName: 'medihub-session',
-        cookieOptions: {
-            secure: process.env.NODE_ENV === 'production',
-        },
-    });
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
 
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;
