@@ -27,7 +27,9 @@ import type {
     MotivoConsulta,
     TreatmentOrderItem,
     User,
-    PatientSummary
+    PatientSummary,
+    Service,
+    Invoice
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -643,9 +645,26 @@ export async function updatePatientStatus(
 
 // --- EHR Actions ---
 
-function parseConsultation(row: any) {
+async function parseConsultation(db: any, row: any): Promise<Consultation | null> {
     if (!row) return null;
     const { fum, ...restOfGineco } = row.antecedentesGinecoObstetricos ? JSON.parse(row.antecedentesGinecoObstetricos) : {};
+
+    const diagnoses = await db.all('SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?', row.id);
+    const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC', row.id);
+    
+    const orderRow = await db.get('SELECT * FROM treatment_orders WHERE consultationId = ?', row.id);
+    let treatmentOrder: TreatmentOrder | undefined = undefined;
+    if (orderRow) {
+        const items = await db.all('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', orderRow.id);
+        treatmentOrder = { ...orderRow, items: items, createdAt: new Date(orderRow.createdAt) };
+    }
+    
+    const invoiceRow = await db.get('SELECT * FROM invoices WHERE consultationId = ?', row.id);
+    let invoice: Invoice | undefined = undefined;
+    if(invoiceRow) {
+        const items = await db.all('SELECT * FROM invoice_items WHERE invoiceId = ?', invoiceRow.id);
+        invoice = { ...invoiceRow, items: items, createdAt: new Date(invoiceRow.createdAt) };
+    }
 
     return {
         ...row,
@@ -655,8 +674,13 @@ function parseConsultation(row: any) {
         antecedentesPersonales: row.antecedentesPersonales ? JSON.parse(row.antecedentesPersonales) : undefined,
         antecedentesGinecoObstetricos: row.antecedentesGinecoObstetricos ? { ...restOfGineco, fum: fum ? new Date(fum) : undefined } : undefined,
         antecedentesPediatricos: row.antecedentesPediatricos ? JSON.parse(row.antecedentesPediatricos) : undefined,
-    }
+        diagnoses,
+        documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+        treatmentOrder,
+        invoice,
+    };
 }
+
 
 export async function getPatientHistory(personaId: string): Promise<HistoryEntry[]> {
     const db = await getDb();
@@ -671,26 +695,10 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
 
     const consultations: HistoryEntry[] = await Promise.all(
         consultationsRows.map(async (row) => {
-            const diagnoses = await db.all('SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?', row.id);
-            const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC', row.id);
-            const orderRow = await db.get('SELECT * FROM treatment_orders WHERE consultationId = ?', row.id);
-            
-            let treatmentOrder: TreatmentOrder | undefined = undefined;
-            if(orderRow) {
-                const items = await db.all('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', orderRow.id);
-                treatmentOrder = { ...orderRow, items: items, createdAt: new Date(orderRow.createdAt) };
-            }
-            
-            const parsedConsultation = parseConsultation(row);
-            
+            const parsedConsultation = await parseConsultation(db, row);
             return {
                 type: 'consultation' as const,
-                data: {
-                    ...parsedConsultation,
-                    diagnoses,
-                    documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
-                    treatmentOrder,
-                }
+                data: parsedConsultation!
             };
         })
     );
@@ -787,7 +795,6 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             await docStmt.finalize();
         }
         
-        // Handle Treatment Order creation
         if (data.treatmentItems && data.treatmentItems.length > 0) {
             const orderId = generateId('to');
             await db.run(
@@ -805,6 +812,22 @@ export async function createConsultation(data: CreateConsultationInput): Promise
                     generateId('toi'), orderId, item.medicamentoProcedimiento, item.dosis,
                     item.via, item.frecuencia, item.duracion, item.instrucciones, 'Pendiente'
                 );
+            }
+            await itemStmt.finalize();
+        }
+        
+        if (data.renderedServices && data.renderedServices.length > 0) {
+            const invoiceId = generateId('inv');
+            const totalAmount = data.renderedServices.reduce((sum, service) => sum + service.price, 0);
+            
+            await db.run(
+                'INSERT INTO invoices (id, consultationId, totalAmount, status, createdAt) VALUES (?, ?, ?, ?, ?)',
+                invoiceId, consultationId, totalAmount, 'Pendiente', new Date().toISOString()
+            );
+
+            const itemStmt = await db.prepare('INSERT INTO invoice_items (id, invoiceId, serviceId, serviceName, price) VALUES (?, ?, ?, ?, ?)');
+            for (const service of data.renderedServices) {
+                await itemStmt.run(generateId('item'), invoiceId, service.id, service.name, service.price);
             }
             await itemStmt.finalize();
         }
@@ -832,21 +855,14 @@ export async function createConsultation(data: CreateConsultationInput): Promise
     revalidatePath('/dashboard/bitacora');
     revalidatePath('/dashboard/lista-pacientes');
     
-    const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ?', consultationId);
-    
     const createdConsultationRaw = await db.get('SELECT * from consultations WHERE id = ?', consultationId);
-    const createdConsultation = parseConsultation(createdConsultationRaw);
+    const createdConsultation = await parseConsultation(db, createdConsultationRaw);
 
     if (!createdConsultation) {
         throw new Error('Failed to retrieve the created consultation after saving.');
     }
 
-    return {
-        ...createdConsultation,
-        diagnoses: data.diagnoses || [],
-        documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
-        surveyInvitationToken
-    };
+    return createdConsultation;
 }
 
 
@@ -1332,7 +1348,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
 
 export async function createTreatmentExecution(data: CreateTreatmentExecutionInput): Promise<TreatmentExecution> {
     const session = await getSession();
-    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(user.role.id)) {
+    if (!session.isLoggedIn || !session.user || !['doctor', 'enfermera', 'superuser'].includes(session.user.role.id)) {
         throw new Error('Acción no autorizada.');
     }
     const executedBy = session.user.name || session.user.username;
@@ -1636,4 +1652,55 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
   const summary = await summarizePatientHistory({ history: historyString });
 
   return summary;
+}
+
+// --- Service Catalog Actions ---
+
+export async function getServices(query?: string): Promise<Service[]> {
+  await authorize('services.manage');
+  const db = await getDb();
+  let selectQuery = 'SELECT * FROM services';
+  const params: any[] = [];
+  if (query && query.trim().length > 1) {
+    const searchQuery = `%${query.trim()}%`;
+    selectQuery += ' WHERE name LIKE ? OR description LIKE ?';
+    params.push(searchQuery, searchQuery);
+  }
+  selectQuery += ' ORDER BY name';
+  return db.all(selectQuery, ...params);
+}
+
+export async function createService(data: Omit<Service, 'id'>): Promise<Service> {
+  await authorize('services.manage');
+  const db = await getDb();
+  const newServiceData = { ...data, id: generateId('serv') };
+  await db.run(
+    'INSERT INTO services (id, name, description, price) VALUES (?, ?, ?, ?)',
+    newServiceData.id, newServiceData.name, newServiceData.description, newServiceData.price
+  );
+  revalidatePath('/dashboard/servicios');
+  return newServiceData;
+}
+
+export async function updateService(id: string, data: Omit<Service, 'id'>): Promise<Service> {
+  await authorize('services.manage');
+  const db = await getDb();
+  await db.run(
+    'UPDATE services SET name = ?, description = ?, price = ? WHERE id = ?',
+    data.name, data.description, data.price, id
+  );
+  revalidatePath('/dashboard/servicios');
+  return { ...data, id };
+}
+
+export async function deleteService(id: string): Promise<{ success: boolean }> {
+  await authorize('services.manage');
+  const db = await getDb();
+  const usageCount = await db.get('SELECT COUNT(*) as count FROM invoice_items WHERE serviceId = ?', id);
+    if (usageCount.count > 0) {
+        throw new Error('Este servicio no puede ser eliminado porque está siendo usado en facturas existentes.');
+    }
+  await db.run('DELETE FROM services WHERE id = ?', id);
+  revalidatePath('/dashboard/servicios');
+  return { success: true };
 }

@@ -11,8 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker, ChevronsUpDown, Check, File as FileIcon, HeartPulse, BrainCircuit, User, Users, Baby, Pill } from 'lucide-react';
-import type { Patient, Cie10Code, Diagnosis, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos, CreateTreatmentItemInput } from '@/lib/types';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, ArrowLeft, ArrowRight, Save, CalendarIcon, Beaker, ChevronsUpDown, Check, File as FileIcon, HeartPulse, BrainCircuit, User, Users, Baby, Pill, DollarSign } from 'lucide-react';
+import type { Patient, Cie10Code, Diagnosis, SignosVitales, AntecedentesPersonales, AntecedentesGinecoObstetricos, AntecedentesPediatricos, CreateTreatmentItemInput, Service } from '@/lib/types';
 import { searchCie10Codes, createConsultation, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -33,6 +33,7 @@ import { Slider } from './ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from './ui/dialog';
 import { LabOrderForm } from './lab-order-form';
 import { Stethoscope } from 'lucide-react';
+import { ServiceSelector } from './service-selector';
 
 
 // --- Zod Schema Definition ---
@@ -119,6 +120,7 @@ const consultationSchema = z.object({
   })).min(1, 'Se requiere al menos un diagnóstico.'),
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
   treatmentItems: z.array(treatmentItemSchema).optional(),
+  renderedServices: z.array(z.any()).optional(),
 });
 
 const documentTypes = ['laboratorio', 'imagenologia', 'informe medico', 'otro'] as const;
@@ -144,7 +146,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
             { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
             { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
-            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan', 'treatmentItems'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan', 'treatmentItems', 'renderedServices'] },
         ];
         return baseSteps;
     }, []);
@@ -158,6 +160,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             diagnoses: [],
             treatmentPlan: '',
             treatmentItems: [],
+            renderedServices: [],
             examenFisicoGeneral: '',
             antecedentesFamiliares: '',
             antecedentesPersonales: {
@@ -197,7 +200,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step - 1);
+            setCurrentStep(step => step + 1);
         }
     };
     
@@ -220,6 +223,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 diagnoses: values.diagnoses,
                 treatmentPlan: values.treatmentPlan,
                 treatmentItems: values.treatmentItems,
+                renderedServices: values.renderedServices,
             });
 
             if (createdConsultation && selectedLabTests.length > 0) {
@@ -319,10 +323,13 @@ const habitosOptions = [ { id: 'tabaco', label: 'Tabaco' }, { id: 'alcohol', lab
 const sintomasComunes = [ { id: 'fiebre', label: 'Fiebre' }, { id: 'tos', label: 'Tos' }, { id: 'dolor_garganta', label: 'Dolor de garganta' }, { id: 'dolor_cabeza', label: 'Dolor de cabeza' }, { id: 'congestion_nasal', label: 'Congestión nasal' }, { id: 'dificultad_respirar', label: 'Dificultad para respirar' }, { id: 'dolor_abdominal', label: 'Dolor abdominal' }, { id: 'nauseas_vomitos', label: 'Náuseas/Vómitos' }, { id: 'diarrea', label: 'Diarrea' }, { id: 'fatiga_cansancio', label: 'Fatiga/Cansancio' }, { id: 'dolor_muscular', label: 'Dolor muscular' }, { id: 'mareos', label: 'Mareos' } ];
 
 
-const FormSection = ({ title, children, className }: { title: string, children: React.ReactNode, className?: string }) => (
+const FormSection = ({ title, icon, children, className }: { title: string, icon?: React.ReactNode, children: React.ReactNode, className?: string }) => (
     <div className={cn("space-y-4 rounded-lg border p-4", className)}>
-        <h3 className="text-lg font-medium leading-none">{title}</h3>
-        <div className="space-y-4">{children}</div>
+        <h3 className="text-lg font-medium leading-none flex items-center gap-2">
+            {icon}
+            {title}
+        </h3>
+        <div className={cn("space-y-4", icon && "pl-6")}>{children}</div>
     </div>
 );
 
@@ -591,7 +598,7 @@ const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; p
 
     return (
         <div className="space-y-6">
-            <FormSection title="Diagnósticos">
+            <FormSection icon={<BrainCircuit className="h-5 w-5 text-primary"/>} title="Diagnósticos">
                 <FormField control={form.control} name="diagnoses" render={({ field }) => (
                     <FormItem>
                         <Cie10Autocomplete selected={field.value} onChange={field.onChange} />
@@ -599,7 +606,8 @@ const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; p
                     </FormItem>
                 )} />
             </FormSection>
-            <FormSection title="Plan y Órdenes">
+            
+            <FormSection icon={<Pill className="h-5 w-5 text-primary"/>} title="Plan y Órdenes">
                  <FormField control={form.control} name="treatmentPlan" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Plan General y Observaciones</FormLabel>
@@ -626,10 +634,26 @@ const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; p
                     </DialogContent>
                 </Dialog>
             </FormSection>
+
+            <FormSection icon={<DollarSign className="h-5 w-5 text-primary"/>} title="Servicios Prestados y Facturación">
+                <FormField
+                    control={form.control}
+                    name="renderedServices"
+                    render={({ field }) => (
+                        <FormItem>
+                            <ServiceSelector
+                                selectedServices={field.value || []}
+                                onChange={field.onChange}
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </FormSection>
             
             <TreatmentOrderBuilder form={form} />
 
-            <FormSection title="Asistente de Récipe Médico con IA" className="bg-secondary/30">
+            <FormSection icon={<Wand2 className="h-5 w-5 text-primary"/>} title="Asistente de Récipe Médico con IA" className="bg-secondary/30">
                 <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
                     {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                     Generar Récipe con IA (Basado en Plan General)
@@ -678,7 +702,7 @@ const TreatmentOrderBuilder = ({ form }: { form: any }) => {
     }
 
     return (
-        <FormSection title="Orden de Tratamiento">
+        <FormSection icon={<Stethoscope className="h-5 w-5 text-primary"/>} title="Orden de Tratamiento">
             <div className="p-4 bg-background border rounded-md space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
