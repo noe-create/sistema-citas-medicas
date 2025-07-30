@@ -25,6 +25,7 @@ import { Cie10Form } from './cie10-form';
 import { useDebounce } from '@/hooks/use-debounce';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PAGE_SIZE = 15;
 
@@ -268,54 +269,62 @@ export function Cie10Management() {
                       <TableHead className="text-right w-[100px]">Acciones</TableHead>
                   </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {codes.map((code) => (
-                      <TableRow key={code.code}>
-                      <TableCell className="font-mono font-semibold">{code.code}</TableCell>
-                      <TableCell>{code.description}</TableCell>
-                      <TableCell className="text-right">
-                          <AlertDialog>
-                              <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Abrir menú</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => handleOpenForm(code)}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    <span>Editar</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <AlertDialogTrigger asChild>
-                                      <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          <span>Eliminar</span>
-                                      </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                              </DropdownMenuContent>
-                              </DropdownMenu>
-                              <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                      <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                          Esta acción no se puede deshacer. Esto eliminará permanentemente el código CIE-10 del catálogo. No podrá eliminar códigos que estén actualmente en uso.
-                                      </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteCode(code.code)} className="bg-destructive hover:bg-destructive/90">
-                                          Sí, eliminar
-                                      </AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
-                      </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                  <motion.tbody>
+                    <AnimatePresence>
+                      {codes.map((code) => (
+                        <motion.tr 
+                          key={code.code}
+                          layout
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                        >
+                        <TableCell className="font-mono font-semibold">{code.code}</TableCell>
+                        <TableCell>{code.description}</TableCell>
+                        <TableCell className="text-right">
+                            <AlertDialog>
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Abrir menú</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleOpenForm(code)}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      <span>Editar</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            <span>Eliminar</span>
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el código CIE-10 del catálogo. No podrá eliminar códigos que estén actualmente en uso.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteCode(code.code)} className="bg-destructive hover:bg-destructive/90">
+                                            Sí, eliminar
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </motion.tbody>
               </Table>
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">

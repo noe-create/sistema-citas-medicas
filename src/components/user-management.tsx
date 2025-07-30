@@ -23,6 +23,7 @@ import { getUsers, createUser, updateUser, deleteUser } from '@/actions/auth-act
 import { useDebounce } from '@/hooks/use-debounce';
 import { UserForm } from './user-form';
 import { useUser } from './app-shell';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserManagementProps {
     roles: Role[];
@@ -127,55 +128,63 @@ export function UserManagement({ roles }: UserManagementProps) {
                     <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                    <TableCell className="font-mono">{user.username}</TableCell>
-                    <TableCell>{user.name || <span className="text-muted-foreground">N/A</span>}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{user.roleName}</Badge></TableCell>
-                    <TableCell className="text-right">
-                        <AlertDialog>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser.id}>
-                                <span className="sr-only">Abrir menú</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleOpenForm(user)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  <span>Editar</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>Eliminar</span>
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario y su acceso al sistema.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Sí, eliminar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                <motion.tbody>
+                  <AnimatePresence>
+                    {users.map((user) => (
+                      <motion.tr 
+                        key={user.id}
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                      >
+                      <TableCell className="font-mono">{user.username}</TableCell>
+                      <TableCell>{user.name || <span className="text-muted-foreground">N/A</span>}</TableCell>
+                      <TableCell><Badge variant="outline" className="capitalize">{user.roleName}</Badge></TableCell>
+                      <TableCell className="text-right">
+                          <AlertDialog>
+                              <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser.id}>
+                                  <span className="sr-only">Abrir menú</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleOpenForm(user)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    <span>Editar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          <span>Eliminar</span>
+                                      </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                              </DropdownMenu>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario y su acceso al sistema.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
+                                          Sí, eliminar
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </motion.tbody>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

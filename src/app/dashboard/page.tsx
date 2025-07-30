@@ -133,7 +133,7 @@ const KpiCard = async ({ option }: { option: MenuOption }) => {
 
   return (
     <Link href={option.href} className="flex">
-      <Card className="flex flex-col w-full transition-colors hover:bg-muted/50">
+      <Card className="flex flex-col w-full transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold">{option.title}</CardTitle>

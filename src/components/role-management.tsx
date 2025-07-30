@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getRoles, createRole, updateRole, deleteRole, getAllPermissions, getRoleWithPermissions } from '@/actions/security-actions';
 import { RoleForm } from './role-form';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function RoleManagement() {
   const { toast } = useToast();
@@ -112,53 +113,61 @@ export function RoleManagement() {
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {roles.map((role) => (
-                    <TableRow key={role.id}>
-                      <TableCell className="font-medium">{role.name}</TableCell>
-                      <TableCell>{role.description}</TableCell>
-                      <TableCell className="text-right">
-                        <AlertDialog>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0" disabled={role.name === 'Superusuario'}>
-                                <span className="sr-only">Abrir menú</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpenForm(role)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                <span>Editar</span>
-                              </DropdownMenuItem>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Eliminar</span>
+              <motion.tbody>
+                <AnimatePresence>
+                  {roles.map((role) => (
+                      <motion.tr 
+                        key={role.id}
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                      >
+                        <TableCell className="font-medium">{role.name}</TableCell>
+                        <TableCell>{role.description}</TableCell>
+                        <TableCell className="text-right">
+                          <AlertDialog>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={role.name === 'Superusuario'}>
+                                  <span className="sr-only">Abrir menú</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOpenForm(role)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  <span>Editar</span>
                                 </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Se eliminará permanentemente el rol. No podrá eliminar roles que estén actualmente en uso.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteRole(role.id)} className="bg-destructive hover:bg-destructive/90">
-                                Sí, eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Eliminar</span>
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Se eliminará permanentemente el rol. No podrá eliminar roles que estén actualmente en uso.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteRole(role.id)} className="bg-destructive hover:bg-destructive/90">
+                                  Sí, eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+              </motion.tbody>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

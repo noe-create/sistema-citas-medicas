@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { PersonForm } from './person-form';
 import { useUser } from './app-shell';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function PeopleList() {
   const { toast } = useToast();
@@ -274,9 +275,16 @@ export function PeopleList() {
                     <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
+                <motion.tbody>
+                  <AnimatePresence>
                     {personas.map((persona) => (
-                        <TableRow key={persona.id}>
+                        <motion.tr 
+                          key={persona.id}
+                          layout
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                        >
                         <TableCell className="font-medium">{persona.nombreCompleto}</TableCell>
                         <TableCell>{persona.cedula}</TableCell>
                         <TableCell>{format(persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
@@ -323,9 +331,10 @@ export function PeopleList() {
                             </AlertDialog>
                         )}
                         </TableCell>
-                        </TableRow>
+                        </motion.tr>
                     ))}
-                </TableBody>
+                    </AnimatePresence>
+                </motion.tbody>
                 </Table>
             ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

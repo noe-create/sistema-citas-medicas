@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useRouter } from 'next/navigation';
 import { useUser } from './app-shell';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const titularTypeMap: Record<string, string> = {
   internal_employee: 'Empleado Interno',
@@ -106,7 +107,7 @@ export function PatientManagement() {
         await deleteTitular(id);
         toast({ title: '¡Rol de Titular Eliminado!', description: 'El rol de titular ha sido eliminado.' });
         await refreshTitulares(search);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error al eliminar titular:", error);
         toast({ title: 'Error', description: 'No se pudo eliminar el rol de titular.', variant: 'destructive' });
     }
@@ -159,9 +160,16 @@ export function PatientManagement() {
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
-                <TableBody>
+                <motion.tbody>
+                  <AnimatePresence>
                     {titulares.map((titular) => (
-                        <TableRow key={titular.id}>
+                        <motion.tr 
+                          key={titular.id}
+                          layout
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                        >
                         <TableCell className="font-medium">{titular.persona.nombreCompleto}</TableCell>
                         <TableCell>{titular.persona.cedula}</TableCell>
                         <TableCell>{titular.persona.email}</TableCell>
@@ -222,9 +230,10 @@ export function PatientManagement() {
                                 </AlertDialogContent>
                             </AlertDialog>
                         </TableCell>
-                        </TableRow>
+                        </motion.tr>
                     ))}
-                </TableBody>
+                  </AnimatePresence>
+                </motion.tbody>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

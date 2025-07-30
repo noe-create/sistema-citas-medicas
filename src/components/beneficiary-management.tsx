@@ -22,6 +22,7 @@ import { createBeneficiario, updateBeneficiario, deleteBeneficiario, getBenefici
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUser } from './app-shell';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface BeneficiaryManagementProps {
   titular: Titular;
@@ -112,9 +113,16 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
-                <TableBody>
+                <motion.tbody>
+                  <AnimatePresence>
                     {beneficiarios.map((beneficiario) => (
-                    <TableRow key={beneficiario.id}>
+                    <motion.tr 
+                      key={beneficiario.id}
+                      layout
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+                    >
                         <TableCell className="font-medium">{beneficiario.persona.nombreCompleto}</TableCell>
                         <TableCell>{beneficiario.persona.cedula}</TableCell>
                         <TableCell>{format(beneficiario.persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
@@ -161,9 +169,10 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                             </AlertDialog>
                         )}
                         </TableCell>
-                    </TableRow>
+                    </motion.tr>
                     ))}
-                </TableBody>
+                  </AnimatePresence>
+                </motion.tbody>
             </Table>
           ) : (
              <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
