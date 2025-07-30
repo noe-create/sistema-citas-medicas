@@ -1,8 +1,10 @@
+
+
 'use client';
 
 import * as React from 'react';
 import type { Empresa } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Building2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,22 +24,32 @@ import { getEmpresas, createEmpresa, updateEmpresa, deleteEmpresa } from '@/acti
 import { CompanyForm } from './company-form';
 import { useUser } from './app-shell';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDebounce } from '@/hooks/use-debounce';
+
+const PAGE_SIZE = 10;
 
 export function CompanyManagement() {
   const { toast } = useToast();
   const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
   const [selectedEmpresa, setSelectedEmpresa] = React.useState<Empresa | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    const timer = setTimeout(async () => {
-      setIsLoading(true);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const canCreate = user.role.id === 'superuser' || user.role.id === 'administrator';
+  
+  const refreshEmpresas = React.useCallback(async (currentSearch: string, page: number) => {
+    setIsLoading(true);
       try {
-        const empresasData = await getEmpresas(search);
+        const { empresas: empresasData, totalCount: count } = await getEmpresas(currentSearch, page, PAGE_SIZE);
         setEmpresas(empresasData);
+        setTotalCount(count);
       } catch (error) {
         console.error("Error al cargar las empresas:", error);
         toast({
@@ -48,10 +60,15 @@ export function CompanyManagement() {
       } finally {
         setIsLoading(false);
       }
-    }, 300);
+  }, [toast]);
 
-    return () => clearTimeout(timer);
-  }, [search, toast]);
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  React.useEffect(() => {
+    refreshEmpresas(debouncedSearch, currentPage);
+  }, [debouncedSearch, currentPage, refreshEmpresas]);
 
   const handleOpenForm = (empresa: Empresa | null) => {
     setSelectedEmpresa(empresa);
@@ -73,8 +90,7 @@ export function CompanyManagement() {
         toast({ title: '¡Empresa Creada!', description: `${created.name} ha sido añadida.` });
       }
       handleCloseDialog();
-      const empresasData = await getEmpresas(search);
-      setEmpresas(empresasData);
+      await refreshEmpresas(search, 1);
     } catch (error: any) {
       console.error("Error al guardar empresa:", error);
       toast({ title: 'Error', description: error.message || 'No se pudo guardar la empresa.', variant: 'destructive' });
@@ -85,15 +101,16 @@ export function CompanyManagement() {
     try {
         await deleteEmpresa(id);
         toast({ title: '¡Empresa Eliminada!', description: 'La empresa ha sido eliminada correctamente.' });
-        const empresasData = await getEmpresas(search);
-        setEmpresas(empresasData);
+        if (empresas.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            await refreshEmpresas(search, currentPage);
+        }
     } catch (error: any) {
         console.error("Error al eliminar empresa:", error);
         toast({ title: 'Error al Eliminar', description: error.message || 'No se pudo eliminar la empresa.', variant: 'destructive' });
     }
   }
-
-  const canCreate = user.role.id === 'superuser' || user.role.id === 'administrator';
 
   return (
     <>
@@ -124,6 +141,7 @@ export function CompanyManagement() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : empresas.length > 0 ? (
+            <>
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -195,6 +213,28 @@ export function CompanyManagement() {
                   </AnimatePresence>
                 </motion.tbody>
             </Table>
+             <div className="flex items-center justify-end space-x-2 py-4">
+                <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages || 1}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage <= 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+            </>
           ) : (
              <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
                 <Building2 className="h-12 w-12 mb-4" />

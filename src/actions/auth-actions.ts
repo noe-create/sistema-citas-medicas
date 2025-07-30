@@ -84,9 +84,23 @@ export async function logout() {
 
 // --- User Management Actions ---
 
-export async function getUsers(query?: string): Promise<(User & {roleName: string})[]> {
+export async function getUsers(query?: string, page: number = 1, pageSize: number = 10): Promise<{ users: (User & {roleName: string})[], totalCount: number }> {
     await authorize('users.manage');
     const db = await getDb();
+    
+    const whereParams: any[] = [];
+    let whereClause = '';
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        whereClause = ' WHERE u.username LIKE ? OR p.primerNombre LIKE ? OR p.primerApellido LIKE ?';
+        whereParams.push(searchQuery, searchQuery, searchQuery);
+    }
+    
+    const countQuery = `SELECT COUNT(*) as count FROM users u LEFT JOIN personas p ON u.personaId = p.id JOIN roles r ON u.roleId = r.id${whereClause}`;
+    const totalResult = await db.get(countQuery, ...whereParams);
+    const totalCount = totalResult?.count || 0;
+
+    const offset = (page - 1) * pageSize;
     let selectQuery = `
         SELECT 
           u.id, u.username, u.roleId, r.name as roleName, u.specialty, 
@@ -94,16 +108,15 @@ export async function getUsers(query?: string): Promise<(User & {roleName: strin
         FROM users u
         LEFT JOIN personas p ON u.personaId = p.id
         JOIN roles r ON u.roleId = r.id
+        ${whereClause}
+        ORDER BY u.username
+        LIMIT ? OFFSET ?
     `;
-    const params: any[] = [];
-    if (query && query.trim().length > 1) {
-        const searchQuery = `%${query.trim()}%`;
-        selectQuery += ' WHERE u.username LIKE ? OR p.primerNombre LIKE ? OR p.primerApellido LIKE ?';
-        params.push(searchQuery, searchQuery, searchQuery);
-    }
-    selectQuery += ' ORDER BY u.username';
-    const rows = await db.all(selectQuery, ...params);
-    return rows.map(row => ({
+    const selectParams = [...whereParams, pageSize, offset];
+    
+    const rows = await db.all(selectQuery, ...selectParams);
+    
+    const users = rows.map(row => ({
         id: row.id,
         username: row.username,
         role: { id: row.roleId, name: row.roleName },
@@ -112,6 +125,8 @@ export async function getUsers(query?: string): Promise<(User & {roleName: strin
         personaId: row.personaId,
         name: row.name,
     }));
+
+    return { users, totalCount };
 }
 
 export async function getDoctors(): Promise<(User & { name: string })[]> {
