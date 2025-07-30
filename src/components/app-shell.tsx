@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -22,7 +23,6 @@ import {
     Users, 
     User,
     Building2, 
-    ClipboardPlus, 
     Clock, 
     HeartPulse, 
     ClipboardCheck, 
@@ -163,7 +163,6 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
-                        <span className="sr-only">{user.name}</span>
                         <User className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
