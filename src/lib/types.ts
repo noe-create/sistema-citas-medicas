@@ -273,6 +273,7 @@ export interface Consultation {
   diagnoses: Diagnosis[];
   documents?: ConsultationDocument[];
   treatmentOrder?: TreatmentOrder; // Added to nest the order within the consultation history
+  surveyInvitationToken?: string;
 }
 
 export interface CreateConsultationDocumentInput {
@@ -283,7 +284,7 @@ export interface CreateConsultationDocumentInput {
   fileData: string; // as a data URI
 }
 
-export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder'> {
+export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder' | 'surveyInvitationToken'> {
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
     treatmentItems?: CreateTreatmentItemInput[];
@@ -349,4 +350,45 @@ export interface Appointment {
   status: AppointmentStatus;
   pacienteName?: string;
   doctorName?: string;
+}
+
+// --- Surveys ---
+export type SurveyQuestionType = 'escala_1_5' | 'si_no' | 'texto_abierto';
+
+export interface SurveyQuestion {
+  id: string;
+  surveyId: string;
+  questionText: string;
+  questionType: SurveyQuestionType;
+  displayOrder: number;
+}
+
+export interface Survey {
+  id: string;
+  title: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+  questions?: SurveyQuestion[];
+}
+
+export interface SurveyInvitation {
+  token: string;
+  consultationId: string;
+  surveyId: string;
+  isCompleted: boolean;
+  createdAt: Date;
+}
+
+export interface SurveyResponse {
+  id: string;
+  invitationToken: string;
+  questionId: string;
+  answerValue: string;
+  submittedAt: Date;
+}
+
+export interface PublicSurveyData {
+    survey: Survey;
+    consultationDate: Date;
 }

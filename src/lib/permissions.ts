@@ -24,6 +24,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   
   // Reportes
   { id: 'reports.view', name: 'Ver Reportes', description: 'Permite visualizar reportes de morbilidad y operacionales.', module: 'Reportes' },
+  { id: 'surveys.manage', name: 'Gestionar Encuestas', description: 'Permite crear y ver resultados de encuestas de satisfacción.', module: 'Reportes' },
 ];
 
 export const PERMISSION_MODULES = [

@@ -91,6 +91,13 @@ async function runMigrations(dbInstance: Database) {
         await dbInstance.exec('ALTER TABLE personas ADD COLUMN createdAt TEXT');
         console.log("Added createdAt column to personas table.");
     }
+    
+    // Migration to add surveyInvitationToken to consultations
+    const consultationsCols = await dbInstance.all("PRAGMA table_info('consultations')").catch(() => []);
+    if (consultationsCols.length > 0 && !consultationsCols.some(c => c.name === 'surveyInvitationToken')) {
+        await dbInstance.exec('ALTER TABLE consultations ADD COLUMN surveyInvitationToken TEXT');
+        console.log("Added surveyInvitationToken column to consultations table.");
+    }
 
     await dbInstance.exec('PRAGMA foreign_keys=ON;');
 }
@@ -224,6 +231,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             signosVitales TEXT,
             examenFisicoGeneral TEXT,
             treatmentPlan TEXT,
+            surveyInvitationToken TEXT,
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
         );
         
@@ -313,6 +321,44 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE,
             FOREIGN KEY (doctorId) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        -- Survey Tables
+        CREATE TABLE IF NOT EXISTS surveys (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            isActive BOOLEAN NOT NULL DEFAULT 1,
+            createdAt TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS survey_questions (
+            id TEXT PRIMARY KEY,
+            surveyId TEXT NOT NULL,
+            questionText TEXT NOT NULL,
+            questionType TEXT NOT NULL, -- 'escala_1_5', 'si_no', 'texto_abierto'
+            displayOrder INTEGER NOT NULL,
+            FOREIGN KEY (surveyId) REFERENCES surveys(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS survey_invitations (
+            token TEXT PRIMARY KEY,
+            consultationId TEXT NOT NULL UNIQUE,
+            surveyId TEXT NOT NULL,
+            isCompleted BOOLEAN NOT NULL DEFAULT 0,
+            createdAt TEXT NOT NULL,
+            FOREIGN KEY (consultationId) REFERENCES consultations(id) ON DELETE CASCADE,
+            FOREIGN KEY (surveyId) REFERENCES surveys(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS survey_responses (
+            id TEXT PRIMARY KEY,
+            invitationToken TEXT NOT NULL,
+            questionId TEXT NOT NULL,
+            answerValue TEXT,
+            submittedAt TEXT NOT NULL,
+            FOREIGN KEY (invitationToken) REFERENCES survey_invitations(token) ON DELETE CASCADE,
+            FOREIGN KEY (questionId) REFERENCES survey_questions(id) ON DELETE CASCADE
+        );
     `);
 }
 
@@ -334,7 +380,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await stmt.finalize();
 
         const rolePermissions = {
-            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'agenda.manage'],
+            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'agenda.manage', 'surveys.manage'],
             asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage', 'agenda.manage'],
             doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage', 'agenda.manage'],
             enfermera: ['treatmentlog.manage', 'waitlist.manage'],
@@ -443,6 +489,32 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const stmt = await dbInstance.prepare('INSERT INTO cie10_codes (code, description) VALUES (?, ?)');
         for (const c of codes) {
             await stmt.run(c.code, c.description);
+        }
+        await stmt.finalize();
+    }
+    
+    const surveyCount = await dbInstance.get('SELECT COUNT(*) as count FROM surveys');
+    if (surveyCount.count === 0) {
+        const surveyId = `survey-${Date.now()}`;
+        await dbInstance.run(
+            'INSERT INTO surveys (id, title, description, createdAt) VALUES (?, ?, ?, ?)',
+            surveyId,
+            'Encuesta de Satisfacción Post-Consulta',
+            'Ayúdenos a mejorar nuestro servicio respondiendo estas breves preguntas.',
+            new Date().toISOString()
+        );
+        
+        const questions = [
+            { text: '¿Cómo calificaría la amabilidad y el trato recibido por el personal de recepción?', type: 'escala_1_5', order: 1 },
+            { text: '¿El tiempo de espera para su consulta fue razonable?', type: 'si_no', order: 2 },
+            { text: '¿Cómo calificaría la claridad de las explicaciones proporcionadas por el médico?', type: 'escala_1_5', order: 3 },
+            { text: '¿Se siente satisfecho/a con la atención médica recibida en general?', type: 'si_no', order: 4 },
+            { text: '¿Tiene algún comentario o sugerencia adicional para mejorar nuestro servicio?', type: 'texto_abierto', order: 5 },
+        ];
+        
+        const stmt = await dbInstance.prepare('INSERT INTO survey_questions (id, surveyId, questionText, questionType, displayOrder) VALUES (?, ?, ?, ?, ?)');
+        for (const q of questions) {
+            await stmt.run(`q-${Date.now()}-${q.order}`, surveyId, q.text, q.type, q.order);
         }
         await stmt.finalize();
     }
