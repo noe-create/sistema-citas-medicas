@@ -3,7 +3,7 @@
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
-import { getDb } from './db';
+import 'dotenv/config';
 
 export type SessionData = {
   user?: User;
@@ -17,23 +17,14 @@ export const defaultSession: SessionData = {
   permissions: [],
 };
 
-// This check was causing issues in the Next.js Edge Runtime for middleware.
-// The presence of the environment variable is guaranteed by the hosting environment.
-// if (!process.env.SECRET_COOKIE_PASSWORD || process.env.SECRET_COOKIE_PASSWORD.length < 32) {
-//     throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
-// }
-
-export const sessionOptions = {
-  password: process.env.SECRET_COOKIE_PASSWORD!,
-  cookieName: 'medihub-session',
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
-  },
-};
-
 export async function getSession() {
-  const cookieStore = cookies();
-  const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+    const session = await getIronSession<SessionData>(cookies(), {
+        password: process.env.SECRET_COOKIE_PASSWORD!,
+        cookieName: 'medihub-session',
+        cookieOptions: {
+            secure: process.env.NODE_ENV === 'production',
+        },
+    });
 
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;

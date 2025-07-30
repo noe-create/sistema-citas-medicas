@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, type SessionData } from '@/lib/auth';
+import { type SessionData, getSession } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
-  const session = await getIronSession<SessionData>(req.cookies, sessionOptions);
+  const session = await getSession();
   const { isLoggedIn } = session;
   const { pathname } = req.nextUrl;
 

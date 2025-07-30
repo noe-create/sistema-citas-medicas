@@ -10,6 +10,9 @@ import { sessionOptions, type SessionData, getSession, authorize } from '@/lib/a
 import type { User, DoctorSpecialty, Role } from '@/lib/types';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
+import { config } from 'dotenv';
+
+config();
 
 export async function login(
   prevState: any,
@@ -46,7 +49,7 @@ export async function login(
       return { error: 'Usuario o contraseña incorrectos.' };
     }
 
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const session = await getSession();
     
     const permissions = await db.all<{permissionId: string}>(
         'SELECT permissionId FROM role_permissions WHERE roleId = ?',
