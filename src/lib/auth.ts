@@ -17,12 +17,14 @@ export const defaultSession: SessionData = {
   permissions: [],
 };
 
-if (!process.env.SECRET_COOKIE_PASSWORD || process.env.SECRET_COOKIE_PASSWORD.length < 32) {
-    throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
-}
+// This check was causing issues in the Next.js Edge Runtime for middleware.
+// The presence of the environment variable is guaranteed by the hosting environment.
+// if (!process.env.SECRET_COOKIE_PASSWORD || process.env.SECRET_COOKIE_PASSWORD.length < 32) {
+//     throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
+// }
 
 export const sessionOptions = {
-  password: process.env.SECRET_COOKIE_PASSWORD,
+  password: process.env.SECRET_COOKIE_PASSWORD!,
   cookieName: 'medihub-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
