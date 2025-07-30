@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
-import { Loader2, Stethoscope } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MedihubLogo } from '@/components/medihub-logo';
 
 function LoginButton() {
   const { pending } = useFormStatus();
@@ -31,9 +32,7 @@ export default function LoginPage() {
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <div className="bg-primary/20 p-3 rounded-xl">
-                  <Stethoscope className="h-6 w-6 text-primary"/>
-                </div>
+                <MedihubLogo className="h-12 w-12" />
             </div>
             <CardTitle className="text-2xl font-bold font-headline">Medihub</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>

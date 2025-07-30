@@ -19,7 +19,7 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Stethoscope, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, FileQuestion, DollarSign } from 'lucide-react';
+import { LayoutDashboard, LogOut, Users, User as UserIcon, Building, ClipboardPlus, Clock, FileHeart, Contact, ClipboardList, ClipboardCheck, Code2, AreaChart, UserCog, KeyRound, Shield, FileQuestion, DollarSign } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -30,6 +30,7 @@ import { ChangePasswordForm } from './change-password-form';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MedihubLogo } from './medihub-logo';
 
 interface MenuItem {
     href: string;
@@ -102,14 +103,12 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
-            <div className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
-              <div className="bg-primary/20 p-2 rounded-lg">
-                <Stethoscope className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <h2 className="text-lg font-semibold font-headline">Medihub</h2>
-              </div>
-            </div>
+             <Link href="/dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
+                <MedihubLogo className="h-7 w-7" />
+                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                  <h2 className="text-lg font-semibold font-headline tracking-wide">Medihub</h2>
+                </div>
+             </Link>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
