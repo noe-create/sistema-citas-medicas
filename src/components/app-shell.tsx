@@ -162,7 +162,8 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8 flex items-center justify-center bg-muted">
-                      <User className="h-5 w-5 text-muted-foreground" />
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <AvatarFallback><span /></AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
