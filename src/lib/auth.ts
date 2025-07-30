@@ -3,7 +3,6 @@
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
-import 'dotenv/config';
 
 export type SessionData = {
   user?: User;
