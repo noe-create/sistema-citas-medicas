@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,8 +18,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getRoles, createRole, updateRole, deleteRole, getAllPermissions, getRoleWithPermissions } from '@/actions/security-actions';
-import { RoleForm } from './role-form';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const RoleForm = dynamic(() => import('./role-form').then(mod => mod.RoleForm), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>,
+});
+
 
 export function RoleManagement() {
   const { toast } = useToast();
@@ -180,16 +187,18 @@ export function RoleManagement() {
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{selectedRole ? 'Editar Rol' : 'Crear Nuevo Rol'}</DialogTitle>
           </DialogHeader>
-          <RoleForm
-            role={selectedRole}
-            allPermissions={permissions}
-            onSubmitted={handleFormSubmitted}
-            onCancel={handleCloseDialog}
-          />
+          {isFormOpen && (
+            <RoleForm
+              role={selectedRole}
+              allPermissions={permissions}
+              onSubmitted={handleFormSubmitted}
+              onCancel={handleCloseDialog}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>

@@ -11,15 +11,23 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { getPersonas, createPersona, updatePersona, deletePersona, bulkCreatePersonas } from '@/actions/patient-actions';
-import { Loader2, MoreHorizontal, Pencil, PlusCircle, Trash2, Upload, Contact } from 'lucide-react';
+import { Loader2, MoreHorizontal, Pencil, PlusCircle, Trash2, Upload, Contact, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { PersonForm } from './person-form';
 import { useUser } from './app-shell';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const PersonForm = dynamic(() => import('./person-form').then(mod => mod.PersonForm), {
+  loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
+
+const PAGE_SIZE = 20;
 
 export function PeopleList() {
   const { toast } = useToast();
@@ -32,13 +40,18 @@ export function PeopleList() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
   const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
   
-  const refreshPersonas = React.useCallback(async (currentSearch: string) => {
+  const refreshPersonas = React.useCallback(async (currentSearch: string, page: number) => {
     setIsLoading(true);
       try {
-        const data = await getPersonas(currentSearch);
+        const { personas: data, totalCount: count } = await getPersonas(currentSearch, page, PAGE_SIZE);
         setPersonas(data);
+        setTotalCount(count);
       } catch (error: any) {
         console.error("Error al buscar personas:", error);
         toast({ title: 'Error', description: 'No se pudieron cargar las personas.', variant: 'destructive' });
@@ -46,14 +59,14 @@ export function PeopleList() {
         setIsLoading(false);
       }
   }, [toast]);
+  
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   React.useEffect(() => {
-    const timer = setTimeout(() => {
-      refreshPersonas(search);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, refreshPersonas]);
+    refreshPersonas(search, currentPage);
+  }, [search, currentPage, refreshPersonas]);
 
   const handleOpenForm = (persona: Persona | null) => {
     setSelectedPersona(persona);
@@ -75,7 +88,7 @@ export function PeopleList() {
         toast({ title: '¡Persona Creada!', description: `${values.primerNombre} ${values.primerApellido} ha sido añadida.` });
       }
       handleCloseDialog();
-      await refreshPersonas(search);
+      await refreshPersonas(search, 1); // Go to first page after creation/update
     } catch (error: any) {
       console.error("Error saving persona:", error);
       toast({ title: 'Error', description: error.message || 'No se pudo guardar la persona.', variant: 'destructive' });
@@ -86,7 +99,11 @@ export function PeopleList() {
     try {
         await deletePersona(id);
         toast({ title: '¡Persona Eliminada!', description: 'La persona ha sido eliminada correctamente.' });
-        await refreshPersonas(search);
+        if (personas.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            await refreshPersonas(search, currentPage);
+        }
     } catch (error: any) {
         console.error("Error deleting persona:", error);
         toast({ title: 'Error al Eliminar', description: error.message || 'No se pudo eliminar la persona.', variant: 'destructive' });
@@ -170,7 +187,7 @@ export function PeopleList() {
             });
         }
         
-        await refreshPersonas(search);
+        await refreshPersonas(search, 1);
 
       } catch (error: any) {
         toast({
@@ -264,6 +281,7 @@ export function PeopleList() {
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
             ) : personas.length > 0 ? (
+              <>
                 <Table>
                 <TableHeader>
                     <TableRow>
@@ -287,7 +305,7 @@ export function PeopleList() {
                         >
                         <TableCell className="font-medium">{persona.nombreCompleto}</TableCell>
                         <TableCell>{persona.cedula}</TableCell>
-                        <TableCell>{format(persona.fechaNacimiento, 'PPP', { locale: es })}</TableCell>
+                        <TableCell>{format(new Date(persona.fechaNacimiento), 'PPP', { locale: es })}</TableCell>
                         <TableCell>{persona.genero}</TableCell>
                         <TableCell>{persona.email || 'N/A'}</TableCell>
                         <TableCell className="text-right">
@@ -336,6 +354,28 @@ export function PeopleList() {
                     </AnimatePresence>
                 </motion.tbody>
                 </Table>
+                 <div className="flex items-center justify-end space-x-2 py-4">
+                    <span className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage <= 1}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+              </>
             ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
                     <Contact className="h-12 w-12 mb-4" />
@@ -351,11 +391,13 @@ export function PeopleList() {
                 <DialogHeader>
                     <DialogTitle>{selectedPersona ? 'Editar Persona' : 'Crear Nueva Persona'}</DialogTitle>
                 </DialogHeader>
-                <PersonForm
-                    persona={selectedPersona}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={handleCloseDialog}
-                />
+                {isFormOpen && (
+                    <PersonForm
+                        persona={selectedPersona}
+                        onSubmitted={handleFormSubmitted}
+                        onCancel={handleCloseDialog}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     </>

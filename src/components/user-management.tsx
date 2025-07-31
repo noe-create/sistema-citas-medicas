@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import type { User, Role } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, UserCog } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Trash2, UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,13 +22,21 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getUsers, createUser, updateUser, deleteUser } from '@/actions/auth-actions';
 import { useDebounce } from '@/hooks/use-debounce';
-import { UserForm } from './user-form';
 import { useUser } from './app-shell';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const UserForm = dynamic(() => import('./user-form').then(mod => mod.UserForm), {
+    loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
 
 interface UserManagementProps {
     roles: Role[];
 }
+
+const PAGE_SIZE = 20;
 
 export function UserManagement({ roles }: UserManagementProps) {
   const { toast } = useToast();
@@ -38,12 +47,17 @@ export function UserManagement({ roles }: UserManagementProps) {
   const [users, setUsers] = React.useState<(User & {roleName: string})[]>([]);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+  
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const refreshUsers = React.useCallback(async (currentSearch: string) => {
+  const refreshUsers = React.useCallback(async (currentSearch: string, page: number) => {
       setIsLoading(true);
       try {
-        const { users: data, totalCount } = await getUsers(currentSearch);
+        const { users: data, totalCount } = await getUsers(currentSearch, page, PAGE_SIZE);
         setUsers(data);
+        setTotalCount(totalCount);
       } catch (error: any) {
         console.error("Error fetching users:", error);
         toast({ title: 'Error de Permiso', description: error.message || 'No se pudieron cargar los usuarios.', variant: 'destructive' });
@@ -51,10 +65,14 @@ export function UserManagement({ roles }: UserManagementProps) {
         setIsLoading(false);
       }
   }, [toast]);
+  
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   React.useEffect(() => {
-    refreshUsers(debouncedSearch);
-  }, [debouncedSearch, refreshUsers]);
+    refreshUsers(debouncedSearch, currentPage);
+  }, [debouncedSearch, currentPage, refreshUsers]);
 
   const handleOpenForm = (user: User | null) => {
     setSelectedUser(user);
@@ -76,7 +94,7 @@ export function UserManagement({ roles }: UserManagementProps) {
         toast({ title: '¡Usuario Creado!', description: `El usuario ${values.username} ha sido añadido.` });
       }
       handleCloseDialog();
-      await refreshUsers(debouncedSearch);
+      await refreshUsers(debouncedSearch, 1);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'No se pudo guardar el usuario.', variant: 'destructive' });
     }
@@ -86,7 +104,11 @@ export function UserManagement({ roles }: UserManagementProps) {
     try {
         await deleteUser(userId);
         toast({ title: '¡Usuario Eliminado!', description: 'El usuario ha sido eliminado.' });
-        await refreshUsers(debouncedSearch);
+        if (users.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            await refreshUsers(debouncedSearch, currentPage);
+        }
     } catch (error: any) {
         toast({ title: 'Error al Eliminar', description: error.message, variant: 'destructive' });
     }
@@ -119,6 +141,7 @@ export function UserManagement({ roles }: UserManagementProps) {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : users.length > 0 ? (
+           <>
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -186,6 +209,28 @@ export function UserManagement({ roles }: UserManagementProps) {
                   </AnimatePresence>
                 </motion.tbody>
             </Table>
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages || 1}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage <= 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+           </>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
                 <UserCog className="h-12 w-12 mb-4" />
@@ -201,12 +246,14 @@ export function UserManagement({ roles }: UserManagementProps) {
                 <DialogHeader>
                     <DialogTitle>{selectedUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</DialogTitle>
                 </DialogHeader>
-                <UserForm
-                    user={selectedUser}
-                    roles={roles}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={handleCloseDialog}
-                 />
+                {isFormOpen && (
+                    <UserForm
+                        user={selectedUser}
+                        roles={roles}
+                        onSubmitted={handleFormSubmitted}
+                        onCancel={handleCloseDialog}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     </>

@@ -21,10 +21,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getEmpresas, createEmpresa, updateEmpresa, deleteEmpresa } from '@/actions/patient-actions';
-import { CompanyForm } from './company-form';
 import { useUser } from './app-shell';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from '@/hooks/use-debounce';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const CompanyForm = dynamic(() => import('./company-form').then(mod => mod.CompanyForm), {
+  loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
 
 const PAGE_SIZE = 10;
 
@@ -250,11 +256,13 @@ export function CompanyManagement() {
                 <DialogHeader>
                     <DialogTitle>{selectedEmpresa ? 'Editar Empresa' : 'Crear Nueva Empresa'}</DialogTitle>
                 </DialogHeader>
-                <CompanyForm
-                    empresa={selectedEmpresa}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={handleCloseDialog}
-                 />
+                {isFormOpen && (
+                    <CompanyForm
+                        empresa={selectedEmpresa}
+                        onSubmitted={handleFormSubmitted}
+                        onCancel={handleCloseDialog}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     </>

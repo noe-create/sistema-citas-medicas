@@ -1,8 +1,17 @@
+
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MorbidityReport } from './morbidity-report';
-import { OperationalReport } from './operational-report';
+import { Skeleton } from './ui/skeleton';
+import dynamic from 'next/dynamic';
+
+const MorbidityReport = dynamic(() => import('./morbidity-report').then(mod => mod.MorbidityReport), {
+  loading: () => <Skeleton className="h-[400px] w-full" />,
+});
+
+const OperationalReport = dynamic(() => import('./operational-report').then(mod => mod.OperationalReport), {
+  loading: () => <Skeleton className="h-[400px] w-full" />,
+});
 
 export function ReportsDashboard() {
   return (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,12 +18,18 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { BeneficiaryForm } from './beneficiary-form';
 import { createBeneficiario, updateBeneficiario, deleteBeneficiario, getBeneficiarios } from '@/actions/patient-actions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUser } from './app-shell';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const BeneficiaryForm = dynamic(() => import('./beneficiary-form').then(mod => mod.BeneficiaryForm), {
+  loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
 
 interface BeneficiaryManagementProps {
   titular: Titular;
@@ -58,11 +65,11 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
   const handleFormSubmitted = async (values: any) => {
     try {
       if (selectedBeneficiario) {
-        await updateBeneficiario(selectedBeneficiario.id, selectedBeneficiario.personaId, values);
-        toast({ title: '¡Beneficiario Actualizado!', description: `${values.nombreCompleto} ha sido guardado.` });
+        await updateBeneficiario(selectedBeneficiario.id, selectedBeneficiario.personaId, values.persona);
+        toast({ title: '¡Beneficiario Actualizado!', description: `${values.persona.primerNombre} ${values.persona.primerApellido} ha sido guardado.` });
       } else {
         await createBeneficiario(titular.id, values);
-        const personaName = values.persona ? values.persona.nombreCompleto : 'La persona seleccionada';
+        const personaName = values.persona ? `${values.persona.primerNombre} ${values.persona.primerApellido}` : 'La persona seleccionada';
         toast({ title: '¡Beneficiario Creado!', description: `${personaName} ha sido añadido.` });
       }
       handleCloseDialog();
@@ -78,9 +85,9 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
       await deleteBeneficiario(id);
       toast({ title: '¡Beneficiario Eliminado!', description: 'El beneficiario ha sido eliminado correctamente.' });
       await refreshBeneficiarios();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al eliminar beneficiario:", error);
-      toast({ title: 'Error', description: 'No se pudo eliminar el beneficiario.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'No se pudo eliminar el beneficiario.', variant: 'destructive' });
     }
   };
 
@@ -189,12 +196,14 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
           <DialogHeader>
             <DialogTitle>{selectedBeneficiario ? 'Editar Beneficiario' : 'Crear Nuevo Beneficiario'}</DialogTitle>
           </DialogHeader>
-          <BeneficiaryForm
-            beneficiario={selectedBeneficiario}
-            onSubmitted={handleFormSubmitted}
-            onCancel={handleCloseDialog}
-            excludeIds={excludeIds}
-          />
+          {isFormOpen && (
+            <BeneficiaryForm
+                beneficiario={selectedBeneficiario}
+                onSubmitted={handleFormSubmitted}
+                onCancel={handleCloseDialog}
+                excludeIds={excludeIds}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>

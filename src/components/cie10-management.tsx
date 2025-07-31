@@ -21,11 +21,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getManagedCie10Codes, createCie10Code, updateCie10Code, deleteCie10Code, bulkCreateCie10Codes } from '@/actions/patient-actions';
-import { Cie10Form } from './cie10-form';
 import { useDebounce } from '@/hooks/use-debounce';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const Cie10Form = dynamic(() => import('./cie10-form').then(mod => mod.Cie10Form), {
+  loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
 
 const PAGE_SIZE = 15;
 
@@ -364,11 +370,13 @@ export function Cie10Management() {
                 <DialogHeader>
                     <DialogTitle>{selectedCode ? 'Editar Código CIE-10' : 'Crear Nuevo Código CIE-10'}</DialogTitle>
                 </DialogHeader>
-                <Cie10Form
-                    cie10Code={selectedCode}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={handleCloseDialog}
-                 />
+                {isFormOpen && (
+                    <Cie10Form
+                        cie10Code={selectedCode}
+                        onSubmitted={handleFormSubmitted}
+                        onCancel={handleCloseDialog}
+                     />
+                )}
             </DialogContent>
         </Dialog>
     </>

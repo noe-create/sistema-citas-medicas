@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Titular, Empresa } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Users, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2, Pencil, Users, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,6 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { PatientForm } from './patient-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { getTitulares, getEmpresas, createTitular, updateTitular, deleteTitular } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
@@ -24,12 +24,21 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useRouter } from 'next/navigation';
 import { useUser } from './app-shell';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const PatientForm = dynamic(() => import('./patient-form').then(mod => mod.PatientForm), {
+  loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
+});
+
 
 const titularTypeMap: Record<string, string> = {
   internal_employee: 'Empleado Interno',
   corporate_affiliate: 'Afiliado Corporativo',
   private: 'Privado',
 };
+
+const PAGE_SIZE = 20;
 
 export function PatientManagement() {
   const { toast } = useToast();
@@ -41,14 +50,19 @@ export function PatientManagement() {
   const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+  
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
 
-  const refreshTitulares = React.useCallback(async (currentSearch: string) => {
+  const refreshTitulares = React.useCallback(async (currentSearch: string, page: number) => {
     setIsLoading(true);
     try {
-        const titularesData = await getTitulares(currentSearch);
+        const { titulares: titularesData, totalCount: count } = await getTitulares(currentSearch, page, PAGE_SIZE);
         setTitulares(titularesData.map(t => ({...t, persona: { ...t.persona, fechaNacimiento: new Date(t.persona.fechaNacimiento) }})));
+        setTotalCount(count);
     } catch (error) {
         console.error("Error al buscar titulares:", error);
         toast({ title: 'Error de Búsqueda', description: 'No se pudieron buscar los titulares.', variant: 'destructive' });
@@ -61,7 +75,7 @@ export function PatientManagement() {
   React.useEffect(() => {
     async function fetchEmpresasData() {
         try {
-            const empresasData = await getEmpresas();
+            const { empresas: empresasData } = await getEmpresas();
             setEmpresas(empresasData);
         } catch (error) {
             console.error("Error al cargar las empresas:", error);
@@ -71,13 +85,13 @@ export function PatientManagement() {
     fetchEmpresasData();
   }, [toast]);
   
-  // Fetch titulares based on search query
   React.useEffect(() => {
-    const timer = setTimeout(() => {
-        refreshTitulares(search);
-    }, 300); // Debounce search
-    return () => clearTimeout(timer);
-  }, [search, refreshTitulares]);
+    setCurrentPage(1);
+  }, [search]);
+  
+  React.useEffect(() => {
+    refreshTitulares(search, currentPage);
+  }, [search, currentPage, refreshTitulares]);
 
   const handleOpenForm = (titular: Titular | null) => {
     setSelectedTitular(titular);
@@ -88,14 +102,14 @@ export function PatientManagement() {
     try {
       if (selectedTitular) { // Editing
         await updateTitular(arg1, arg2!, arg3);
-        toast({ title: '¡Titular Actualizado!', description: `${arg3.nombreCompleto} ha sido guardado.` });
+        toast({ title: '¡Titular Actualizado!', description: `${arg3.primerNombre} ${arg3.primerApellido} ha sido guardado.` });
       } else { // Creating
         await createTitular(arg1);
-        const personaName = arg1.persona ? arg1.persona.nombreCompleto : 'La persona seleccionada';
+        const personaName = arg1.persona ? `${arg1.persona.primerNombre} ${arg1.persona.primerApellido}` : 'La persona seleccionada';
         toast({ title: '¡Rol de Titular Creado!', description: `${personaName} ahora es titular.` });
       }
       handleCloseDialog();
-      await refreshTitulares(search);
+      await refreshTitulares(search, 1);
     } catch (error: any) {
       console.error("Error al guardar titular:", error);
       toast({ title: 'Error', description: error.message || 'No se pudo guardar el titular. Verifique que la cédula o email no estén duplicados.', variant: 'destructive' });
@@ -106,7 +120,11 @@ export function PatientManagement() {
     try {
         await deleteTitular(id);
         toast({ title: '¡Rol de Titular Eliminado!', description: 'El rol de titular ha sido eliminado.' });
-        await refreshTitulares(search);
+        if (titulares.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        } else {
+            await refreshTitulares(search, currentPage);
+        }
     } catch (error: any) {
         console.error("Error al eliminar titular:", error);
         toast({ title: 'Error', description: 'No se pudo eliminar el rol de titular.', variant: 'destructive' });
@@ -149,6 +167,7 @@ export function PatientManagement() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : titulares.length > 0 ? (
+            <>
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -218,7 +237,7 @@ export function PatientManagement() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el rol de titular para esta persona y todos sus beneficiarios asociados. La persona no será eliminada del sistema.
+                                            Esta acción no se puede deshacer. Esto eliminará el rol de titular para esta persona.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -235,6 +254,28 @@ export function PatientManagement() {
                   </AnimatePresence>
                 </motion.tbody>
             </Table>
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages || 1}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage <= 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage >= totalPages}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
                 <Users className="h-12 w-12 mb-4" />
@@ -250,13 +291,15 @@ export function PatientManagement() {
                 <DialogHeader>
                     <DialogTitle>{selectedTitular ? 'Editar Titular' : 'Crear Nuevo Titular'}</DialogTitle>
                 </DialogHeader>
-                <PatientForm
-                    titular={selectedTitular}
-                    empresas={empresas}
-                    onSubmitted={handleFormSubmitted}
-                    onCancel={handleCloseDialog}
-                    excludeIds={excludeIds}
-                 />
+                {isFormOpen && (
+                    <PatientForm
+                        titular={selectedTitular}
+                        empresas={empresas}
+                        onSubmitted={handleFormSubmitted}
+                        onCancel={handleCloseDialog}
+                        excludeIds={excludeIds}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     </>

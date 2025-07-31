@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -11,8 +12,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Patient } from '@/lib/types';
 import { ConsentFormSuggester } from './consent-form-suggester';
-import { ConsultationForm } from './consultation-form';
 import { PatientHistory } from './patient-history';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+const ConsultationForm = dynamic(() => import('./consultation-form').then(mod => mod.ConsultationForm), {
+  loading: () => <div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin"/></div>,
+});
+
 
 interface ManagePatientDialogProps {
   patient: Patient;
@@ -39,7 +46,7 @@ export function ManagePatientDialog({ patient, isOpen, onOpenChange, onConsultat
               <TabsTrigger value="consent">Consentimientos</TabsTrigger>
             </TabsList>
             <TabsContent value="consultation" className="mt-4">
-              <ConsultationForm patient={patient} onConsultationComplete={onConsultationComplete}/>
+              {isOpen && <ConsultationForm patient={patient} onConsultationComplete={onConsultationComplete}/>}
             </TabsContent>
             <TabsContent value="history" className="mt-4">
               <PatientHistory personaId={patient.personaId} />
