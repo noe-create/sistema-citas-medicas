@@ -10,18 +10,36 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-figtree), sans-serif;
+  line-height: 1.6; /* Improved line-height for readability */
 }
+
+h1, h2, .font-headline {
+    @apply font-bold; /* 700 weight */
+}
+
+h3, h4 {
+    @apply font-semibold; /* 600 weight */
+}
+
+p, div, span, td {
+    @apply font-normal; /* 400 weight */
+}
+
+label, button, th {
+    @apply font-medium; /* 500 weight */
+}
+
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 240 10% 99%; /* Very light gray */
     --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 221 83% 53%;
+    --primary: 223 88% 55%; /* Corporate Blue: #2A64F5 */
     --primary-foreground: 210 20% 98%;
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 220 9.1% 45.1%;
@@ -31,13 +49,13 @@ body {
     --accent-foreground: 220 9.1% 45.1%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
-    --success: 142 76% 36%;
-    --success-foreground: 142 80% 96%;
-    --warning: 38 92% 50%;
+    --success: 151 83% 40%; /* Mint Green for success */
+    --success-foreground: 151 80% 96%;
+    --warning: 38 92% 50%; /* Amber for waiting/warning */
     --warning-foreground: 48 95% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --ring: 223 88% 55%;
     --radius: 0.5rem;
   }
 
@@ -58,8 +76,8 @@ body {
     --accent-foreground: 210 20% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    --success: 142 71% 45%;
-    --success-foreground: 142 80% 96%;
+    --success: 151 71% 45%;
+    --success-foreground: 151 80% 96%;
     --warning: 45 83% 42%;
     --warning-foreground: 48 95% 98%;
     --border: 215 27.9% 16.9%;
