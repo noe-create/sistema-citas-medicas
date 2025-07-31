@@ -32,7 +32,10 @@ export async function getSession() {
     throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
   }
 
-  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+  // To fix the "cookies() should be awaited" error, we need to pass a Map of cookies
+  // to getIronSession instead of the cookies() function directly.
+  const cookieStore = cookies();
+  const session = await getIronSession<SessionData>(cookieStore as any, sessionOptions);
 
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;
