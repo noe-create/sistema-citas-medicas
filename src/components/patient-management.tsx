@@ -1,21 +1,14 @@
 
+
 'use client';
 
 import * as React from 'react';
 import type { Titular, Empresa } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Loader2, Pencil, Users, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { getTitulares, getEmpresas, createTitular, updateTitular, deleteTitular } from '@/actions/patient-actions';
@@ -23,9 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useRouter } from 'next/navigation';
 import { useUser } from './app-shell';
-import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
+import { DataTable, type ColumnDef } from '../ui/data-table';
 
 const PatientForm = dynamic(() => import('./patient-form').then(mod => mod.PatientForm), {
   loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
@@ -53,7 +46,6 @@ export function PatientManagement() {
   
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalCount, setTotalCount] = React.useState(0);
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const canManage = ['superuser', 'administrator', 'asistencial'].includes(user.role.id);
 
@@ -71,7 +63,6 @@ export function PatientManagement() {
     }
   }, [toast]);
 
-  // Fetch empresas once for the form dropdown
   React.useEffect(() => {
     async function fetchEmpresasData() {
         try {
@@ -135,6 +126,83 @@ export function PatientManagement() {
     setIsFormOpen(false);
     setSelectedTitular(null);
   }
+  
+  const columns: ColumnDef<Titular>[] = [
+      { accessorKey: "persona.nombreCompleto", header: "Nombre Completo", cell: ({ row }) => <div className="font-medium">{row.original.persona.nombreCompleto}</div> },
+      { accessorKey: "persona.cedula", header: "Cédula" },
+      { accessorKey: "persona.email", header: "Email" },
+      { 
+          accessorKey: "tipo", 
+          header: "Tipo / Empresa",
+          cell: ({ row }) => (
+            <div>
+              <Badge variant="secondary">{titularTypeMap[row.original.tipo]}</Badge>
+              {row.original.tipo === 'corporate_affiliate' && row.original.empresaName && (
+                  <div className="text-xs text-muted-foreground">{row.original.empresaName}</div>
+              )}
+            </div>
+          )
+      },
+      { accessorKey: "beneficiariosCount", header: "Benef.", cell: ({ row }) => <div className="text-center">{row.original.beneficiariosCount}</div> },
+      {
+          id: "actions",
+          cell: ({ row }) => {
+              const titular = row.original;
+              return (
+                  <div className="text-right">
+                      <AlertDialog>
+                          <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Abrir menú</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              {canManage && (
+                                  <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  <span>Editar</span>
+                                  </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
+                                <Users className="mr-2 h-4 w-4" />
+                                <span>Gestionar Beneficiarios</span>
+                              </DropdownMenuItem>
+                              {canManage && (
+                                  <>
+                                      <DropdownMenuSeparator />
+                                      <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              <span>Eliminar</span>
+                                          </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                  </>
+                              )}
+                          </DropdownMenuContent>
+                          </DropdownMenu>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. Esto eliminará el rol de titular para esta persona.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteTitular(titular.id)} className="bg-destructive hover:bg-destructive/90">
+                                      Sí, eliminar
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                  </div>
+              )
+          }
+      }
+  ];
 
   const excludeIds = titulares.map(t => t.personaId);
 
@@ -162,131 +230,23 @@ export function PatientManagement() {
               </Button>
             )}
           </div>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : titulares.length > 0 ? (
-            <>
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>Nombre Completo</TableHead>
-                    <TableHead>Cédula</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Tipo / Empresa</TableHead>
-                    <TableHead>Benef.</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-                </TableHeader>
-                <motion.tbody>
-                  <AnimatePresence>
-                    {titulares.map((titular) => (
-                        <motion.tr 
-                          key={titular.id}
-                          layout
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
-                        >
-                        <TableCell className="font-medium">{titular.persona.nombreCompleto}</TableCell>
-                        <TableCell>{titular.persona.cedula}</TableCell>
-                        <TableCell>{titular.persona.email}</TableCell>
-                        <TableCell>
-                            <Badge variant="secondary">{titularTypeMap[titular.tipo]}</Badge>
-                            {titular.tipo === 'corporate_affiliate' && titular.empresaName && (
-                                <div className="text-xs text-muted-foreground">{titular.empresaName}</div>
-                            )}
-                        </TableCell>
-                        <TableCell className="text-center">{titular.beneficiariosCount}</TableCell>
-                        <TableCell className="text-right">
-                            <AlertDialog>
-                                <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Abrir menú</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                    {canManage && (
-                                        <DropdownMenuItem onClick={() => handleOpenForm(titular)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        <span>Editar</span>
-                                        </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/pacientes/${titular.id}/beneficiarios`)}>
-                                      <Users className="mr-2 h-4 w-4" />
-                                      <span>Gestionar Beneficiarios</span>
-                                    </DropdownMenuItem>
-                                    {canManage && (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    <span>Eliminar</span>
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                        </>
-                                    )}
-                                </DropdownMenuContent>
-                                </DropdownMenu>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Esta acción no se puede deshacer. Esto eliminará el rol de titular para esta persona.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTitular(titular.id)} className="bg-destructive hover:bg-destructive/90">
-                                            Sí, eliminar
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </TableCell>
-                        </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                </motion.tbody>
-            </Table>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <span className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages || 1}
-                </span>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage <= 1}
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage >= totalPages}
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
-                <Users className="h-12 w-12 mb-4" />
-                <h3 className="text-xl font-semibold">No se encontraron titulares</h3>
-                <p className="text-sm">Puede crear un nuevo titular usando el botón de arriba.</p>
-            </div>
-          )}
+          <DataTable
+            columns={columns}
+            data={titulares}
+            isLoading={isLoading}
+            pageCount={Math.ceil(totalCount / PAGE_SIZE)}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            emptyState={{
+              icon: Users,
+              title: "No se encontraron titulares",
+              description: "Puede crear un nuevo titular usando el botón de arriba.",
+            }}
+          />
         </CardContent>
       </Card>
       
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={handleCloseDialog}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{selectedTitular ? 'Editar Titular' : 'Crear Nuevo Titular'}</DialogTitle>
