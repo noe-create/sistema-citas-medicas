@@ -448,7 +448,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         ];
         const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)');
         for (const t of titulares) {
-            await titularStmt.run(t.id, t.personaId, t.tipo, t.empresaId);
+            await titularStmt.run(t.id, t.personaId, t.tipo, t.tipo);
         }
         await titularStmt.finalize();
         
