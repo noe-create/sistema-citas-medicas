@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -40,7 +41,7 @@ export function PersonaSearch({ onPersonaSelect, excludeIds = [], placeholder = 
         try {
             const currentExcludeIds = JSON.parse(stableExcludeIds);
             const data = await getPersonas(debouncedQuery);
-            const filteredData = data.filter(p => !currentExcludeIds.includes(p.id));
+            const filteredData = data.personas.filter(p => !currentExcludeIds.includes(p.id));
             setResults(filteredData);
         } catch (e) {
             console.error("Error searching people:", e);
