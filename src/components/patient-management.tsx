@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from './app-shell';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
-import { DataTable, type ColumnDef } from '../ui/data-table';
+import { DataTable, type ColumnDef } from '@/components/ui/data-table';
 
 const PatientForm = dynamic(() => import('./patient-form').then(mod => mod.PatientForm), {
   loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,

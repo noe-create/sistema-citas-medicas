@@ -17,7 +17,7 @@ import { useUser } from './app-shell';
 import { useDebounce } from '@/hooks/use-debounce';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
-import { DataTable, type ColumnDef } from '../ui/data-table';
+import { DataTable, type ColumnDef } from '@/components/ui/data-table';
 
 const CompanyForm = dynamic(() => import('./company-form').then(mod => mod.CompanyForm), {
   loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,

@@ -19,7 +19,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
-import { DataTable, type ColumnDef } from '../ui/data-table';
+import { DataTable, type ColumnDef } from '@/components/ui/data-table';
 import { useDebounce } from '@/hooks/use-debounce';
 
 const PersonForm = dynamic(() => import('./person-form').then(mod => mod.PersonForm), {
