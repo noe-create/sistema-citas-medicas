@@ -36,7 +36,6 @@ import { getSession } from '@/lib/auth';
 import { calculateAge } from '@/lib/utils';
 import { startOfDay, endOfDay } from 'date-fns';
 import { summarizePatientHistory } from '@/ai/flows/summarize-patient-history';
-import type { UnifiedPatientFormValues } from '@/components/unified-patient-form';
 
 
 // --- Helpers ---
@@ -1747,80 +1746,3 @@ export async function deleteService(id: string): Promise<{ success: boolean }> {
   revalidatePath('/dashboard/servicios');
   return { success: true };
 }
-
-// --- Unified Patient Creation and Check-in ---
-export async function createUnifiedPatientAndCheckin(values: UnifiedPatientFormValues): Promise<void> {
-    await ensureDataEntryPermission();
-    const db = await getDb();
-    
-    await db.exec('BEGIN TRANSACTION');
-    try {
-        const { persona: personaData, role: roleData, checkin: checkinData } = values;
-        
-        // 1. Create Persona
-        const personaId = await getOrCreatePersona(db, { ...personaData, fechaNacimiento: personaData.fechaNacimiento.toISOString() });
-        const fullName = `${personaData.primerNombre} ${personaData.primerApellido}`;
-
-        // 2. Create Titular or Beneficiario
-        let titularIdForCheckin: string | undefined;
-        let kind: PatientKind;
-        let accountType: AccountType;
-
-        if (roleData.type === 'titular') {
-            const titularId = generateId('t');
-            await db.run(
-                'INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)',
-                titularId,
-                personaId,
-                roleData.titularType,
-                roleData.titularType === 'corporate_affiliate' ? roleData.empresaId : null
-            );
-            kind = 'titular';
-            accountType = roleData.titularType === 'corporate_affiliate' ? 'Afiliado Corporativo' : (roleData.titularType === 'internal_employee' ? 'Empleado' : 'Privado');
-        } else { // Beneficiario
-            if (!roleData.titularId) {
-                throw new Error('ID de titular es requerido para crear un beneficiario.');
-            }
-            await db.run(
-                'INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)',
-                generateId('b'),
-                personaId,
-                roleData.titularId
-            );
-            kind = 'beneficiario';
-            const titularType = await getTitularTypeByTitularId(roleData.titularId);
-            accountType = titularType === 'corporate_affiliate' ? 'Afiliado Corporativo' : (titularType === 'internal_employee' ? 'Empleado' : 'Privado');
-        }
-
-        // 3. Create Patient record if not exists (already handled by getOrCreatePersona)
-        const pacienteId = await getOrCreatePaciente(db, personaId);
-
-        // 4. Add to Waitlist
-        await db.run(
-            'INSERT INTO waitlist (id, personaId, pacienteId, name, kind, serviceType, accountType, status, checkInTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            generateId('q'),
-            personaId,
-            pacienteId,
-            fullName,
-            kind,
-            checkinData.serviceType,
-            accountType,
-            'Esperando',
-            new Date().toISOString()
-        );
-        
-        await db.exec('COMMIT');
-
-        revalidatePath('/dashboard/sala-de-espera');
-        revalidatePath('/dashboard/personas');
-        revalidatePath('/dashboard/pacientes');
-        revalidatePath('/dashboard/beneficiarios');
-
-    } catch (error) {
-        await db.exec('ROLLBACK');
-        console.error("Unified patient creation failed:", error);
-        throw error;
-    }
-}
-
-    
