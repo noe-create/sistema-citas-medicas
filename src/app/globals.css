@@ -134,10 +134,3 @@ label, button, th {
     display: none !important;
   }
 }
-
-.login-background {
-    background-image: url('https://storage.googleapis.com/project-spark-b2489c6d-341a-47b2-9a4c-834c3d9a2632/public/view/795a945d-4a17-4835-9bf8-9d41d1d86280.png');
-    background-size: cover;
-    background-position: center;
-    position: relative;
-}
