@@ -32,7 +32,7 @@ export default function LoginPage() {
         className="flex min-h-screen items-center justify-center p-4"
         style={{
             background: 'hsl(var(--background))',
-            backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary)/0.05), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--primary)/0.05), transparent 40%)'
+            backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary)/0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--primary)/0.1), transparent 40%)'
         }}
     >
       <Card className="w-full max-w-sm">
