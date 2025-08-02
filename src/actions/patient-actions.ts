@@ -1633,14 +1633,6 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     return entry.data.motivoConsulta || entry.data.enfermedadActual || entry.data.diagnoses.length > 0 || entry.data.treatmentPlan;
   });
   
-  if (consultationHistory.length === 0) {
-    return {
-      knownAllergies: [],
-      chronicOrImportantDiagnoses: [],
-      currentMedications: [],
-    };
-  }
-
   const historyString = consultationHistory
     .map(entry => {
       if (entry.type === 'consultation') {
