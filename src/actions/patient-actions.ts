@@ -1341,17 +1341,18 @@ export async function getPacienteByPersonaId(personaId: string): Promise<{ id: s
 export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder[]> {
     const db = await getDb();
     
-    const params: any[] = [];
+    let params: any[] = [];
     let whereClause = '';
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
         whereClause = `WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?`;
-        params.push(searchQuery, searchQuery);
+        params = [searchQuery, searchQuery];
     }
 
     const selectQuery = `
         SELECT
             o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
+            p.id as personaId,
             ${fullNameSql} as pacienteNombre,
             ${fullCedulaSql} as pacienteCedula,
             (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
@@ -1373,6 +1374,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
             items,
             paciente: {
                 id: row.pacienteId,
+                personaId: row.personaId,
                 nombreCompleto: row.pacienteNombre,
                 cedula: row.pacienteCedula
             }

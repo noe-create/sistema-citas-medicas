@@ -25,8 +25,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUser } from './app-shell';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { useDebounce } from '@/hooks/use-debounce';
-
 
 const statusColors: Record<TreatmentOrder['status'], string> = {
   Pendiente: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 dark:text-yellow-300',
@@ -40,7 +38,6 @@ export function TreatmentLogManagement() {
   const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
-  const debouncedSearch = useDebounce(search, 300);
   const [orders, setOrders] = React.useState<TreatmentOrder[]>([]);
   
   const [selectedItem, setSelectedItem] = React.useState<TreatmentOrderItem | null>(null);
@@ -50,7 +47,6 @@ export function TreatmentLogManagement() {
   React.useEffect(() => {
     setIsClient(true);
   }, []);
-
 
   const canManageOrder = ['doctor', 'enfermera', 'superuser'].includes(user.role.id);
 
@@ -68,8 +64,11 @@ export function TreatmentLogManagement() {
   }, [toast]);
 
   React.useEffect(() => {
-    refreshOrders(debouncedSearch);
-  }, [debouncedSearch, refreshOrders]);
+    const timer = setTimeout(() => {
+        refreshOrders(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, refreshOrders]);
 
   
   const handleOpenExecutionForm = (item: TreatmentOrderItem) => {
@@ -143,7 +142,7 @@ export function TreatmentLogManagement() {
                                 </div>
                                 <div className="text-sm text-muted-foreground text-center hidden lg:block">
                                     <p className="font-medium">Fecha de Orden</p>
-                                    <p>{format(order.createdAt, 'P p', { locale: es })}</p>
+                                    <p>{format(new Date(order.createdAt), 'P p', { locale: es })}</p>
                                 </div>
                                 <Badge variant="outline" className={statusColors[order.status]}>{order.status}</Badge>
                            </div>
