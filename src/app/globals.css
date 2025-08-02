@@ -96,6 +96,11 @@ label, button, th {
   }
 }
 
+@keyframes fade-in-out {
+  0%, 100% { opacity: 0; }
+  20%, 80% { opacity: 1; }
+}
+
 @media print {
   body * {
     visibility: hidden;

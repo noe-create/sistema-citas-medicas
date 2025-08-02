@@ -36,25 +36,29 @@ const backgroundImages = [
   'https://images.unsplash.com/photo-1478479405421-ce83c922e24c?q=80&w=2940&auto=format&fit=crop'
 ];
 
+
 export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
-    }, 5000); // Change image every 5 seconds
-
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <main 
-        className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center transition-all duration-1000"
-        style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${backgroundImages[currentImageIndex]}')`}}
-        data-ai-hint="medical team"
+        className="relative flex min-h-screen items-center justify-center p-4 bg-black overflow-hidden"
     >
-      <Card className="w-full max-w-sm z-10 shadow-2xl">
+       <div className="absolute inset-0 z-0">
+        {backgroundImages.map((src, index) => (
+          <div
+            key={src}
+            className="absolute inset-0 h-full w-full bg-cover bg-center"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${src}')`,
+              animation: `fade-in-out ${backgroundImages.length * 5}s linear infinite`,
+              animationDelay: `${index * 5}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
