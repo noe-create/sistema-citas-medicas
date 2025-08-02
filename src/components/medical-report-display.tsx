@@ -16,8 +16,14 @@ interface MedicalReportDisplayProps {
 
 export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps) {
   const { paciente } = consultation;
-  const age = calculateAge(paciente.fechaNacimiento);
-  const ageString = `${age} Año(s)`;
+  const [ageString, setAgeString] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Calculate age on the client-side to avoid hydration mismatch
+    const age = calculateAge(paciente.fechaNacimiento);
+    setAgeString(`${age} Año(s)`);
+  }, [paciente.fechaNacimiento]);
+
 
   const getConsultationType = () => {
     // This is a simple assumption. You might need a more robust way to determine this
@@ -63,7 +69,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
                 <p><strong>Ingreso:</strong> {consultation.waitlistId?.slice(-6) || 'N/A'}</p>
                 <p><strong>Sexo:</strong> {paciente.genero}</p>
                 <p><strong>Cédula:</strong> {paciente.cedula}</p>
-                <p><strong>Edad:</strong> {ageString}</p>
+                <p><strong>Edad:</strong> {ageString || 'Calculando...'}</p>
                 <p className="col-span-2"><strong>Nombre:</strong> {paciente.name}</p>
             </div>
         </section>

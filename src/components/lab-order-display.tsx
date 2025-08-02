@@ -16,8 +16,12 @@ interface LabOrderDisplayProps {
 }
 
 export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
+  const [age, setAge] = React.useState<number | null>(null);
 
-  const age = calculateAge(order.paciente.fechaNacimiento);
+  React.useEffect(() => {
+    // Calculate age on the client-side to avoid hydration mismatch
+    setAge(calculateAge(order.paciente.fechaNacimiento));
+  }, [order.paciente.fechaNacimiento]);
 
   return (
     <Card className="h-full border-primary/50">
@@ -47,7 +51,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
                     </div>
                      <div>
                         <span className="font-semibold">Edad:</span>
-                        <span className="text-muted-foreground ml-2">{age} años</span>
+                        <span className="text-muted-foreground ml-2">{age !== null ? `${age} años` : 'Calculando...'}</span>
                     </div>
                      <div>
                         <span className="font-semibold">Género:</span>
