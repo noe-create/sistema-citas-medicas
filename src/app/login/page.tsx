@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,16 +11,6 @@ import { login } from '@/actions/auth-actions';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ViñaIntegralLogo } from '@/components/viña-integral-logo';
-
-function LoginButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button className="w-full" type="submit" disabled={pending}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-      Iniciar Sesión
-    </Button>
-  );
-}
 
 const backgroundImages = [
   'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2940&auto=format&fit=crop',
@@ -37,6 +26,16 @@ const backgroundImages = [
   'https://images.unsplash.com/photo-1478479405421-ce83c922e24c?q=80&w=2940&auto=format&fit=crop'
 ];
 
+
+function LoginButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button className="w-full" type="submit" disabled={pending}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      Iniciar Sesión
+    </Button>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
@@ -73,7 +72,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <ViñaIntegralLogo className="h-20 w-20" />
             </div>
-            <CardTitle className="text-2xl font-headline tracking-wide">Viña Integral</CardTitle>
+            <CardTitle className="text-2xl font-headline">Viña Integral</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
