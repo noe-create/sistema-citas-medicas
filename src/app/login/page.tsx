@@ -27,8 +27,8 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
-      <Card className="w-full max-w-sm z-10 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm shadow-xl">
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
