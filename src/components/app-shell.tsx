@@ -116,9 +116,9 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
           <SidebarHeader className="p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
              <Link href="/dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0">
                 <ViñaIntegralLogo className="h-8 w-8" />
-                <div className="flex items-baseline gap-2 group-data-[collapsible=icon]:hidden">
-                    <h2 className="text-lg font-semibold font-headline tracking-tight">Viña Integral</h2>
-                    <span className="font-semibold text-primary">CPV</span>
+                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                    <h2 className="text-lg font-bold font-headline tracking-tight leading-none">Viña Integral</h2>
+                    <span className="text-sm font-bold text-center">CPV</span>
                 </div>
              </Link>
           </SidebarHeader>
