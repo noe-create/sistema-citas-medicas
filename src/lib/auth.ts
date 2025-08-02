@@ -1,5 +1,4 @@
 
-'use server';
 
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
@@ -11,7 +10,7 @@ export type SessionData = {
   permissions?: string[];
 };
 
-export const defaultSession: SessionData = {
+const defaultSession: SessionData = {
   user: undefined,
   isLoggedIn: false,
   permissions: [],
@@ -32,8 +31,6 @@ export async function getSession() {
     throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
   }
 
-  // To fix the "cookies() should be awaited" error, we need to pass a Map of cookies
-  // to getIronSession instead of the cookies() function directly.
   const session = await getIronSession<SessionData>(cookies(), sessionOptions);
 
   if (!session.isLoggedIn) {
