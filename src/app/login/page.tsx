@@ -27,37 +27,44 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
-      <Card className="w-full max-w-sm shadow-xl">
-        <form action={formAction}>
-          <CardHeader className="text-center">
-            <div className="mb-4 flex justify-center">
-                <ViñaIntegralLogo className="h-20 w-20" />
-            </div>
-            <CardTitle className="text-2xl font-headline">Viña Integral</CardTitle>
-            <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Usuario</Label>
-              <Input id="username" name="username" placeholder="su.usuario" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" name="password" type="password" required />
-            </div>
-             {state.error && (
-                <Alert variant="destructive">
-                    <AlertTitle>Error de Autenticación</AlertTitle>
-                    <AlertDescription>{state.error}</AlertDescription>
-                </Alert>
-            )}
-          </CardContent>
-          <CardFooter>
-            <LoginButton />
-          </CardFooter>
-        </form>
-      </Card>
+    <main className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-2">
+        <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-8 text-center">
+            <ViñaIntegralLogo className="h-24 w-24 mb-6" />
+            <h1 className="text-4xl font-bold font-headline tracking-tight text-primary">Viña Integral</h1>
+            <p className="mt-2 text-lg text-muted-foreground">Optimizando la gestión de pacientes con flujos de trabajo inteligentes.</p>
+        </div>
+        <div className="flex items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-sm shadow-xl">
+                <form action={formAction}>
+                <CardHeader className="text-center">
+                     <div className="mb-4 flex justify-center lg:hidden">
+                        <ViñaIntegralLogo className="h-20 w-20" />
+                    </div>
+                    <CardTitle className="text-2xl font-headline">Bienvenido de Vuelta</CardTitle>
+                    <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="username">Usuario</Label>
+                    <Input id="username" name="username" placeholder="su.usuario" required />
+                    </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="password">Contraseña</Label>
+                    <Input id="password" name="password" type="password" required />
+                    </div>
+                    {state.error && (
+                        <Alert variant="destructive">
+                            <AlertTitle>Error de Autenticación</AlertTitle>
+                            <AlertDescription>{state.error}</AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+                <CardFooter>
+                    <LoginButton />
+                </CardFooter>
+                </form>
+            </Card>
+        </div>
     </main>
   );
 }
