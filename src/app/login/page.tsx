@@ -25,10 +25,12 @@ function LoginButton() {
 }
 
 const backgroundImages = [
-  'https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1603398938378-e54eab446dde?q=80&w=2940&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1581091870622-9e5b3949f252?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1579684453423-f8434936e161?q=80&w=2849&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1551190822-a9333d802b91?q=80&w=2940&auto=format&fit=crop'
 ];
 
 export default function LoginPage() {
