@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -25,6 +24,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useUser } from './app-shell';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const statusColors: Record<TreatmentOrder['status'], string> = {
   Pendiente: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 dark:text-yellow-300',
@@ -38,15 +38,11 @@ export function TreatmentLogManagement() {
   const user = useUser();
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [orders, setOrders] = React.useState<TreatmentOrder[]>([]);
   
   const [selectedItem, setSelectedItem] = React.useState<TreatmentOrderItem | null>(null);
   const [isExecutionFormOpen, setIsExecutionFormOpen] = React.useState(false);
-  const [isClient, setIsClient] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const canManageOrder = ['doctor', 'enfermera', 'superuser'].includes(user.role.id);
 
@@ -64,11 +60,8 @@ export function TreatmentLogManagement() {
   }, [toast]);
 
   React.useEffect(() => {
-    const timer = setTimeout(() => {
-        refreshOrders(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, refreshOrders]);
+    refreshOrders(debouncedSearch);
+  }, [debouncedSearch, refreshOrders]);
 
   
   const handleOpenExecutionForm = (item: TreatmentOrderItem) => {
@@ -113,14 +106,12 @@ export function TreatmentLogManagement() {
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-4">
-            {isClient && (
-                <Input
-                placeholder="Buscar por paciente o cédula..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="max-w-sm"
-                />
-            )}
+            <Input
+              placeholder="Buscar por paciente o cédula..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
