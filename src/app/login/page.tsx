@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -39,15 +40,6 @@ function LoginButton() {
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
-    }, 5000); // Change image every 5 seconds
-
-    return () => clearInterval(intervalId);
-  }, []);
 
   return (
     <main 
@@ -57,10 +49,11 @@ export default function LoginPage() {
         {backgroundImages.map((src, index) => (
           <div
             key={src}
-            className="absolute inset-0 h-full w-full bg-cover bg-center transition-opacity duration-1000"
+            className="absolute inset-0 h-full w-full bg-cover bg-center"
             style={{
               backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${src}')`,
-              opacity: index === currentImageIndex ? 1 : 0,
+              animation: `fade-in-out ${backgroundImages.length * 5}s ease-in-out infinite`,
+              animationDelay: `${index * 5}s`,
             }}
           />
         ))}
@@ -96,6 +89,25 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      <style jsx global>{`
+        @keyframes fade-in-out {
+          0% {
+            opacity: 1;
+          }
+          17% {
+            opacity: 1;
+          }
+          25% {
+            opacity: 0;
+          }
+          92% {
+            opacity: 0;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </main>
   );
 }
