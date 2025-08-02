@@ -24,13 +24,29 @@ function LoginButton() {
   );
 }
 
+const backgroundImages = [
+  'https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1603398938378-e54eab446dde?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1581091870622-9e5b3949f252?q=80&w=2940&auto=format&fit=crop',
+];
+
 export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <main 
-        className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop')"}}
+        className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center transition-all duration-1000"
+        style={{ backgroundImage: `url('${backgroundImages[currentImageIndex]}')`}}
         data-ai-hint="medical team"
     >
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/30" />
