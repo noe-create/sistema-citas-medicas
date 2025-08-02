@@ -27,12 +27,8 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main 
-        className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://storage.googleapis.com/project-spark-b2489c6d-341a-47b2-9a4c-834c3d9a2632/public/view/6610738d-8798-4b0c-a968-45a828117798.png')`,
-        }}
-    >
+    <main className="login-background flex min-h-screen items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 z-0"></div>
       <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
         <form action={formAction}>
           <CardHeader className="text-center">
