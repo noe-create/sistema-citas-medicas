@@ -1341,17 +1341,15 @@ export async function getPacienteByPersonaId(personaId: string): Promise<{ id: s
 export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder[]> {
     const db = await getDb();
     
-    let whereClause = '';
     const params: any[] = [];
+    let whereClause = '';
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        whereClause = `
-            WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?
-        `;
+        whereClause = `WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?`;
         params.push(searchQuery, searchQuery);
     }
 
-    let selectQuery = `
+    const selectQuery = `
         SELECT
             o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
             ${fullNameSql} as pacienteNombre,
