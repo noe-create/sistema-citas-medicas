@@ -29,14 +29,10 @@ export default function LoginPage() {
 
   return (
     <main 
-        className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
-        style={{
-            backgroundImage: "url('https://placehold.co/1920x1080.png')",
-        }}
+        className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-secondary"
         data-ai-hint="medical technology"
     >
-      <div className="absolute inset-0 bg-black/50 z-0" />
-      <Card className="w-full max-w-sm z-10">
+      <Card className="w-full max-w-sm z-10 shadow-2xl">
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
