@@ -52,6 +52,9 @@ const summarizePatientHistoryFlow = ai.defineFlow(
     outputSchema: PatientSummaryOutputSchema,
   },
   async input => {
+    if (!input || !input.history) {
+        throw new Error("Input history is missing for summarization.");
+    }
     const {output} = await prompt(input);
     return output!;
   }

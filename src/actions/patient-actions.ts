@@ -1627,7 +1627,11 @@ export async function getTodayRegisteredPeopleCount(): Promise<number> {
 export async function getPatientSummary(personaId: string): Promise<PatientSummary> {
   const history = await getPatientHistory(personaId);
   
-  const consultationHistory = history.filter(entry => entry.type === 'consultation');
+  const consultationHistory = history.filter(entry => {
+    if (entry.type !== 'consultation') return false;
+    // Ensure there is some text content to summarize
+    return entry.data.motivoConsulta || entry.data.enfermedadActual || entry.data.diagnoses.length > 0 || entry.data.treatmentPlan;
+  });
   
   if (consultationHistory.length === 0) {
     return {
@@ -1642,7 +1646,9 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
       if (entry.type === 'consultation') {
         const c = entry.data;
         let entryStr = `Fecha: ${c.consultationDate.toLocaleDateString('es-VE')}\n`;
-        entryStr += `Motivo: ${c.motivoConsulta?.sintomas.join(', ')} ${c.motivoConsulta?.otros || ''}\n`;
+        if (c.motivoConsulta) {
+          entryStr += `Motivo: ${c.motivoConsulta.sintomas.join(', ')} ${c.motivoConsulta.otros || ''}\n`;
+        }
         entryStr += `Enfermedad Actual: ${c.enfermedadActual || 'N/A'}\n`;
         if (c.antecedentesPersonales?.alergicos?.length) {
             entryStr += `Alergias Registradas: ${c.antecedentesPersonales.alergicos.join(', ')}\n`;
@@ -1653,7 +1659,9 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
         if (c.antecedentesPersonales?.medicamentos) {
             entryStr += `Medicamentos Anteriores: ${c.antecedentesPersonales.medicamentos}\n`;
         }
-        entryStr += `Diagnósticos: ${c.diagnoses.map(d => `${d.cie10Description} (${d.cie10Code})`).join('; ')}\n`;
+        if (c.diagnoses.length > 0) {
+            entryStr += `Diagnósticos: ${c.diagnoses.map(d => `${d.cie10Description} (${d.cie10Code})`).join('; ')}\n`;
+        }
         entryStr += `Plan de Tratamiento: ${c.treatmentPlan || 'N/A'}\n`;
         if (c.treatmentOrder?.items.length) {
             entryStr += `Receta: ${c.treatmentOrder.items.map(i => `${i.medicamentoProcedimiento} ${i.dosis || ''}`).join('; ')}\n`;
@@ -1665,7 +1673,7 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     .join('\n---\n')
     .trim();
     
-  if (!historyString) {
+  if (!historyString || historyString.trim() === '') {
     return {
       knownAllergies: [],
       chronicOrImportantDiagnoses: [],
