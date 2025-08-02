@@ -104,7 +104,6 @@ const consultationSchema = z.object({
   })).min(1, 'Se requiere al menos un diagnóstico.'),
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
   treatmentItems: z.array(treatmentItemSchema).optional(),
-  renderedServices: z.array(z.any()).optional(),
 });
 
 interface ConsultationFormProps {
@@ -128,7 +127,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
             { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
             { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
-            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan', 'treatmentItems', 'renderedServices'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'treatmentPlan', 'treatmentItems'] },
         ];
         return baseSteps;
     }, []);
@@ -142,7 +141,6 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             diagnoses: [],
             treatmentPlan: '',
             treatmentItems: [],
-            renderedServices: [],
             examenFisicoGeneral: '',
             antecedentesFamiliares: '',
             antecedentesPersonales: {
@@ -205,7 +203,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 diagnoses: values.diagnoses,
                 treatmentPlan: values.treatmentPlan,
                 treatmentItems: values.treatmentItems,
-                renderedServices: values.renderedServices,
+                renderedServices: [],
             });
 
             if (createdConsultation && selectedLabTests.length > 0) {

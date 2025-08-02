@@ -7,7 +7,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, DollarSign, BrainCircuit, Stethoscope } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateTreatmentItemInput, Service } from '@/lib/types';
 import { searchCie10Codes, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from '@/components/ui/dialog';
 import { LabOrderForm } from '../lab-order-form';
-import { ServiceSelector } from '../service-selector';
 import { FormSection } from './form-section';
 
 // Sub-component for CIE-10 Autocomplete
@@ -299,22 +298,6 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                     </DialogContent>
                 </Dialog>
             </FormSection>
-
-            <FormSection icon={<DollarSign className="h-5 w-5 text-primary"/>} title="Servicios Prestados y Facturación">
-                <FormField
-                    control={form.control}
-                    name="renderedServices"
-                    render={({ field }) => (
-                        <FormItem>
-                            <ServiceSelector
-                                selectedServices={field.value || []}
-                                onChange={field.onChange}
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </FormSection>
             
             <TreatmentOrderBuilder form={form} />
 
@@ -329,4 +312,3 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
         </div>
     );
 };
-
