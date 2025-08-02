@@ -141,10 +141,3 @@ label, button, th {
     background-position: center;
     position: relative;
 }
-
-.login-background-consultorio {
-    background-image: var(--login-consultorio-bg);
-    background-size: cover;
-    background-position: center;
-    position: relative;
-}

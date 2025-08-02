@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="login-background-consultorio flex min-h-screen items-center justify-center p-4">
+    <main className="bg-login-consultorio flex min-h-screen items-center justify-center p-4 bg-cover bg-center relative">
       <div className="absolute inset-0 bg-black/50 z-0"></div>
       <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
         <form action={formAction}>
