@@ -30,7 +30,7 @@ export default function LoginPage() {
     <main 
         className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://storage.googleapis.com/project-spark-b2489c6d-341a-47b2-9a4c-834c3d9a2632/public/view/82f1b827-0138-422c-a22c-297f6c3451e0.png')`,
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://storage.googleapis.com/project-spark-b2489c6d-341a-47b2-9a4c-834c3d9a2632/public/view/6610738d-8798-4b0c-a968-45a828117798.png')`,
         }}
     >
       <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
