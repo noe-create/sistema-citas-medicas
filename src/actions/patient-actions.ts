@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -1287,7 +1286,7 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         FROM personas p
         LEFT JOIN titulares t ON p.id = t.personaId
         LEFT JOIN beneficiarios b ON p.id = b.personaId
-        LEFT JOIN pacientes ON p.id = pacientes.personaId
+        JOIN pacientes ON p.id = pacientes.personaId
     `;
     const params: any[] = [];
     
@@ -1628,7 +1627,17 @@ export async function getTodayRegisteredPeopleCount(): Promise<number> {
 export async function getPatientSummary(personaId: string): Promise<PatientSummary> {
   const history = await getPatientHistory(personaId);
   
-  const historyString = history
+  const consultationHistory = history.filter(entry => entry.type === 'consultation');
+  
+  if (consultationHistory.length === 0) {
+    return {
+      knownAllergies: [],
+      chronicOrImportantDiagnoses: [],
+      currentMedications: [],
+    };
+  }
+
+  const historyString = consultationHistory
     .map(entry => {
       if (entry.type === 'consultation') {
         const c = entry.data;
@@ -1667,3 +1676,5 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
 
   return summary;
 }
+
+    
