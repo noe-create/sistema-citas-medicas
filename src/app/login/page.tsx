@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -39,6 +40,15 @@ const backgroundImages = [
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <main 
@@ -48,11 +58,10 @@ export default function LoginPage() {
         {backgroundImages.map((src, index) => (
           <div
             key={src}
-            className="absolute inset-0 h-full w-full bg-cover bg-center"
+            className="absolute inset-0 h-full w-full bg-cover bg-center transition-opacity duration-1000"
             style={{
               backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${src}')`,
-              animation: `fade-in-out ${backgroundImages.length * 5}s linear infinite`,
-              animationDelay: `${index * 5}s`,
+              opacity: index === currentImageIndex ? 1 : 0,
             }}
           />
         ))}
@@ -64,7 +73,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <ViñaIntegralLogo className="h-20 w-20" />
             </div>
-            <CardTitle className="text-2xl font-bold font-headline tracking-wide">Viña Integral</CardTitle>
+            <CardTitle className="text-2xl font-headline tracking-wide">Viña Integral</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
