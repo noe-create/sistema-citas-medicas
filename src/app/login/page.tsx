@@ -1,8 +1,6 @@
-
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -47,11 +45,10 @@ export default function LoginPage() {
 
   return (
     <main 
-        className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center transition-all duration-1000"
-        style={{ backgroundImage: `url('${backgroundImages[currentImageIndex]}')`}}
+        className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center transition-all duration-1000"
+        style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${backgroundImages[currentImageIndex]}')`}}
         data-ai-hint="medical team"
     >
-        <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/30" />
       <Card className="w-full max-w-sm z-10 shadow-2xl">
         <form action={formAction}>
           <CardHeader className="text-center">
