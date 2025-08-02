@@ -118,7 +118,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
                 <ViñaIntegralLogo className="h-8 w-8" />
                 <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                   <h2 className="text-lg font-semibold font-headline tracking-wide">Viña Integral</h2>
-                  <p className="text-xs text-muted-foreground -mt-1">Salud Integral</p>
+                  <p className="text-xs text-muted-foreground -mt-1">CPV</p>
                 </div>
              </Link>
           </SidebarHeader>
