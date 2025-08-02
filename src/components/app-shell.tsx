@@ -63,9 +63,6 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   
-  { href: '/dashboard/reportes', icon: <AreaChart />, title: 'Reportes', permission: 'reports.view', group: 'Reportes' },
-  { href: '/dashboard/encuestas', icon: <MessageSquareQuote />, title: 'Encuestas', permission: 'surveys.manage', group: 'Reportes' },
-  
   { href: '/dashboard/personas', icon: <User />, title: 'Personas', permission: 'people.manage', group: 'Admisión' },
   { href: '/dashboard/lista-pacientes', icon: <Users />, title: 'Lista de Pacientes', permission: 'patientlist.view', group: 'Admisión' },
   { href: '/dashboard/pacientes', icon: <ShieldCheck />, title: 'Titulares', permission: 'titulars.manage', group: 'Admisión' },
@@ -79,7 +76,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/seguridad/roles', icon: <KeyRound />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
 ];
 
-const menuGroups = ['Principal', 'Atención', 'Admisión', 'Reportes', 'Parametrización', 'Seguridad'];
+const menuGroups = ['Principal', 'Atención', 'Admisión', 'Parametrización', 'Seguridad'];
 
 interface UserContextValue extends UserType {
     permissions: string[];

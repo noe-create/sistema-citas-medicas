@@ -75,20 +75,6 @@ const menuOptions: MenuOption[] = [
     permission: 'treatmentlog.manage',
   },
   {
-    href: '/dashboard/reportes',
-    icon: <AreaChart className="h-6 w-6 text-primary" />,
-    title: 'Reportes',
-    description: 'Visualice métricas y reportes de morbilidad.',
-    permission: 'reports.view',
-  },
-  {
-    href: '/dashboard/encuestas',
-    icon: <MessageSquareQuote className="h-6 w-6 text-primary" />,
-    title: 'Encuestas',
-    description: 'Gestione encuestas y vea los resultados.',
-    permission: 'surveys.manage',
-  },
-  {
     href: '/dashboard/cie10',
     icon: <BookText className="h-6 w-6 text-primary" />,
     title: 'Catálogo CIE-10',

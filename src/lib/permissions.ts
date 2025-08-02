@@ -32,5 +32,4 @@ export const PERMISSION_MODULES = [
     'Parametrización',
     'Admisión',
     'Atención',
-    'Reportes',
 ];
