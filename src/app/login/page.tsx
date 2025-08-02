@@ -35,7 +35,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <ViñaIntegralLogo className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl font-bold font-headline">VIÑA INTEGRAL</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline tracking-wide">VIÑA INTEGRAL</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
