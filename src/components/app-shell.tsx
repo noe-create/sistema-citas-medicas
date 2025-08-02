@@ -57,7 +57,7 @@ interface MenuItem {
 }
 
 const allMenuOptions: MenuItem[] = [
-  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Dashboard', permission: '*', group: 'Principal' },
+  { href: '/dashboard', icon: <LayoutDashboard />, title: 'Panel', permission: '*', group: 'INICIO' },
   { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
   { href: '/dashboard/consulta', icon: <Stethoscope />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
   { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
@@ -75,7 +75,7 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard/seguridad/roles', icon: <KeyRound />, title: 'Roles', permission: 'roles.manage', group: 'Seguridad' },
 ];
 
-const menuGroups = ['Principal', 'Atención', 'Admisión', 'Parametrización', 'Seguridad'];
+const menuGroups = ['INICIO', 'Atención', 'Admisión', 'Parametrización', 'Seguridad'];
 
 interface UserContextValue extends UserType {
     permissions: string[];
