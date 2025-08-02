@@ -45,6 +45,12 @@ export function TreatmentLogManagement() {
   
   const [selectedItem, setSelectedItem] = React.useState<TreatmentOrderItem | null>(null);
   const [isExecutionFormOpen, setIsExecutionFormOpen] = React.useState(false);
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const canManageOrder = ['doctor', 'enfermera', 'superuser'].includes(user.role.id);
 
@@ -108,12 +114,14 @@ export function TreatmentLogManagement() {
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-4">
-            <Input
-              placeholder="Buscar por paciente o cédula..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-sm"
-            />
+            {isClient && (
+                <Input
+                placeholder="Buscar por paciente o cédula..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="max-w-sm"
+                />
+            )}
           </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -135,7 +143,7 @@ export function TreatmentLogManagement() {
                                 </div>
                                 <div className="text-sm text-muted-foreground text-center hidden lg:block">
                                     <p className="font-medium">Fecha de Orden</p>
-                                    <p>{format(new Date(order.createdAt), 'P p', { locale: es })}</p>
+                                    <p>{format(order.createdAt, 'P p', { locale: es })}</p>
                                 </div>
                                 <Badge variant="outline" className={statusColors[order.status]}>{order.status}</Badge>
                            </div>
