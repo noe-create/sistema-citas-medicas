@@ -6,8 +6,6 @@ import type { Persona } from '@/lib/types';
 import { PatientHistory } from '@/components/patient-history';
 import { HceSearch } from '@/components/hce-search';
 import { Telescope } from 'lucide-react';
-import { PatientSummary } from '@/components/patient-summary';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function HcePage() {
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
@@ -23,7 +21,7 @@ export default function HcePage() {
           <CardHeader>
             <CardTitle>Buscar Paciente</CardTitle>
             <CardDescription>
-              Busque por nombre o cédula para ver el resumen y el historial clínico.
+              Busque por nombre o cédula para ver el historial clínico.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -33,26 +31,15 @@ export default function HcePage() {
 
         <div className="lg:col-span-2">
             {selectedPersona ? (
-                <Tabs defaultValue="summary" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="summary">Resumen Clínico con IA</TabsTrigger>
-                        <TabsTrigger value="history">Historial Cronológico Completo</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="summary" className="mt-4">
-                        <PatientSummary persona={selectedPersona} />
-                    </TabsContent>
-                    <TabsContent value="history" className="mt-4">
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Historial Completo de: {selectedPersona.nombreCompleto}</CardTitle>
-                                <CardDescription>Cédula: {selectedPersona.cedula}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <PatientHistory personaId={selectedPersona.id} />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Historial Completo de: {selectedPersona.nombreCompleto}</CardTitle>
+                        <CardDescription>Cédula: {selectedPersona.cedula}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <PatientHistory personaId={selectedPersona.id} />
+                    </CardContent>
+                </Card>
             ) : (
                 <div className="flex h-full min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 p-8 text-center">
                     <Telescope className="h-12 w-12 text-muted-foreground" />
