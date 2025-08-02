@@ -1,5 +1,5 @@
 
-'server-only';
+'use server';
 
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
@@ -34,8 +34,7 @@ export async function getSession() {
 
   // To fix the "cookies() should be awaited" error, we need to pass a Map of cookies
   // to getIronSession instead of the cookies() function directly.
-  const cookieStore = cookies();
-  const session = await getIronSession<SessionData>(cookieStore as any, sessionOptions);
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
 
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;

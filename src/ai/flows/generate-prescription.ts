@@ -21,7 +21,7 @@ const GeneratePrescriptionInputSchema = z.object({
   diagnoses: z.array(DiagnosisSchema).describe('La lista de diagnósticos para el paciente.'),
   treatmentPlan: z.string().describe('El plan de tratamiento detallado, incluyendo indicaciones y medicamentos.'),
 });
-export type GeneratePrescriptionInput = z.infer<typeof GeneratePrescriptionInputSchema>;
+export type {GeneratePrescriptionInput} from 'genkit';
 
 const GeneratePrescriptionOutputSchema = z.object({
   doctorName: z.string().describe('El nombre del médico que emite la receta.'),
@@ -32,7 +32,7 @@ const GeneratePrescriptionOutputSchema = z.object({
 });
 export type GeneratePrescriptionOutput = z.infer<typeof GeneratePrescriptionOutputSchema>;
 
-export async function generatePrescription(input: GeneratePrescriptionInput): Promise<GeneratePrescriptionOutput> {
+export async function generatePrescription(input: z.infer<typeof GeneratePrescriptionInputSchema>): Promise<GeneratePrescriptionOutput> {
   return generatePrescriptionFlow(input);
 }
 
@@ -62,7 +62,7 @@ const prompt = ai.definePrompt({
   4.  **patientName**: Usa el nombre del paciente proporcionado.
   5.  **prescriptionBody**: 
       - Extrae **SOLAMENTE los medicamentos, indicaciones y tratamientos** del plan de tratamiento y formatéalos como una lista con viñetas.
-      - Asegúrate de que cada indicación o medicamento esté en una línea separada.
+      - Asegúrate de que cada indicación o medicamento esté en una nueva línea separada.
       - No incluyas información de diagnóstico o notas subjetivas en el cuerpo de la receta.
       - El formato debe ser claro y profesional. Usa Markdown para la lista.
   
