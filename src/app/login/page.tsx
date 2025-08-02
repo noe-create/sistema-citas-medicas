@@ -30,8 +30,8 @@ export default function LoginPage() {
   return (
     <main 
         className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop')"}}
-        data-ai-hint="medical technology"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop')"}}
+        data-ai-hint="medical team"
     >
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/30" />
       <Card className="w-full max-w-sm z-10 shadow-2xl">
