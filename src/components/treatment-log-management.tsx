@@ -49,7 +49,7 @@ export function TreatmentLogManagement() {
     setIsLoading(true);
     try {
       const data = await getTreatmentOrders(currentSearch);
-      setOrders(data);
+      setOrders(data.map(order => ({...order, createdAt: new Date(order.createdAt)})));
     } catch (error) {
       console.error("Error fetching treatment orders:", error);
       toast({ title: 'Error', description: 'No se pudieron cargar las órdenes de tratamiento.', variant: 'destructive' });
