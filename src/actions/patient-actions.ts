@@ -1340,6 +1340,17 @@ export async function getPacienteByPersonaId(personaId: string): Promise<{ id: s
 
 export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder[]> {
     const db = await getDb();
+    
+    let whereClause = '';
+    const params: any[] = [];
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        whereClause = `
+            WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?
+        `;
+        params.push(searchQuery, searchQuery);
+    }
+
     let selectQuery = `
         SELECT
             o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
@@ -1349,16 +1360,10 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
         FROM treatment_orders o
         JOIN pacientes pac ON o.pacienteId = pac.id
         JOIN personas p ON pac.personaId = p.id
+        ${whereClause}
+        ORDER BY o.createdAt DESC
     `;
-    const params: any[] = [];
-    if (query && query.trim().length > 1) {
-        const searchQuery = `%${query.trim()}%`;
-        selectQuery += `
-            WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?
-        `;
-        params.push(searchQuery, searchQuery);
-    }
-    selectQuery += ' ORDER BY o.createdAt DESC';
+    
     const rows = await db.all(selectQuery, ...params);
     
     const orders: TreatmentOrder[] = [];
