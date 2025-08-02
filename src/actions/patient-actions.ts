@@ -28,7 +28,6 @@ import type {
     TreatmentOrderItem,
     User,
     PatientSummary,
-    Service,
     Invoice
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -847,22 +846,6 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             await itemStmt.finalize();
         }
         
-        if (data.renderedServices && data.renderedServices.length > 0) {
-            const invoiceId = generateId('inv');
-            const totalAmount = data.renderedServices.reduce((sum, service) => sum + service.price, 0);
-            
-            await db.run(
-                'INSERT INTO invoices (id, consultationId, totalAmount, status, createdAt) VALUES (?, ?, ?, ?, ?)',
-                invoiceId, consultationId, totalAmount, 'Pendiente', new Date().toISOString()
-            );
-
-            const itemStmt = await db.prepare('INSERT INTO invoice_items (id, invoiceId, serviceId, serviceName, price) VALUES (?, ?, ?, ?, ?)');
-            for (const service of data.renderedServices) {
-                await itemStmt.run(generateId('item'), invoiceId, service.id, service.name, service.price);
-            }
-            await itemStmt.finalize();
-        }
-
         const activeSurvey = await db.get("SELECT id FROM surveys WHERE isActive = 1 LIMIT 1");
         if(activeSurvey) {
             await db.run(
@@ -1301,26 +1284,16 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
             p.email,
             MAX(t.id IS NOT NULL) as isTitular,
             MAX(b.id IS NOT NULL) as isBeneficiario
-        FROM pacientes pac
-        JOIN personas p ON pac.personaId = p.id
+        FROM personas p
         LEFT JOIN titulares t ON p.id = t.personaId
         LEFT JOIN beneficiarios b ON p.id = b.personaId
     `;
     const params: any[] = [];
-    const whereConditions: string[] = [];
-
-    // Condition 1: Must have a consultation history
-    whereConditions.push('EXISTS (SELECT 1 FROM consultations c WHERE c.pacienteId = pac.id)');
     
-    // Condition 2: Search query
     if (query && query.trim().length > 1) {
         const searchQuery = `%${query.trim()}%`;
-        whereConditions.push(`(${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ? OR p.email LIKE ?)`);
+        selectQuery += ` WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ? OR p.email LIKE ?`;
         params.push(searchQuery, searchQuery, searchQuery);
-    }
-    
-    if (whereConditions.length > 0) {
-        selectQuery += ` WHERE ${whereConditions.join(' AND ')}`;
     }
     
     selectQuery += ' GROUP BY p.id ORDER BY p.primerNombre, p.primerApellido';
@@ -1335,7 +1308,7 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         return {
             ...row,
             fechaNacimiento: new Date(row.fechaNacimiento),
-            roles: roles.length > 0 ? roles : ['Paciente'],
+            roles: roles.length > 0 ? roles : ['Sin Rol'],
         };
     });
 }
