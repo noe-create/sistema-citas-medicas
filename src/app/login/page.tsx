@@ -28,7 +28,13 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-secondary/40 p-4">
+    <main 
+        className="flex min-h-screen items-center justify-center p-4"
+        style={{
+            background: 'hsl(var(--background))',
+            backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary)/0.05), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--primary)/0.05), transparent 40%)'
+        }}
+    >
       <Card className="w-full max-w-sm">
         <form action={formAction}>
           <CardHeader className="text-center">
