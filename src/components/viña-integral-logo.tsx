@@ -1,11 +1,12 @@
+
 'use client';
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-interface MedihubLogoProps extends React.SVGProps<SVGSVGElement> {}
+interface ViñaIntegralLogoProps extends React.SVGProps<SVGSVGElement> {}
 
-export function MedihubLogo({ className, ...props }: MedihubLogoProps) {
+export function ViñaIntegralLogo({ className, ...props }: ViñaIntegralLogoProps) {
   return (
     <svg
       width="64"

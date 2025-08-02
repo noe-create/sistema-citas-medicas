@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MedihubLogo } from '@/components/medihub-logo';
+import { ViñaIntegralLogo } from '@/components/viña-integral-logo';
 
 function LoginButton() {
   const { pending } = useFormStatus();
@@ -33,9 +33,9 @@ export default function LoginPage() {
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <MedihubLogo className="h-16 w-16" />
+                <ViñaIntegralLogo className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl font-bold font-headline">SiSalud</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline">VIÑA INTEGRAL</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

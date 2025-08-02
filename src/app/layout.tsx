@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'SiSalud',
+  title: 'VIÑA INTEGRAL',
   description: 'Optimizando la gestión de pacientes con flujos de trabajo inteligentes.',
 };
 
