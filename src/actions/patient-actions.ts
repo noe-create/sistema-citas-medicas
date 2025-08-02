@@ -1342,43 +1342,57 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
     const db = await getDb();
     
     let params: any[] = [];
-    let whereClause = '';
-    if (query && query.trim().length > 1) {
-        const searchQuery = `%${query.trim()}%`;
-        whereClause = `WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?`;
-        params = [searchQuery, searchQuery];
-    }
-
-    const selectQuery = `
-        SELECT
-            o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
-            p.id as personaId,
-            ${fullNameSql} as pacienteNombre,
-            ${fullCedulaSql} as pacienteCedula,
-            (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
+    let baseQuery = `
+        SELECT o.id
         FROM treatment_orders o
         JOIN pacientes pac ON o.pacienteId = pac.id
         JOIN personas p ON pac.personaId = p.id
-        ${whereClause}
-        ORDER BY o.createdAt DESC
     `;
     
-    const rows = await db.all(selectQuery, ...params);
+    if (query && query.trim().length > 1) {
+        const searchQuery = `%${query.trim()}%`;
+        baseQuery += ` WHERE ${fullNameSql} LIKE ? OR ${fullCedulaSearchSql} LIKE ?`;
+        params.push(searchQuery, searchQuery);
+    }
+
+    baseQuery += ' ORDER BY o.createdAt DESC';
     
+    const orderIdsResult = await db.all<{ id: string }>(baseQuery, ...params);
+    const orderIds = orderIdsResult.map(r => r.id);
+
+    if (orderIds.length === 0) {
+        return [];
+    }
+
     const orders: TreatmentOrder[] = [];
-    for (const row of rows) {
-        const items = await db.all<TreatmentOrderItem[]>('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', row.id);
-        orders.push({
-            ...row,
-            createdAt: new Date(row.createdAt),
-            items,
-            paciente: {
-                id: row.pacienteId,
-                personaId: row.personaId,
-                nombreCompleto: row.pacienteNombre,
-                cedula: row.pacienteCedula
-            }
-        } as any);
+    for (const orderId of orderIds) {
+        const row = await db.get(`
+            SELECT
+                o.id, o.pacienteId, o.consultationId, o.status, o.createdAt,
+                p.id as personaId,
+                ${fullNameSql} as pacienteNombre,
+                ${fullCedulaSql} as pacienteCedula,
+                (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = o.consultationId) as diagnosticoPrincipal
+            FROM treatment_orders o
+            JOIN pacientes pac ON o.pacienteId = pac.id
+            JOIN personas p ON pac.personaId = p.id
+            WHERE o.id = ?
+        `, orderId);
+
+        if (row) {
+            const items = await db.all<TreatmentOrderItem[]>('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', row.id);
+            orders.push({
+                ...row,
+                createdAt: new Date(row.createdAt),
+                items,
+                paciente: {
+                    id: row.pacienteId,
+                    personaId: row.personaId,
+                    nombreCompleto: row.pacienteNombre,
+                    cedula: row.pacienteCedula
+                }
+            } as any);
+        }
     }
     return orders;
 }
