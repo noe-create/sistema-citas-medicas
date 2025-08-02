@@ -113,12 +113,12 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
     <UserContext.Provider value={userWithPermissions}>
       <SidebarProvider>
         <Sidebar collapsible="icon">
-          <SidebarHeader className="p-4 flex justify-center group-data-[collapsible=icon]:p-2">
-             <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-                <ViñaIntegralLogo className="h-10 w-10" />
-                <div className="flex flex-col text-center group-data-[collapsible=icon]:hidden">
-                    <h2 className="text-lg font-bold font-headline tracking-tight leading-none">Salud Integral</h2>
-                    <span className="font-bold text-primary">C.P.V</span>
+          <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
+             <Link href="/dashboard" className="flex justify-center items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+                <ViñaIntegralLogo className="h-10 w-10 flex-shrink-0" />
+                <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
+                    <h2 className="text-xl font-bold font-headline tracking-tight leading-none">Salud Integral</h2>
+                    <span className="font-bold text-lg text-primary leading-none">C.P.V</span>
                 </div>
              </Link>
           </SidebarHeader>
