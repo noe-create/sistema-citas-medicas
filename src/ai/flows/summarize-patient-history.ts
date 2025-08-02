@@ -1,5 +1,4 @@
 'use server';
-
 /**
  * @fileOverview This file defines a Genkit flow for summarizing a patient's medical history.
  *
@@ -14,7 +13,7 @@ import {z} from 'genkit';
 const PatientHistoryInputSchema = z.object({
   history: z.string().describe('El historial médico completo del paciente, compuesto por múltiples entradas de consulta.'),
 });
-export type PatientHistoryInput = z.infer<typeof PatientHistoryInputSchema>;
+export type {PatientHistoryInput} from 'genkit';
 
 const PatientSummaryOutputSchema = z.object({
   knownAllergies: z.array(z.string()).describe('Una lista de alergias conocidas extraídas del historial. Incluir alergias a medicamentos, alimentos, etc. Si no se mencionan alergias, devolver un array vacío.'),
@@ -23,7 +22,7 @@ const PatientSummaryOutputSchema = z.object({
 });
 export type PatientSummaryOutput = z.infer<typeof PatientSummaryOutputSchema>;
 
-export async function summarizePatientHistory(input: PatientHistoryInput): Promise<PatientSummaryOutput> {
+export async function summarizePatientHistory(input: z.infer<typeof PatientHistoryInputSchema>): Promise<PatientSummaryOutput> {
   return summarizePatientHistoryFlow(input);
 }
 
@@ -31,7 +30,8 @@ const prompt = ai.definePrompt({
   name: 'summarizePatientHistoryPrompt',
   input: {schema: PatientHistoryInputSchema},
   output: {schema: PatientSummaryOutputSchema},
-  prompt: `Eres un asistente médico experto en analizar historiales clínicos. Tu tarea es leer el siguiente historial y extraer información clave de manera estructurada.
+  prompt: `{{#user}}
+Eres un asistente médico experto en analizar historiales clínicos. Tu tarea es leer el siguiente historial y extraer información clave de manera estructurada.
 
 **Historial Clínico del Paciente:**
 {{{history}}}
@@ -43,6 +43,7 @@ Basado en TODO el historial proporcionado, extrae la siguiente información:
 3.  **currentMedications**: Identifica y lista los medicamentos que el paciente esté tomando de manera CRÓNICA o que hayan sido recetados en su consulta más reciente como tratamiento a largo plazo. No incluyas medicamentos para tratamientos cortos que ya hayan finalizado. Si no se mencionan medicamentos de uso crónico, devuelve un array vacío.
 
 Sé preciso y extrae la información textualmente como aparece en el historial cuando sea posible.
+{{/user}}
 `,
 });
 
