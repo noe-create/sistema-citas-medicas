@@ -28,7 +28,12 @@ const backgroundImages = [
   'https://images.unsplash.com/photo-1603398938378-e54eab446dde?q=80&w=2940&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1581091870622-9e5b3949f252?q=80&w=2940&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1579684453423-f8434936e161?q=80&w=2849&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1551190822-a9333d802b91?q=80&w=2940&auto=format&fit=crop'
+  'https://images.unsplash.com/photo-1551190822-a9333d802b91?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1527613426441-4da17471b66d?q=80&w=2934&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1580281657422-2b58b44983e2?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?q=80&w=2940&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1576765974102-b32d5c554a22?q=80&w=2835&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1478479405421-ce83c922e24c?q=80&w=2940&auto=format&fit=crop'
 ];
 
 export default function LoginPage() {
