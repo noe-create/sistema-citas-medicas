@@ -30,7 +30,7 @@ export default function LoginPage() {
     <main 
         className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
         style={{
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop')`,
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://i.ibb.co/6y0N2rY/medical-background.jpg')`,
         }}
     >
       <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
