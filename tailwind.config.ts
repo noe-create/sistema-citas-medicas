@@ -10,6 +10,9 @@ export default {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'login-consultorio': "url('https://storage.googleapis.com/project-spark-b2489c6d-341a-47b2-9a4c-834c3d9a2632/public/view/5aa8513b-57f8-403a-a553-611283344662.png')",
+      },
       fontFamily: {
         body: ['var(--font-figtree)', 'sans-serif'],
         headline: ['var(--font-figtree)', 'sans-serif'],
