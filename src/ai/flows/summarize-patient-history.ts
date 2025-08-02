@@ -30,8 +30,7 @@ const prompt = ai.definePrompt({
   name: 'summarizePatientHistoryPrompt',
   input: {schema: PatientHistoryInputSchema},
   output: {schema: PatientSummaryOutputSchema},
-  prompt: `{{#user}}
-Eres un asistente médico experto en analizar historiales clínicos. Tu tarea es leer el siguiente historial y extraer información clave de manera estructurada.
+  prompt: `Eres un asistente médico experto en analizar historiales clínicos. Tu tarea es leer el siguiente historial y extraer información clave de manera estructurada.
 
 **Historial Clínico del Paciente:**
 {{{history}}}
@@ -43,7 +42,6 @@ Basado en TODO el historial proporcionado, extrae la siguiente información:
 3.  **currentMedications**: Identifica y lista los medicamentos que el paciente esté tomando de manera CRÓNICA o que hayan sido recetados en su consulta más reciente como tratamiento a largo plazo. No incluyas medicamentos para tratamientos cortos que ya hayan finalizado. Si no se mencionan medicamentos de uso crónico, devuelve un array vacío.
 
 Sé preciso y extrae la información textualmente como aparece en el historial cuando sea posible.
-{{/user}}
 `,
 });
 
