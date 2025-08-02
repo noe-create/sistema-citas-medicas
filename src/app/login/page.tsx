@@ -13,21 +13,6 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ViñaIntegralLogo } from '@/components/viña-integral-logo';
 
-const backgroundImages = [
-  'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1603398938378-e54eab446dde?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1581091870622-9e5b3949f252?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1579684453423-f8434936e161?q=80&w=2849&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1551190822-a9333d802b91?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1527613426441-4da17471b66d?q=80&w=2934&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1580281657422-2b58b44983e2?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?q=80&w=2940&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1576765974102-b32d5c554a22?q=80&w=2835&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1478479405421-ce83c922e24c?q=80&w=2940&auto=format&fit=crop'
-];
-
-
 function LoginButton() {
   const { pending } = useFormStatus();
   return (
@@ -43,22 +28,11 @@ export default function LoginPage() {
 
   return (
     <main 
-        className="relative flex min-h-screen items-center justify-center p-4 bg-black overflow-hidden"
+        className="relative flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop')`,
+        }}
     >
-       <div className="absolute inset-0 z-0">
-        {backgroundImages.map((src, index) => (
-          <div
-            key={src}
-            className="absolute inset-0 h-full w-full bg-cover bg-center"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${src}')`,
-              animation: `fade-in-out ${backgroundImages.length * 5}s ease-in-out infinite`,
-              animationDelay: `${index * 5}s`,
-            }}
-          />
-        ))}
-      </div>
-
       <Card className="w-full max-w-sm z-10 shadow-2xl bg-card/80 backdrop-blur-sm">
         <form action={formAction}>
           <CardHeader className="text-center">
@@ -89,25 +63,6 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
-      <style jsx global>{`
-        @keyframes fade-in-out {
-          0% {
-            opacity: 1;
-          }
-          17% {
-            opacity: 1;
-          }
-          25% {
-            opacity: 0;
-          }
-          92% {
-            opacity: 0;
-          }
-          100% {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </main>
   );
 }
