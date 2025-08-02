@@ -33,9 +33,9 @@ export default function LoginPage() {
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <ViñaIntegralLogo className="h-16 w-16" />
+                <ViñaIntegralLogo className="h-20 w-20" />
             </div>
-            <CardTitle className="text-2xl font-bold font-headline tracking-wide">VIÑA INTEGRAL</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline tracking-wide">Viña Integral</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
