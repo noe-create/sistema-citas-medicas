@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -694,9 +695,25 @@ async function parseConsultation(db: any, row: any): Promise<Consultation | null
         const items = await db.all('SELECT * FROM invoice_items WHERE invoiceId = ?', invoiceRow.id);
         invoice = { ...invoiceRow, items: items, createdAt: new Date(invoiceRow.createdAt) };
     }
+    
+    // Fetch patient data
+    const pacienteRow = await db.get(
+        `SELECT p.*, w.serviceType, w.accountType, w.kind, w.name, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula
+         FROM pacientes pac
+         JOIN personas p ON pac.personaId = p.id
+         JOIN waitlist w ON pac.id = w.pacienteId
+         WHERE pac.id = ?`,
+        row.pacienteId
+    );
+    
+    const paciente = {
+        ...pacienteRow,
+        fechaNacimiento: new Date(pacienteRow.fechaNacimiento),
+    }
 
     return {
         ...row,
+        paciente,
         consultationDate: new Date(row.consultationDate),
         motivoConsulta: row.motivoConsulta ? JSON.parse(row.motivoConsulta) : undefined,
         signosVitales: row.signosVitales ? JSON.parse(row.signosVitales) : undefined,

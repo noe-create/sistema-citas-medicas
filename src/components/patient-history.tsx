@@ -31,7 +31,6 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
         const data = await getPatientHistory(personaId);
         setHistory(data);
         if (data.length > 0) {
-            // Find the first consultation to display, fallback to any entry
             const firstConsultation = data.find(e => e.type === 'consultation') || data[0];
             setSelectedEntry(firstConsultation);
         }
@@ -93,7 +92,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                     >
                         <div className="flex flex-col">
                             <span className="font-medium capitalize">{entry.type === 'consultation' ? `Consulta` : 'Orden de Laboratorio'}</span>
-                            <span className="text-xs text-muted-foreground">{format(entry.data.orderDate || entry.data.consultationDate, "PPP", { locale: es })}</span>
+                            <span className="text-xs text-muted-foreground">{format(entry.data.consultationDate || entry.data.orderDate, "PPP", { locale: es })}</span>
                         </div>
                     </Button>
                 ))}
