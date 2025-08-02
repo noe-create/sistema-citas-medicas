@@ -19,7 +19,7 @@ const defaultSession: SessionData = {
 export async function getSession() {
   const sessionOptions = {
     password: process.env.SECRET_COOKIE_PASSWORD!,
-    cookieName: 'medihub-session',
+    cookieName: 'salud-cpv-session',
     cookieOptions: {
         secure: process.env.NODE_ENV === 'production',
     },

@@ -34,7 +34,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <MedihubLogo className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl font-bold font-headline">Medihub</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline">Salud-CPV</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
