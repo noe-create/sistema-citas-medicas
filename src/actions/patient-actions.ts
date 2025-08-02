@@ -1662,7 +1662,8 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
       }
       return '';
     })
-    .join('\n---\n').trim();
+    .join('\n---\n')
+    .trim();
     
   if (!historyString) {
     return {
@@ -1676,5 +1677,3 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
 
   return summary;
 }
-
-    
