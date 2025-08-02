@@ -29,13 +29,14 @@ export default function LoginPage() {
 
   return (
     <main 
-        className="flex min-h-screen items-center justify-center p-4"
+        className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center"
         style={{
-            background: 'hsl(var(--background))',
-            backgroundImage: 'radial-gradient(circle at top left, hsl(var(--primary)/0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--primary)/0.1), transparent 40%)'
+            backgroundImage: "url('https://placehold.co/1920x1080.png')",
         }}
+        data-ai-hint="medical technology"
     >
-      <Card className="w-full max-w-sm">
+      <div className="absolute inset-0 bg-black/50 z-0" />
+      <Card className="w-full max-w-sm z-10">
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
