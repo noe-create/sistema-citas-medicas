@@ -1287,7 +1287,7 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
         FROM personas p
         LEFT JOIN titulares t ON p.id = t.personaId
         LEFT JOIN beneficiarios b ON p.id = b.personaId
-        JOIN pacientes ON p.id = pacientes.personaId
+        LEFT JOIN pacientes ON p.id = pacientes.personaId
     `;
     const params: any[] = [];
     
@@ -1655,7 +1655,6 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     })
     .join('\n---\n').trim();
     
-  // If there's no text to summarize, return a default empty summary.
   if (!historyString) {
     return {
       knownAllergies: [],
@@ -1664,7 +1663,6 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     };
   }
 
-  // Call the AI flow to get the summary
   const summary = await summarizePatientHistory({ history: historyString });
 
   return summary;
