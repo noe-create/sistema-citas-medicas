@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -15,29 +16,26 @@ interface LabOrderDisplayProps {
 }
 
 export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
-  const handlePrint = () => {
-    window.print();
-  };
 
   const age = calculateAge(order.paciente.fechaNacimiento);
 
   return (
-    <Card className="mt-2 border-primary/50">
-       <div className="printable-lab-order">
-            <CardHeader className="text-center pb-2">
+    <Card className="h-full border-primary/50">
+       <div className="p-4">
+            <header className="text-center pb-2">
                 <div className="flex justify-between items-start">
-                    <div className="text-left">
-                        <p className="font-bold text-lg">Dr. Smith</p>
-                        <p className="text-sm text-muted-foreground">MPPS 12345</p>
+                    <div className="text-left text-xs">
+                        <p className="font-bold">Dr. [Nombre del Doctor]</p>
+                        <p className="text-muted-foreground">MPPS 12345</p>
                     </div>
-                     <div className="text-right">
+                     <div className="text-right text-xs">
                         <p className="font-semibold">Fecha</p>
-                        <p className="text-sm text-muted-foreground">{format(order.orderDate, 'PPP', { locale: es })}</p>
+                        <p className="text-muted-foreground">{format(order.orderDate, 'PPP', { locale: es })}</p>
                     </div>
                 </div>
                  <hr className="my-2"/>
-            </CardHeader>
-            <CardContent className="space-y-4 text-left">
+            </header>
+            <div className="space-y-4 text-left">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm border p-2 rounded-md">
                     <div>
                         <span className="font-semibold">Paciente:</span>
@@ -59,7 +57,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
 
                 <div>
                     <p className="font-semibold text-center my-2 text-lg">ORDEN DE LABORATORIO</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground columns-2">
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-2">
                       {order.tests.map((test, index) => (
                         <li key={index}>{test}</li>
                       ))}
@@ -69,13 +67,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
                      <div className="w-48 h-16 border-b border-foreground/50"></div>
                      <p className="text-sm">Firma y Sello</p>
                 </div>
-            </CardContent>
-        </div>
-        <div className="p-6 pt-0 no-print">
-             <Button onClick={handlePrint} className="w-full">
-                <Printer className="mr-2 h-4 w-4" />
-                Imprimir Orden
-            </Button>
+            </div>
         </div>
     </Card>
   );
