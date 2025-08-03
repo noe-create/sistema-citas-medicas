@@ -8,7 +8,6 @@ import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CpvLogo } from './cpv-logo';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -44,7 +43,10 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
     <Card className="h-full border-primary/50 text-sm">
       <div className="p-4">
         <header className="flex justify-between items-start pb-2 border-b-2 border-black">
-          <CpvLogo className="w-48 h-auto" />
+          <div>
+            <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
+            <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+          </div>
           <div className="text-right text-xs">
              <p>Fecha: {format(consultation.consultationDate, 'dd/MM/yyyy')}</p>
              <p>Página 1 de 1</p>
@@ -52,7 +54,6 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
         </header>
 
         <div className="text-center my-2">
-            <h1 className="font-bold text-lg">SALUD INTEGRAL</h1>
             <h2 className="font-semibold text-base">Informe Medico</h2>
         </div>
 
