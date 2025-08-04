@@ -16,18 +16,19 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, MapPin, Hash, Briefcase } from 'lucide-react';
+import { Loader2, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, MapPin, Hash, Briefcase } from 'lucide-react';
 import type { Persona, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { PersonaSearch } from './persona-search';
 import { Textarea } from './ui/textarea';
 import { calculateAge } from '@/lib/utils';
-import { DEPARTMENTS } from '@/lib/departments';
+import { DEPARTMENTS_GROUPED, DEPARTMENTS } from '@/lib/departments';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { ScrollArea } from './ui/scroll-area';
+import { useDebounce } from '@/hooks/use-debounce';
 
 
 const patientSchema = z.object({
@@ -197,6 +198,35 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
     
     setIsSubmitting(false);
   }
+  
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const filteredCategories = React.useMemo(() => {
+    if (!debouncedSearchTerm) {
+      return DEPARTMENTS_GROUPED;
+    }
+    const lowercasedFilter = debouncedSearchTerm.toLowerCase();
+    const filtered: typeof DEPARTMENTS_GROUPED = [];
+
+    DEPARTMENTS_GROUPED.forEach(category => {
+      const departments = category.departments.filter(dept =>
+        dept.toLowerCase().includes(lowercasedFilter)
+      );
+      if (departments.length > 0) {
+        filtered.push({ ...category, departments });
+      }
+    });
+
+    return filtered;
+  }, [debouncedSearchTerm]);
+
+  const defaultOpenAccordionItems = React.useMemo(() => {
+    if (debouncedSearchTerm) {
+        return filteredCategories.map(c => c.category);
+    }
+    return [];
+  }, [debouncedSearchTerm, filteredCategories]);
 
   return (
     <Form {...form}>
@@ -348,49 +378,73 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
             )}
             
             <div className="md:col-span-2 space-y-2">
-                <FormField
+                 <FormField
                     control={form.control}
                     name="unidadServicio"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem>
                             <FormLabel className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Unidad/Servicio</FormLabel>
                             <Popover open={unitPopoverOpen} onOpenChange={setUnitPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <FormControl>
-                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? DEPARTMENTS.find((unit) => unit === field.value) || field.value : "Seleccione una unidad/servicio"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                         <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                                            {field.value || "Seleccione una unidad/servicio"}
                                         </Button>
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar unidad o servicio..." />
-                                        <CommandList>
-                                            <CommandEmpty>No se encontró la unidad.</CommandEmpty>
-                                            <CommandGroup>
-                                                {[...DEPARTMENTS, 'Otro'].map((unit) => (
-                                                    <CommandItem
-                                                        value={unit}
-                                                        key={unit}
-                                                        onSelect={() => {
-                                                            form.setValue("unidadServicio", unit, { shouldValidate: true });
-                                                            setUnitPopoverOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", unit === field.value ? "opacity-100" : "opacity-0")} />
-                                                        {unit}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
+                                    <div className="p-2 border-b">
+                                        <Input
+                                            placeholder="Buscar unidad o servicio..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <ScrollArea className="h-72">
+                                        <Accordion type="multiple" defaultValue={defaultOpenAccordionItems} className="p-2">
+                                            {filteredCategories.map((category) => (
+                                                <AccordionItem value={category.category} key={category.category}>
+                                                    <AccordionTrigger>{category.category}</AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <div className="space-y-1 pl-2">
+                                                            {category.departments.map((dept) => (
+                                                                <Button
+                                                                    key={dept}
+                                                                    variant="ghost"
+                                                                    className="w-full justify-start font-normal h-auto py-1.5"
+                                                                    onClick={() => {
+                                                                        field.onChange(dept);
+                                                                        setUnitPopoverOpen(false);
+                                                                    }}
+                                                                >
+                                                                    {dept}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            ))}
+                                        </Accordion>
+                                    </ScrollArea>
+                                    <div className="p-2 border-t">
+                                         <Button
+                                            variant="ghost"
+                                            className="w-full justify-start font-normal"
+                                            onClick={() => {
+                                                field.onChange("Otro");
+                                                setUnitPopoverOpen(false);
+                                            }}
+                                        >
+                                            Otro...
+                                        </Button>
+                                    </div>
                                 </PopoverContent>
                             </Popover>
                             <FormMessage />
                         </FormItem>
                     )}
-                />
+                 />
+
                 {unidadServicio === 'Otro' && (
                     <FormField
                         control={form.control}
