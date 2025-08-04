@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2, Phone, MapPin } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2, Phone, MapPin, Hash } from 'lucide-react';
 import type { Empresa, Persona, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
@@ -39,6 +39,7 @@ const patientSchema = z.object({
   segundoApellido: z.string().optional(),
   nacionalidad: z.enum(['V', 'E']).optional(),
   cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").min(7, { message: 'La cédula debe tener entre 7 y 8 dígitos.'}).max(8, { message: 'La cédula debe tener entre 7 y 8 dígitos.'}).optional().or(z.literal('')),
+  numeroFicha: z.string().regex(/^[0-9]*$/, "La ficha solo debe contener números.").max(4, { message: 'El número de ficha no puede tener más de 4 dígitos.'}).optional(),
   fechaNacimiento: z.date({ required_error: 'La fecha de nacimiento es requerida.' }),
   genero: z.enum(['Masculino', 'Femenino'], { required_error: 'El género es requerido.' }),
   telefono1: z.string().optional(),
@@ -102,6 +103,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
         segundoApellido: '',
         nacionalidad: 'V',
         cedulaNumero: '',
+        numeroFicha: '',
         telefono1: '',
         telefono2: '',
         email: '',
@@ -164,6 +166,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     if (!selectedPersona && titular) {
         form.setValue('tipo', titular.tipo);
         form.setValue('empresaId', titular.empresaId);
+        form.setValue('numeroFicha', titular.numeroFicha);
     }
   }, [selectedPersona, titular, form]);
 
@@ -180,12 +183,14 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
                 personaId: selectedPersona.id,
                 tipo: values.tipo,
                 empresaId: values.empresaId,
+                numeroFicha: values.numeroFicha,
             };
         } else {
             submissionData = {
                 persona: values,
                 tipo: values.tipo,
                 empresaId: values.empresaId,
+                numeroFicha: values.numeroFicha,
             };
         }
         await onSubmitted(submissionData);
@@ -254,6 +259,20 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
                           <Input placeholder="Solo números" {...field} maxLength={8} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} disabled={isPersonaSelected}/>
                       </FormControl>
                       <FormMessage />
+                      </FormItem>
+                  )}
+              />
+              
+            <FormField
+                  control={form.control}
+                  name="numeroFicha"
+                  render={({ field }) => (
+                      <FormItem>
+                          <FormLabel className="flex items-center gap-2"><Hash className="h-4 w-4 text-muted-foreground" />Número de Ficha (Opcional)</FormLabel>
+                          <FormControl>
+                              <Input placeholder="Máximo 4 dígitos" {...field} maxLength={4} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} />
+                          </FormControl>
+                          <FormMessage />
                       </FormItem>
                   )}
               />
@@ -389,3 +408,5 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     </Form>
   );
 }
+
+    

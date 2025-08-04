@@ -70,6 +70,7 @@ export interface Titular {
   personaId: string;
   tipo: TitularType;
   empresaId?: string;
+  numeroFicha?: string;
   // Denormalized fields for convenience
   persona: Persona;
   empresaName?: string;
@@ -403,3 +404,5 @@ export interface Invoice {
     createdAt: Date;
     items?: InvoiceItem[];
 }
+
+    

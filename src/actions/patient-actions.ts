@@ -182,7 +182,7 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
     const offset = (page - 1) * pageSize;
     let selectQuery = `
         SELECT 
-            t.id, t.personaId, t.tipo, t.empresaId,
+            t.id, t.personaId, t.tipo, t.empresaId, t.numeroFicha,
             ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.nacionalidad, p.cedulaNumero,
             e.name as empresaName,
             (SELECT COUNT(*) FROM beneficiarios b WHERE b.titularId = t.id) as beneficiariosCount
@@ -202,6 +202,7 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
         personaId: row.personaId,
         tipo: row.tipo,
         empresaId: row.empresaId,
+        numeroFicha: row.numeroFicha,
         empresaName: row.empresaName,
         beneficiariosCount: row.beneficiariosCount,
         persona: {
@@ -231,7 +232,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     const db = await getDb();
     const row = await db.get(`
         SELECT 
-            t.id, t.personaId, t.tipo, t.empresaId,
+            t.id, t.personaId, t.tipo, t.empresaId, t.numeroFicha,
             ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.nacionalidad, p.cedulaNumero, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId,
             e.name as empresaName
         FROM titulares t
@@ -247,6 +248,7 @@ export async function getTitularById(id: string): Promise<Titular | null> {
         personaId: row.personaId,
         tipo: row.tipo,
         empresaId: row.empresaId,
+        numeroFicha: row.numeroFicha,
         empresaName: row.empresaName,
         persona: {
             id: row.personaId,
@@ -274,10 +276,12 @@ export async function createTitular(data: {
     persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date };
     tipo: TitularType;
     empresaId?: string;
+    numeroFicha?: string;
 } | {
     personaId: string;
     tipo: TitularType;
     empresaId?: string;
+    numeroFicha?: string;
 }) {
     await ensureDataEntryPermission();
     const db = await getDb();
@@ -300,11 +304,12 @@ export async function createTitular(data: {
         }
 
         await db.run(
-            'INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)',
+            'INSERT INTO titulares (id, personaId, tipo, empresaId, numeroFicha) VALUES (?, ?, ?, ?, ?)',
             titularId,
             personaId,
             data.tipo,
-            data.tipo === 'corporate_affiliate' ? data.empresaId : null
+            data.tipo === 'corporate_affiliate' ? data.empresaId : null,
+            data.numeroFicha || null
         );
 
         await db.exec('COMMIT');
@@ -318,7 +323,7 @@ export async function createTitular(data: {
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; numeroFicha?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
@@ -328,9 +333,10 @@ export async function updateTitular(titularId: string, personaId: string, data: 
         await updatePersona(personaId, data);
 
         await db.run(
-            'UPDATE titulares SET tipo = ?, empresaId = ? WHERE id = ?',
+            'UPDATE titulares SET tipo = ?, empresaId = ?, numeroFicha = ? WHERE id = ?',
             data.tipo,
             data.tipo === 'corporate_affiliate' ? data.empresaId : null,
+            data.numeroFicha || null,
             titularId
         );
 
@@ -1720,5 +1726,7 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
 
   return summary;
 }
+
+    
 
     

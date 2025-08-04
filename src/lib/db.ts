@@ -99,6 +99,13 @@ async function runMigrations(dbInstance: Database) {
         console.log("Added surveyInvitationToken column to consultations table.");
     }
 
+    // Migration to add numeroFicha to titulares
+    const titularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
+    if (titularesCols.length > 0 && !titularesCols.some(c => c.name === 'numeroFicha')) {
+        await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
+        console.log("Added numeroFicha column to titulares table.");
+    }
+
     await dbInstance.exec('PRAGMA foreign_keys=ON;');
 }
 
@@ -189,6 +196,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             personaId TEXT NOT NULL UNIQUE,
             tipo TEXT NOT NULL,
             empresaId TEXT,
+            numeroFicha TEXT,
             FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE,
             FOREIGN KEY (empresaId) REFERENCES empresas(id) ON DELETE SET NULL
         );
@@ -560,3 +568,5 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
+
+    
