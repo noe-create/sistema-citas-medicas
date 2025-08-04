@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChevronsUpDown, Loader2, UserCheck, Users } from 'lucide-react';
-import { searchPeopleForCheckin } from '@/actions/patient-actions';
+import { searchPeopleForCheckin, getAccountTypeByTitularId } from '@/actions/patient-actions';
 import type { Persona, SearchResult, ServiceType } from '@/lib/types';
 import { cn, calculateAge } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';

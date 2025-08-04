@@ -16,7 +16,7 @@ import { PatientCheckinForm, type RegistrationData } from '@/components/patient-
 import { PlusCircle, RefreshCw } from 'lucide-react';
 import type { Patient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { addPatientToWaitlist, getTitularTypeByTitularId, getWaitlist } from '@/actions/patient-actions';
+import { addPatientToWaitlist, getAccountTypeByTitularId, getWaitlist } from '@/actions/patient-actions';
 import { useUser } from '@/components/app-shell';
 import { RealTimeClock } from '@/components/real-time-clock';
 
@@ -57,12 +57,11 @@ export default function SalaDeEsperaPage() {
     try {
         let accountType: any = 'Privado';
         
-        if (data.searchResult.titularInfo?.tipo) {
-            accountType = data.searchResult.titularInfo.tipo === 'corporate_affiliate' ? 'Afiliado Corporativo' : (data.searchResult.titularInfo.tipo === 'internal_employee' ? 'Empleado' : 'Privado');
+        if (data.searchResult.titularInfo) {
+            accountType = await getAccountTypeByTitularId(data.searchResult.titularInfo.id) || 'Privado';
         } else if (data.searchResult.beneficiarioDe && data.searchResult.beneficiarioDe.length > 0) {
             const titularId = data.searchResult.beneficiarioDe[0].titularId;
-            const titularType = await getTitularTypeByTitularId(titularId);
-            accountType = titularType === 'corporate_affiliate' ? 'Afiliado Corporativo' : (titularType === 'internal_employee' ? 'Empleado' : 'Privado');
+            accountType = await getAccountTypeByTitularId(titularId) || 'Privado';
         }
 
         await addPatientToWaitlist({

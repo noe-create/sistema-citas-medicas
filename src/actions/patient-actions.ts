@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getDb } from '@/lib/db';
@@ -13,7 +14,6 @@ import type {
     Consultation, 
     CreateConsultationInput, 
     SearchResult,
-    TitularType,
     BeneficiarioConTitular,
     PacienteConInfo,
     TreatmentOrder,
@@ -165,16 +165,14 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
         whereClause = `
             WHERE ${fullNameSql} LIKE ? 
             OR ${fullCedulaSearchSql} LIKE ?
-            OR (t.tipo = 'corporate_affiliate' AND e.name LIKE ?)
         `;
-        whereParams.push(searchQuery, searchQuery, searchQuery);
+        whereParams.push(searchQuery, searchQuery);
     }
 
     const countQuery = `
         SELECT COUNT(*) as count 
         FROM titulares t 
         JOIN personas p ON t.personaId = p.id
-        LEFT JOIN empresas e ON t.empresaId = e.id
         ${whereClause}`;
     const totalResult = await db.get(countQuery, ...whereParams);
     const totalCount = totalResult?.count || 0;
@@ -182,13 +180,11 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
     const offset = (page - 1) * pageSize;
     let selectQuery = `
         SELECT 
-            t.id, t.personaId, t.tipo, t.empresaId, t.numeroFicha,
+            t.id, t.personaId, t.unidadServicio, t.numeroFicha,
             ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.nacionalidad, p.cedulaNumero,
-            e.name as empresaName,
             (SELECT COUNT(*) FROM beneficiarios b WHERE b.titularId = t.id) as beneficiariosCount
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
-        LEFT JOIN empresas e ON t.empresaId = e.id
         ${whereClause}
         ORDER BY p.primerNombre, p.primerApellido
         LIMIT ? OFFSET ?
@@ -200,10 +196,8 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
     const titulares = rows.map(row => ({
         id: row.id,
         personaId: row.personaId,
-        tipo: row.tipo,
-        empresaId: row.empresaId,
+        unidadServicio: row.unidadServicio,
         numeroFicha: row.numeroFicha,
-        empresaName: row.empresaName,
         beneficiariosCount: row.beneficiariosCount,
         persona: {
             id: row.personaId,
@@ -232,12 +226,10 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     const db = await getDb();
     const row = await db.get(`
         SELECT 
-            t.id, t.personaId, t.tipo, t.empresaId, t.numeroFicha,
-            ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.nacionalidad, p.cedulaNumero, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId,
-            e.name as empresaName
+            t.id, t.personaId, t.unidadServicio, t.numeroFicha,
+            ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula, p.nacionalidad, p.cedulaNumero, p.fechaNacimiento, p.genero, p.telefono1, p.telefono2, p.email, p.primerNombre, p.segundoNombre, p.primerApellido, p.segundoApellido, p.direccion, p.representanteId
         FROM titulares t
         JOIN personas p ON t.personaId = p.id
-        LEFT JOIN empresas e ON t.empresaId = e.id
         WHERE t.id = ?
     `, id);
 
@@ -246,10 +238,8 @@ export async function getTitularById(id: string): Promise<Titular | null> {
     return {
         id: row.id,
         personaId: row.personaId,
-        tipo: row.tipo,
-        empresaId: row.empresaId,
+        unidadServicio: row.unidadServicio,
         numeroFicha: row.numeroFicha,
-        empresaName: row.empresaName,
         persona: {
             id: row.personaId,
             nombreCompleto: row.nombreCompleto,
@@ -274,13 +264,11 @@ export async function getTitularById(id: string): Promise<Titular | null> {
 
 export async function createTitular(data: {
     persona: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date };
-    tipo: TitularType;
-    empresaId?: string;
+    unidadServicio: string;
     numeroFicha?: string;
 } | {
     personaId: string;
-    tipo: TitularType;
-    empresaId?: string;
+    unidadServicio: string;
     numeroFicha?: string;
 }) {
     await ensureDataEntryPermission();
@@ -304,11 +292,10 @@ export async function createTitular(data: {
         }
 
         await db.run(
-            'INSERT INTO titulares (id, personaId, tipo, empresaId, numeroFicha) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)',
             titularId,
             personaId,
-            data.tipo,
-            data.tipo === 'corporate_affiliate' ? data.empresaId : null,
+            data.unidadServicio,
             data.numeroFicha || null
         );
 
@@ -323,7 +310,7 @@ export async function createTitular(data: {
     return { id: titularId };
 }
 
-export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; tipo: TitularType; empresaId?: string; representanteId?: string; numeroFicha?: string; }) {
+export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; unidadServicio: string; representanteId?: string; numeroFicha?: string; }) {
     await ensureDataEntryPermission();
     const db = await getDb();
 
@@ -333,9 +320,8 @@ export async function updateTitular(titularId: string, personaId: string, data: 
         await updatePersona(personaId, data);
 
         await db.run(
-            'UPDATE titulares SET tipo = ?, empresaId = ?, numeroFicha = ? WHERE id = ?',
-            data.tipo,
-            data.tipo === 'corporate_affiliate' ? data.empresaId : null,
+            'UPDATE titulares SET unidadServicio = ?, numeroFicha = ? WHERE id = ?',
+            data.unidadServicio,
             data.numeroFicha || null,
             titularId
         );
@@ -359,7 +345,7 @@ export async function deleteTitular(id: string): Promise<{ success: boolean }> {
 
     const beneficiaryCountResult = await db.get('SELECT COUNT(*) as count FROM beneficiarios WHERE titularId = ?', id);
     if (beneficiaryCountResult && beneficiaryCountResult.count > 0) {
-        throw new Error(`Este titular tiene ${beneficiaryCountResult.count} beneficiario(s) asociado(s). Por favor, elimine o reasigne los beneficiarios primero antes de eliminar el rol de titular.`);
+        throw new Error('Este titular tiene beneficiarios asociados. Por favor, gestione los beneficiarios primero.');
     }
 
     const result = await db.run('DELETE FROM titulares WHERE id = ?', id);
@@ -544,7 +530,7 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
     const placeholders = personaIds.map(() => '?').join(',');
 
     const titularesInfo = await await db.all(`
-        SELECT personaId, id, tipo FROM titulares WHERE personaId IN (${placeholders})
+        SELECT personaId, id, unidadServicio FROM titulares WHERE personaId IN (${placeholders})
     `, ...personaIds);
 
     const beneficiariosInfo = await await db.all(`
@@ -569,17 +555,26 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
             ...p,
             fechaNacimiento: new Date(p.fechaNacimiento),
         },
-        titularInfo: titularesMap.get(p.id) ? { id: titularesMap.get(p.id).id, tipo: titularesMap.get(p.id).tipo } : undefined,
+        titularInfo: titularesMap.get(p.id) ? { id: titularesMap.get(p.id).id, unidadServicio: titularesMap.get(p.id).unidadServicio } : undefined,
         beneficiarioDe: beneficiariosMap.get(p.id) || []
     }));
 
     return results;
 }
 
-export async function getTitularTypeByTitularId(titularId: string): Promise<TitularType | null> {
+export async function getAccountTypeByTitularId(titularId: string): Promise<string | null> {
     const db = await getDb();
-    const row = await db.get('SELECT tipo FROM titulares WHERE id = ?', titularId);
-    return row?.tipo || null;
+    const row = await db.get('SELECT unidadServicio FROM titulares WHERE id = ?', titularId);
+    // This logic might need to be more complex if you have different account types
+    // For now, we assume a direct mapping or a default.
+    if (row?.unidadServicio) {
+        // A placeholder logic. You might need a mapping from unidadServicio to account type.
+        if (["Gerencia General", "Recursos Humanos", "Junta Directiva"].includes(row.unidadServicio)) {
+            return 'Empleado';
+        }
+        return 'Afiliado Corporativo';
+    }
+    return 'Privado';
 }
 
 // --- Waitlist Actions ---
@@ -956,10 +951,14 @@ export async function updateEmpresa(data: Empresa): Promise<Empresa> {
 export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
     await ensureAdminPermission();
     const db = await getDb();
-    const countResult = await db.get('SELECT COUNT(*) as count FROM titulares WHERE empresaId = ?', id);
-    if (countResult.count > 0) {
-        throw new Error('No se puede eliminar la empresa porque tiene titulares asociados.');
-    }
+    
+    // We no longer link companies to 'titulares' directly.
+    // If you add that link back, you will need to re-add the check here.
+    // const countResult = await db.get('SELECT COUNT(*) as count FROM titulares WHERE empresaId = ?', id);
+    // if (countResult.count > 0) {
+    //     throw new Error('No se puede eliminar la empresa porque tiene titulares asociados.');
+    // }
+    
     const result = await db.run('DELETE FROM empresas WHERE id = ?', id);
     if (result.changes === 0) throw new Error('Empresa no encontrada para eliminar');
     revalidatePath('/dashboard/empresas');
@@ -1513,16 +1512,17 @@ export async function getMorbidityReport(filters: { from: Date; to: Date; accoun
         params.push(accountType);
     }
     
-    if (empresaId) {
-        whereClauses.push(`
-            w.personaId IN (
-                SELECT t.personaId FROM titulares t WHERE t.empresaId = ?
-                UNION
-                SELECT b.personaId FROM beneficiarios b JOIN titulares t ON b.titularId = t.id WHERE t.empresaId = ?
-            )
-        `);
-        params.push(empresaId, empresaId);
-    }
+    // This logic needs to be adapted if company is re-introduced
+    // if (empresaId) {
+    //     whereClauses.push(`
+    //         w.personaId IN (
+    //             SELECT t.personaId FROM titulares t WHERE t.empresaId = ?
+    //             UNION
+    //             SELECT b.personaId FROM beneficiarios b JOIN titulares t ON b.titularId = t.id WHERE t.empresaId = ?
+    //         )
+    //     `);
+    //     params.push(empresaId, empresaId);
+    // }
     
     if (whereClauses.length > 0) {
         query += ` WHERE ${whereClauses.join(' AND ')}`;
