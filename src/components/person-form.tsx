@@ -183,7 +183,7 @@ export function PersonForm({ persona, onSubmitted, onCancel }: PersonFormProps) 
                         Número de Cédula (Opcional)
                       </FormLabel>
                       <FormControl>
-                          <Input placeholder="Solo números" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/>
+                          <Input placeholder="Solo números" {...field} maxLength={8} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/>
                       </FormControl>
                       <FormMessage />
                       </FormItem>
