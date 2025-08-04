@@ -8,6 +8,8 @@ import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ViñaIntegralLogo } from './viña-integral-logo';
+import { CpvLogo } from './cpv-logo';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -43,13 +45,15 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
     <Card className="h-full border-primary/50 text-sm">
       <div className="p-4">
         <header className="flex justify-between items-start pb-2 border-b-2 border-black">
-          <div>
-            <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
-            <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+          <div className="flex items-center gap-2">
+            <ViñaIntegralLogo className="h-16 w-16" />
+            <div>
+              <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
+              <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+            </div>
           </div>
-          <div className="text-right text-xs">
-             <p>Fecha: {format(consultation.consultationDate, 'dd/MM/yyyy')}</p>
-             <p>Página 1 de 1</p>
+          <div className="flex items-center">
+             <CpvLogo className="h-12"/>
           </div>
         </header>
 
