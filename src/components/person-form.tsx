@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -32,7 +31,7 @@ const personSchema = z.object({
   primerApellido: z.string().min(1, 'El primer apellido es requerido.'),
   segundoApellido: z.string().optional(),
   nacionalidad: z.enum(['V', 'E']).optional(),
-  cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").optional(),
+  cedulaNumero: z.string().regex(/^[0-9]*$/, "La cédula solo debe contener números.").min(7, { message: 'La cédula debe tener entre 7 y 8 dígitos.'}).max(8, { message: 'La cédula debe tener entre 7 y 8 dígitos.'}).optional().or(z.literal('')),
   fechaNacimiento: z.date({
     required_error: 'La fecha de nacimiento es requerida.',
   }),
