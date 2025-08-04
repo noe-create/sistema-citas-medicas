@@ -99,12 +99,41 @@ async function runMigrations(dbInstance: Database) {
         console.log("Added surveyInvitationToken column to consultations table.");
     }
 
-    // Migration to add numeroFicha to titulares
+    // Migration for titulares table (tipo -> unidadServicio, empresaId removal)
     const titularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
+    if (titularesCols.length > 0 && titularesCols.some(c => c.name === 'tipo')) {
+        console.log("Old 'titulares' schema detected. Migrating 'tipo' to 'unidadServicio'...");
+        await dbInstance.exec('BEGIN TRANSACTION;');
+        try {
+            await dbInstance.exec('ALTER TABLE titulares RENAME TO titulares_old;');
+            await createTables(dbInstance); // Recreates tables with new schema
+
+            // Copy data from old table to new table
+            await dbInstance.exec(`
+                INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha)
+                SELECT id, personaId, tipo, numeroFicha FROM titulares_old;
+            `);
+
+            await dbInstance.exec('DROP TABLE titulares_old;');
+            await dbInstance.exec('COMMIT;');
+            console.log("'titulares' table migrated successfully.");
+        } catch (error) {
+            await dbInstance.exec('ROLLBACK;');
+            console.error("Failed to migrate 'titulares' schema, rolling back.", error);
+            const tableExists = await dbInstance.get("SELECT name FROM sqlite_master WHERE type='table' AND name='titulares_old';");
+            if (tableExists) {
+                await dbInstance.exec('DROP TABLE IF EXISTS titulares;');
+                await dbInstance.exec('ALTER TABLE titulares_old RENAME TO titulares;');
+            }
+            throw new Error("Database migration for titulares table failed.");
+        }
+    }
+
     if (titularesCols.length > 0 && !titularesCols.some(c => c.name === 'numeroFicha')) {
         await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
         console.log("Added numeroFicha column to titulares table.");
     }
+
 
     await dbInstance.exec('PRAGMA foreign_keys=ON;');
 }
@@ -194,11 +223,9 @@ async function createTables(dbInstance: Database): Promise<void> {
         CREATE TABLE IF NOT EXISTS titulares (
             id TEXT PRIMARY KEY,
             personaId TEXT NOT NULL UNIQUE,
-            tipo TEXT NOT NULL,
-            empresaId TEXT,
+            unidadServicio TEXT NOT NULL,
             numeroFicha TEXT,
-            FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE,
-            FOREIGN KEY (empresaId) REFERENCES empresas(id) ON DELETE SET NULL
+            FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS beneficiarios (
@@ -449,14 +476,14 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await personaStmt.finalize();
 
         const titulares = [
-            { id: "t1", personaId: "p1", tipo: "private", empresaId: null },
-            { id: "t2", personaId: "p2", tipo: "internal_employee", empresaId: null },
-            { id: "t3", personaId: "p3", tipo: "corporate_affiliate", empresaId: "emp1" },
-            { id: "t4", personaId: "p4", tipo: "private", empresaId: null },
+            { id: "t1", personaId: "p1", unidadServicio: "Cardiología" },
+            { id: "t2", personaId: "p2", unidadServicio: "Recursos Humanos" },
+            { id: "t3", personaId: "p3", unidadServicio: "Urología" },
+            { id: "t4", personaId: "p4", unidadServicio: "Pediatría" },
         ];
-        const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, tipo, empresaId) VALUES (?, ?, ?, ?)');
+        const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, unidadServicio) VALUES (?, ?, ?)');
         for (const t of titulares) {
-            await titularStmt.run(t.id, t.personaId, t.tipo, t.tipo);
+            await titularStmt.run(t.id, t.personaId, t.unidadServicio);
         }
         await titularStmt.finalize();
         
@@ -568,5 +595,3 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
-
-    

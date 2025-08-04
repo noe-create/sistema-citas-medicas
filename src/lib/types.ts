@@ -1,7 +1,6 @@
 
 
 export type Genero = 'Masculino' | 'Femenino';
-export type TitularType = 'internal_employee' | 'corporate_affiliate' | 'private';
 export type PatientKind = 'titular' | 'beneficiario';
 export type DoctorSpecialty = 'medico general' | 'medico pediatra';
 
@@ -68,12 +67,10 @@ export interface Empresa {
 export interface Titular {
   id: string; 
   personaId: string;
-  tipo: TitularType;
-  empresaId?: string;
+  unidadServicio: string;
   numeroFicha?: string;
   // Denormalized fields for convenience
   persona: Persona;
-  empresaName?: string;
   beneficiariosCount?: number;
 }
 
@@ -98,7 +95,7 @@ export interface SearchResult {
   // A person can be a titular, a beneficiary of one or more titulares, or both.
   titularInfo?: {
     id: string; // titular record id
-    tipo: TitularType;
+    unidadServicio: string;
   };
   beneficiarioDe?: {
     titularId: string;
@@ -404,5 +401,3 @@ export interface Invoice {
     createdAt: Date;
     items?: InvoiceItem[];
 }
-
-    

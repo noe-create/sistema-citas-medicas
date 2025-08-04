@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import type { Titular, Empresa } from '@/lib/types';
+import type { Titular } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { getTitulares, getEmpresas, createTitular, updateTitular, deleteTitular } from '@/actions/patient-actions';
+import { getTitulares, createTitular, updateTitular, deleteTitular } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useRouter } from 'next/navigation';
@@ -25,12 +25,6 @@ const PatientForm = dynamic(() => import('./patient-form').then(mod => mod.Patie
 });
 
 
-const titularTypeMap: Record<string, string> = {
-  internal_employee: 'Empleado Interno',
-  corporate_affiliate: 'Afiliado Corporativo',
-  private: 'Privado',
-};
-
 const PAGE_SIZE = 20;
 
 export function PatientManagement() {
@@ -40,7 +34,6 @@ export function PatientManagement() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [titulares, setTitulares] = React.useState<Titular[]>([]);
-  const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
   const [selectedTitular, setSelectedTitular] = React.useState<Titular | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   
@@ -61,19 +54,6 @@ export function PatientManagement() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
-
-  React.useEffect(() => {
-    async function fetchEmpresasData() {
-        try {
-            const { empresas: empresasData } = await getEmpresas();
-            setEmpresas(empresasData);
-        } catch (error) {
-            console.error("Error al cargar las empresas:", error);
-            toast({ title: 'Error', description: 'No se pudieron cargar las empresas para el formulario.', variant: 'destructive' });
-        }
-    }
-    fetchEmpresasData();
   }, [toast]);
   
   React.useEffect(() => {
@@ -132,14 +112,11 @@ export function PatientManagement() {
       { accessorKey: "persona.cedula", header: "Cédula" },
       { accessorKey: "persona.email", header: "Email" },
       { 
-          accessorKey: "tipo", 
-          header: "Tipo / Empresa",
+          accessorKey: "unidadServicio", 
+          header: "Unidad/Servicio",
           cell: ({ row }) => (
             <div>
-              <Badge variant="secondary">{titularTypeMap[row.original.tipo]}</Badge>
-              {row.original.tipo === 'corporate_affiliate' && row.original.empresaName && (
-                  <div className="text-xs text-muted-foreground">{row.original.empresaName}</div>
-              )}
+              <Badge variant="secondary" className="max-w-xs truncate">{row.original.unidadServicio}</Badge>
             </div>
           )
       },
@@ -254,7 +231,6 @@ export function PatientManagement() {
                 {isFormOpen && (
                     <PatientForm
                         titular={selectedTitular}
-                        empresas={empresas}
                         onSubmitted={handleFormSubmitted}
                         onCancel={handleCloseDialog}
                         excludeIds={excludeIds}

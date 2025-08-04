@@ -16,20 +16,18 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown, PlusCircle, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, UserCog, Building2, Phone, MapPin, Hash } from 'lucide-react';
-import type { Empresa, Persona, Titular } from '@/lib/types';
+import { Loader2, Check, ChevronsUpDown, User, Globe, CreditCard, CalendarDays, Users as UsersIcon, Smartphone, Mail, MapPin, Hash, Briefcase } from 'lucide-react';
+import type { Persona, Titular } from '@/lib/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CompanyForm } from './company-form';
-import { createEmpresa } from '@/actions/patient-actions';
 import { useToast } from '@/hooks/use-toast';
 import { PersonaSearch } from './persona-search';
 import { Textarea } from './ui/textarea';
 import { calculateAge } from '@/lib/utils';
+import { DEPARTMENTS } from '@/lib/departments';
 
 
 const patientSchema = z.object({
@@ -46,17 +44,17 @@ const patientSchema = z.object({
   telefono2: z.string().optional(),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
   direccion: z.string().optional(),
-  tipo: z.enum(['internal_employee', 'corporate_affiliate', 'private'], { required_error: 'El tipo de titular es requerido.' }),
-  empresaId: z.string().optional(),
+  unidadServicio: z.string().min(1, 'La unidad/servicio es requerida.'),
+  unidadServicioOtro: z.string().optional(),
   representanteId: z.string().optional(),
 }).refine(data => {
-    if (data.tipo === 'corporate_affiliate') {
-        return !!data.empresaId;
+    if (data.unidadServicio === 'Otro') {
+        return !!data.unidadServicioOtro && data.unidadServicioOtro.trim().length > 0;
     }
     return true;
 }, {
-    message: "La empresa es requerida para afiliados corporativos.",
-    path: ["empresaId"],
+    message: "Por favor, especifique la otra unidad/servicio.",
+    path: ["unidadServicioOtro"],
 }).refine(data => {
     if (data.fechaNacimiento) {
         const age = calculateAge(data.fechaNacimiento);
@@ -75,25 +73,17 @@ type PatientFormValues = z.infer<typeof patientSchema>;
 
 interface PatientFormProps {
   titular: Titular | null;
-  empresas: Empresa[];
   onSubmitted: (...args: any[]) => Promise<void>;
   onCancel: () => void;
   excludeIds?: string[];
 }
 
-export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeIds = [] }: PatientFormProps) {
+export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [empresaPopoverOpen, setEmpresaPopoverOpen] = React.useState(false);
+  const [unitPopoverOpen, setUnitPopoverOpen] = React.useState(false);
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
-
-  const [isCompanyDialogOpen, setIsCompanyDialogOpen] = React.useState(false);
-  const [localEmpresas, setLocalEmpresas] = React.useState<Empresa[]>(empresas);
   
-  React.useEffect(() => {
-    setLocalEmpresas(empresas);
-  }, [empresas]);
-
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
@@ -108,11 +98,13 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
         telefono2: '',
         email: '',
         direccion: '',
+        unidadServicio: '',
+        unidadServicioOtro: '',
         representanteId: titular?.persona.representanteId || undefined
     },
   });
 
-  const tipo = form.watch('tipo');
+  const unidadServicio = form.watch('unidadServicio');
   const isPersonaSelected = !!selectedPersona;
 
   const fechaNacimiento = form.watch('fechaNacimiento');
@@ -120,7 +112,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
   const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
 
   React.useEffect(() => {
-    if (isPersonaSelected) { // If linking an existing person, don't show the field
+    if (isPersonaSelected) { 
         setShowRepresentativeField(false);
         return;
     }
@@ -146,7 +138,7 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     
     if (personaToLoad) {
         form.reset({
-          ...form.getValues(), // Keep `tipo` and `empresaId` if they were set
+          ...form.getValues(),
           primerNombre: personaToLoad.primerNombre || '',
           segundoNombre: personaToLoad.segundoNombre || '',
           primerApellido: personaToLoad.primerApellido || '',
@@ -164,8 +156,9 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     }
 
     if (!selectedPersona && titular) {
-        form.setValue('tipo', titular.tipo);
-        form.setValue('empresaId', titular.empresaId);
+        const isStandardUnit = DEPARTMENTS.includes(titular.unidadServicio);
+        form.setValue('unidadServicio', isStandardUnit ? titular.unidadServicio : 'Otro');
+        form.setValue('unidadServicioOtro', isStandardUnit ? '' : titular.unidadServicio);
         form.setValue('numeroFicha', titular.numeroFicha);
     }
   }, [selectedPersona, titular, form]);
@@ -173,45 +166,37 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
 
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
-    let submissionData: any;
+    
+    const finalUnidadServicio = values.unidadServicio === 'Otro' ? values.unidadServicioOtro : values.unidadServicio;
+    
+    const submissionData = {
+        ...values,
+        unidadServicio: finalUnidadServicio,
+    };
+    delete (submissionData as any).unidadServicioOtro;
 
-    if (titular) { // UPDATE
-        await onSubmitted(titular.id, titular.personaId, values);
-    } else { // CREATE
+    if (titular) {
+        await onSubmitted(titular.id, titular.personaId, submissionData);
+    } else {
+        let createData: any;
         if (selectedPersona) {
-            submissionData = {
+            createData = {
                 personaId: selectedPersona.id,
-                tipo: values.tipo,
-                empresaId: values.empresaId,
-                numeroFicha: values.numeroFicha,
+                unidadServicio: submissionData.unidadServicio,
+                numeroFicha: submissionData.numeroFicha,
             };
         } else {
-            submissionData = {
-                persona: values,
-                tipo: values.tipo,
-                empresaId: values.empresaId,
-                numeroFicha: values.numeroFicha,
+            createData = {
+                persona: submissionData,
+                unidadServicio: submissionData.unidadServicio,
+                numeroFicha: submissionData.numeroFicha,
             };
         }
-        await onSubmitted(submissionData);
+        await onSubmitted(createData);
     }
     
     setIsSubmitting(false);
   }
-
-  async function handleCreateEmpresa(companyValues: any) {
-    try {
-        const newEmpresa = await createEmpresa(companyValues);
-        setLocalEmpresas(prev => [...prev, newEmpresa]);
-        form.setValue('empresaId', newEmpresa.id, { shouldValidate: true });
-        toast({ title: "¡Empresa Creada!", description: `${newEmpresa.name} ha sido añadida.` });
-        setIsCompanyDialogOpen(false);
-    } catch (error: any) {
-        console.error("Error creating company:", error);
-        toast({ title: 'Error', description: error.message || 'No se pudo crear la empresa.', variant: 'destructive' });
-    }
-  }
-
 
   return (
     <Form {...form}>
@@ -361,41 +346,67 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
                     />
                 </div>
             )}
-
-
-             <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel className="flex items-center gap-2"><UserCog className="h-4 w-4 text-muted-foreground" />Tipo de Titular</FormLabel>
-                        <FormControl>
-                             <RadioGroup onValueChange={(value) => { field.onChange(value); if (value !== 'corporate_affiliate') form.setValue('empresaId', undefined); }} value={field.value} className="flex flex-col space-y-1">
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="private" id="private" /></FormControl><Label htmlFor="private" className="font-normal">Privado</Label></FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="internal_employee" id="internal_employee" /></FormControl><Label htmlFor="internal_employee" className="font-normal">Empleado Interno</Label></FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="corporate_affiliate" id="corporate_affiliate" /></FormControl><Label htmlFor="corporate_affiliate" className="font-normal">Afiliado Corporativo</Label></FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            {tipo === 'corporate_affiliate' && (
-                 <FormField
+            
+            <div className="md:col-span-2 space-y-2">
+                <FormField
                     control={form.control}
-                    name="empresaId"
+                    name="unidadServicio"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel className="flex items-center gap-2"><Building2 className="h-4 w-4 text-muted-foreground" />Empresa</FormLabel>
-                            <div className="flex items-center gap-2">
-                                <Popover open={empresaPopoverOpen} onOpenChange={setEmpresaPopoverOpen}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className={cn("w-full justify-between font-normal",!field.value && "text-muted-foreground")}>{field.value? localEmpresas.find((empresa) => empresa.id === field.value)?.name: "Seleccione una empresa"}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar empresa..." /><CommandList><CommandEmpty>No se encontró la empresa.</CommandEmpty><CommandGroup>{localEmpresas.map((empresa) => (<CommandItem value={empresa.name} key={empresa.id} onSelect={(currentValue) => { const selectedEmpresa = localEmpresas.find(e => e.name.toLowerCase() === currentValue.toLowerCase()); if (selectedEmpresa) form.setValue("empresaId", selectedEmpresa.id, { shouldValidate: true }); setEmpresaPopoverOpen(false);}}><Check className={cn("mr-2 h-4 w-4", empresa.id === field.value ? "opacity-100": "opacity-0")}/>{empresa.name}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent></Popover>
-                                <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}><DialogTrigger asChild><Button variant="outline" size="icon"><PlusCircle className="h-4 w-4" /></Button></DialogTrigger><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Crear Nueva Empresa</DialogTitle></DialogHeader><CompanyForm empresa={null} onSubmitted={handleCreateEmpresa} onCancel={() => setIsCompanyDialogOpen(false)}/></DialogContent></Dialog>
-                            </div>
+                            <FormLabel className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Unidad/Servicio</FormLabel>
+                            <Popover open={unitPopoverOpen} onOpenChange={setUnitPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? DEPARTMENTS.find((unit) => unit === field.value) || field.value : "Seleccione una unidad/servicio"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar unidad o servicio..." />
+                                        <CommandList>
+                                            <CommandEmpty>No se encontró la unidad.</CommandEmpty>
+                                            <CommandGroup>
+                                                {[...DEPARTMENTS, 'Otro'].map((unit) => (
+                                                    <CommandItem
+                                                        value={unit}
+                                                        key={unit}
+                                                        onSelect={() => {
+                                                            form.setValue("unidadServicio", unit, { shouldValidate: true });
+                                                            setUnitPopoverOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", unit === field.value ? "opacity-100" : "opacity-0")} />
+                                                        {unit}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-            )}
+                {unidadServicio === 'Otro' && (
+                    <FormField
+                        control={form.control}
+                        name="unidadServicioOtro"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Especifique la Unidad/Servicio</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Nombre del departamento" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+            </div>
         </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
@@ -408,5 +419,3 @@ export function PatientForm({ titular, empresas, onSubmitted, onCancel, excludeI
     </Form>
   );
 }
-
-    
