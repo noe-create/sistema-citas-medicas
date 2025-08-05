@@ -80,7 +80,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   
   return (
     <div className="flex gap-6">
-        <aside className="w-1/4">
+        <aside className="w-1/4 no-print">
             <h3 className="font-semibold mb-2">Historial de Visitas</h3>
             <div className="flex flex-col gap-2">
                 {history.map(entry => (
@@ -103,9 +103,9 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                 <>
                     <Button onClick={handlePrint} className="mb-4 w-full no-print">
                         <Printer className="mr-2 h-4 w-4"/>
-                        Imprimir
+                        Imprimir Documentos
                     </Button>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 printable-area">
+                    <div className="space-y-4 printable-area">
                         <div className="printable-content">
                             <MedicalReportDisplay consultation={selectedConsultation} />
                         </div>
@@ -129,7 +129,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                     </div>
                 </>
             ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="flex items-center justify-center h-full text-muted-foreground no-print">
                     <p>Seleccione una entrada del historial para ver los detalles.</p>
                 </div>
             )}

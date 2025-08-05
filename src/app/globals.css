@@ -119,7 +119,7 @@ label, button, th {
     left: 0;
     top: 0;
     width: 100%;
-    height: 100%;
+    height: auto;
     padding: 0;
     margin: 0;
     -webkit-print-color-adjust: exact;
@@ -134,8 +134,13 @@ label, button, th {
       display: block;
       width: 100%;
       height: 100%;
-      page-break-inside: avoid;
+      page-break-before: always;
   }
+  
+  .printable-area > .printable-content:first-child {
+      page-break-before: auto;
+  }
+
 
   .printable-content .text-muted-foreground {
     color: #555 !important;
