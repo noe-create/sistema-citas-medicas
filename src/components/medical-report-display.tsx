@@ -46,8 +46,8 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
       <div className="p-4">
         <header className="flex justify-between items-start pb-2 border-b-2 border-black">
           <div className="relative">
-            <ViñaIntegralLogo className="absolute -left-2 -top-2 h-20 w-20 opacity-10" />
-            <div className="relative z-10 pl-4 pt-2">
+            <ViñaIntegralLogo className="absolute left-0 top-0 h-16 w-16 opacity-10" />
+            <div className="relative z-10 pl-2 pt-2">
               <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
               <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
             </div>
