@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { LabOrderDisplay } from './lab-order-display';
 import { MedicalReportDisplay } from './medical-report-display';
 import { Button } from './ui/button';
+import { PrescriptionDisplay } from './prescription-display';
 
 interface PatientHistoryProps {
   personaId: string;
@@ -109,6 +110,11 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                         <div className="printable-content">
                             <MedicalReportDisplay consultation={selectedConsultation} />
                         </div>
+                        {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
+                             <div className="printable-content">
+                                <PrescriptionDisplay consultation={selectedConsultation} />
+                            </div>
+                        )}
                         {associatedLabOrder && (
                             <div className="printable-content">
                                 <LabOrderDisplay order={associatedLabOrder} />
