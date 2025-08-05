@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -8,7 +7,6 @@ import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Image from 'next/image';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -45,12 +43,10 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
       <div className="p-4">
         <header className="flex justify-between items-center pb-2 border-b-2 border-black">
           <div className="flex-shrink-0">
-            <Image
+            <img
                 src="/logo_salud_integral.png"
                 alt="Logo Salud Integral"
-                width={150}
-                height={50}
-                className="object-contain"
+                style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
             />
           </div>
           <div className="text-center">
@@ -58,12 +54,10 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             <p className="text-sm">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
           </div>
           <div className="flex-shrink-0">
-            <Image
+             <img
                 src="/logo_cpv_naranja.png"
                 alt="Logo CPV"
-                width={60}
-                height={60}
-                className="object-contain"
+                style={{ width: '60px', height: '60px', objectFit: 'contain' }}
             />
           </div>
         </header>
