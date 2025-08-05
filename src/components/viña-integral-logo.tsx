@@ -17,17 +17,24 @@ export function ViñaIntegralLogo({ className, ...props }: ViñaIntegralLogoProp
       className={cn(className)}
       {...props}
     >
-      <circle cx="50" cy="50" r="48" fill="url(#paint0_linear_1_2)" stroke="#E0E0E0" strokeWidth="4"/>
       <defs>
-        <linearGradient id="paint0_linear_1_2" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#F5F5F5"/>
-          <stop offset="1" stopColor="#E0E0E0"/>
+        <linearGradient id="logo-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#38BDF8"/>
+          <stop offset="1" stopColor="#2DD4BF"/>
         </linearGradient>
       </defs>
-      <path d="M50 38C46.6863 38 44 40.6863 44 44C44 47.3137 46.6863 50 50 50C53.3137 50 56 47.3137 56 44C56 40.6863 53.3137 38 50 38Z" fill="#3A7D44"/>
-      <path d="M60 52C60 48.6863 57.3137 46 54 46C50.6863 46 48 48.6863 48 52H60Z" fill="#3A7D44"/>
-      <path d="M40 52C40 48.6863 42.6863 46 46 46C49.3137 46 52 48.6863 52 52H40Z" fill="#3A7D44"/>
-      <path d="M50 54C46 54 42.5 57 42.5 62H57.5C57.5 57 54 54 50 54Z" fill="#3A7D44"/>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M50 100C77.6142 100 100 77.6142 100 50C100 22.3858 77.6142 0 50 0C22.3858 0 0 22.3858 0 50C0 77.6142 22.3858 100 50 100ZM50 88C70.9868 88 88 70.9868 88 50C88 29.0132 70.9868 12 50 12C29.0132 12 12 29.0132 12 50C12 70.9868 29.0132 88 50 88Z"
+        fill="url(#logo-gradient)"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M50 78C62.6929 78 73 67.6929 73 55C73 45.8197 67.4695 37.9377 59.4316 35.3053C58.8227 35.0888 58.1724 35 57.5 35H42.5C41.8276 35 41.1773 35.0888 40.5684 35.3053C32.5305 37.9377 27 45.8197 27 55C27 67.6929 37.3071 78 50 78ZM50 67C56.6274 67 62 61.6274 62 55C62 48.3726 56.6274 43 50 43C43.3726 43 38 48.3726 38 55C38 61.6274 43.3726 67 50 67Z"
+        fill="url(#logo-gradient)"
+      />
     </svg>
   );
 }
