@@ -3,10 +3,8 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import type { LabOrder } from '@/lib/types';
-import { Button } from './ui/button';
-import { Printer } from 'lucide-react';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,45 +20,44 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
     // Calculate age on the client-side to avoid hydration mismatch
     setAge(calculateAge(order.paciente.fechaNacimiento));
   }, [order.paciente.fechaNacimiento]);
+  
+  const ageString = age !== null ? `${age} Año(s)`: 'Calculando...';
 
   return (
-    <Card className="h-full border-primary/50">
-       <div className="p-4">
-            <header className="text-center pb-2">
-                <div className="flex justify-between items-start">
-                    <div className="text-left text-xs">
-                        <p className="font-bold">Dr. [Nombre del Doctor]</p>
-                        <p className="text-muted-foreground">MPPS 12345</p>
-                    </div>
-                     <div className="text-right text-xs">
-                        <p className="font-semibold">Fecha</p>
-                        <p className="text-muted-foreground">{format(order.orderDate, 'PPP', { locale: es })}</p>
-                    </div>
+    <Card className="h-full border-primary/50 text-sm printable-area">
+       <div className="p-4 printable-content">
+            <header className="flex justify-between items-center pb-2 border-b-2 border-black">
+                <div className="w-1/4">
+                    <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-24" />
                 </div>
-                 <hr className="my-2"/>
+                <div className="w-1/2 text-center">
+                    <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
+                    <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, C.A.</p>
+                </div>
+                <div className="w-1/4 flex justify-end">
+                    <img src="/logo.png" alt="CPV Logo" className="h-auto w-16" />
+                </div>
             </header>
-            <div className="space-y-4 text-left">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm border p-2 rounded-md">
-                    <div>
-                        <span className="font-semibold">Paciente:</span>
-                        <span className="text-muted-foreground ml-2">{order.paciente.nombreCompleto}</span>
-                    </div>
-                    <div>
-                        <span className="font-semibold">Cédula:</span>
-                        <span className="text-muted-foreground ml-2">{order.paciente.cedula}</span>
-                    </div>
-                     <div>
-                        <span className="font-semibold">Edad:</span>
-                        <span className="text-muted-foreground ml-2">{age !== null ? `${age} años` : 'Calculando...'}</span>
-                    </div>
-                     <div>
-                        <span className="font-semibold">Género:</span>
-                        <span className="text-muted-foreground ml-2">{order.paciente.genero}</span>
-                    </div>
-                </div>
 
+            <div className="text-center my-2">
+                <h2 className="font-semibold text-base">Orden de Laboratorio</h2>
+            </div>
+
+            <section className="border-y border-black py-2">
+                <h3 className="font-bold text-center mb-2">Datos del Paciente:</h3>
+                <div className="grid grid-cols-2 gap-x-4">
+                    <p><strong>Historia:</strong> {order.pacienteId.slice(-6)}</p>
+                    <p><strong>Fecha Orden:</strong> {format(order.orderDate, 'dd/MM/yyyy')}</p>
+                    <p><strong>Ingreso:</strong> {order.consultationId?.slice(-6) || 'N/A'}</p>
+                    <p><strong>Sexo:</strong> {order.paciente.genero}</p>
+                    <p><strong>Cédula:</strong> {order.paciente.cedula}</p>
+                    <p><strong>Edad:</strong> {ageString}</p>
+                    <p className="col-span-2"><strong>Nombre:</strong> {order.paciente.nombreCompleto}</p>
+                </div>
+            </section>
+        
+            <div className="space-y-4 text-left mt-4">
                 <div>
-                    <p className="font-semibold text-center my-2 text-lg">ORDEN DE LABORATORIO</p>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-2">
                       {order.tests.map((test, index) => (
                         <li key={index}>{test}</li>
