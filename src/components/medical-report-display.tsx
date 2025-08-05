@@ -39,14 +39,14 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
       <div className="p-4 printable-content">
         <header className="flex justify-between items-center pb-2 border-b-2 border-black">
           <div className="w-1/4">
-             <img src="/logo-salud-integral.png" alt="Salud Integral Logo" className="h-auto w-24" />
+             <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-24" />
           </div>
           <div className="w-1/2 text-center">
             <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
             <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, C.A.</p>
           </div>
           <div className="w-1/4 flex justify-end">
-             <img src="/logo-cpv.png" alt="CPV Logo" className="h-auto w-16" />
+             <img src="/logo.png" alt="CPV Logo" className="h-auto w-16" />
           </div>
         </header>
 
