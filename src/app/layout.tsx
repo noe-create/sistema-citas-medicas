@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'MedidHub',
+  title: 'MediHub',
   description: 'Optimizando la gestión de pacientes con flujos de trabajo inteligentes.',
 };
 

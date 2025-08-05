@@ -34,7 +34,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
               <ViñaIntegralLogo className="h-20 w-20" />
             </div>
-            <CardTitle className="text-2xl font-headline">MedidHub</CardTitle>
+            <CardTitle className="text-2xl font-headline">MediHub</CardTitle>
             <CardDescription>Ingrese sus credenciales para acceder al sistema.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
