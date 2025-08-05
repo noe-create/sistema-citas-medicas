@@ -1,22 +1,26 @@
-
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 
 export function DocumentHeader() {
   return (
-    <div className="relative">
-        <header className="flex justify-center items-center text-center pb-2 border-b-2 border-black">
-            <div className="flex flex-col items-center flex-grow">
-                <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
-                <div className="text-xs mt-1 space-y-0.5">
-                    <p>CENTRO POLITÉCNICO VALENCIA, C.A.</p>
-                    <p>Rif: J075055861 Nit: 0028937032</p>
-                    <p>URB. LA VIÑA, FINAL AV. CARABOBO</p>
-                    <p>Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
-                </div>
+    <header className="flex justify-between items-center text-center pb-2 border-b-2 border-black">
+        <div className="flex-shrink-0">
+             <Image src="/logo_salud_integral.svg" alt="Logo Salud Integral" width={100} height={75} />
+        </div>
+        <div className="flex flex-col items-center flex-grow px-4">
+            <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
+            <div className="text-xs mt-1 space-y-0.5">
+                <p>CENTRO POLITÉCNICO VALENCIA, C.A.</p>
+                <p>Rif: J075055861 Nit: 0028937032</p>
+                <p>URB. LA VIÑA, FINAL AV. CARABOBO</p>
+                <p>Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
             </div>
-        </header>
-    </div>
+        </div>
+        <div className="flex-shrink-0">
+            <Image src="/logo_cpv.svg" alt="Logo CPV" width={100} height={75} />
+        </div>
+    </header>
   );
 }
