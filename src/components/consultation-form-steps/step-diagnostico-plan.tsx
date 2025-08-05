@@ -76,7 +76,7 @@ function Cie10Autocomplete({ selected, onChange }: Cie10AutocompleteProps) {
                 <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start font-normal">
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Añadir diagnóstico
+                        Añadir diagnóstico del catálogo
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
@@ -262,13 +262,30 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
 
     return (
         <div className="space-y-6">
-            <FormSection icon={<BrainCircuit className="h-5 w-5 text-primary"/>} title="Diagnósticos">
+            <FormSection icon={<BrainCircuit className="h-5 w-5 text-primary"/>} title="Impresión Diagnóstica">
                 <FormField control={form.control} name="diagnoses" render={({ field }) => (
                     <FormItem>
+                        <FormLabel>Diagnósticos del Catálogo (CIE-10)</FormLabel>
                         <Cie10Autocomplete selected={field.value} onChange={field.onChange} />
                         <FormMessage />
                     </FormItem>
                 )} />
+                 <FormField
+                    control={form.control}
+                    name="diagnosticoLibre"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Otros Diagnósticos / Observaciones (Opcional)</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                placeholder="Si el diagnóstico no se encuentra en el catálogo, o para añadir notas adicionales, escríbalo aquí."
+                                {...field}
+                                rows={3}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                 )} />
             </FormSection>
             
             <FormSection icon={<Pill className="h-5 w-5 text-primary"/>} title="Plan y Órdenes">
