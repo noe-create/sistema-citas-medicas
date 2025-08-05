@@ -26,16 +26,20 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
   return (
     <Card className="h-full border-primary/50 text-sm printable-area">
        <div className="p-4 printable-content">
-            <header className="flex justify-between items-center pb-2 border-b-2 border-black">
+            <header className="flex justify-between items-start pb-2 border-b-2 border-black">
                 <div className="w-1/4">
                     <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-24" />
                 </div>
                 <div className="w-1/2 text-center">
-                    <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
-                    <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, C.A.</p>
+                    {/* This space can be used for a central title if needed later */}
                 </div>
-                <div className="w-1/4 flex justify-end">
-                    <img src="/logo.png" alt="CPV Logo" className="h-auto w-16" />
+                <div className="w-1/2 flex justify-end text-right text-[8px] leading-tight">
+                    <div>
+                        <p className="font-bold">CENTRO POLICLINICO VALENCIA C.A</p>
+                        <p>Rif.: J075055861 Nit.: 0028937032</p>
+                        <p>URB. LA VIÑA, FINAL AV. CARABOBO</p>
+                        <p>Teléfonos.: 0241 8268688 8268431 8202710</p>
+                    </div>
                 </div>
             </header>
 
