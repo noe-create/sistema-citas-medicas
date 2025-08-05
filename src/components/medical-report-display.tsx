@@ -2,11 +2,13 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import type { Consultation, SignosVitales } from '@/lib/types';
+import { Card } from '@/components/ui/card';
+import type { Consultation } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ViñaIntegralLogo } from './viña-integral-logo';
+import { CpvLogo } from './cpv-logo';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -17,15 +19,12 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   const [ageString, setAgeString] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Calculate age on the client-side to avoid hydration mismatch
     const age = calculateAge(paciente.fechaNacimiento);
     setAgeString(`${age} Año(s)`);
   }, [paciente.fechaNacimiento]);
 
 
   const getConsultationType = () => {
-    // This is a simple assumption. You might need a more robust way to determine this
-    // if a single doctor can perform multiple consultation types.
     if (paciente.serviceType === 'consulta pediatrica') {
       return 'CONSULTA PEDIATRICA';
     }
@@ -43,22 +42,14 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
       <div className="p-4">
         <header className="flex justify-between items-center pb-2 border-b-2 border-black">
           <div className="w-1/4">
-            <img
-                src="/logo_cpv_gris.png" 
-                alt="Logo CPV"
-                style={{ width: '80px', height: 'auto', objectFit: 'contain' }}
-            />
+             <ViñaIntegralLogo className="h-auto w-24" />
           </div>
           <div className="w-1/2 text-center">
             <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
             <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, C.A.</p>
           </div>
           <div className="w-1/4 flex justify-end">
-             <img
-                src="/logo_s.png"
-                alt="Logo Salud Integral Firma"
-                style={{ width: '80px', height: 'auto', objectFit: 'contain' }}
-            />
+             <CpvLogo className="h-auto w-16" />
           </div>
         </header>
 
