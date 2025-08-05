@@ -1,6 +1,6 @@
 
 
-import { getIronSession } from 'iron-session';
+import { getIronSession, type IronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import type { User } from './types';
 
@@ -16,7 +16,7 @@ const defaultSession: SessionData = {
   permissions: [],
 };
 
-export async function getSession() {
+export async function getSession(): Promise<IronSession<SessionData>> {
   const sessionOptions = {
     password: process.env.SECRET_COOKIE_PASSWORD!,
     cookieName: 'salud-cpv-session',
