@@ -118,7 +118,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
              <Link href="/dashboard" className="flex justify-center items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
                 <ViñaIntegralLogo className="h-10 w-10 flex-shrink-0" />
                 <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
-                    <h2 className="text-xl font-bold font-headline tracking-tight leading-tight">Viña Integral</h2>
+                    <h2 className="text-xl font-bold font-headline tracking-tight leading-tight">MedidHub</h2>
                     <span className="font-bold text-xl text-primary leading-tight">C.P.V</span>
                 </div>
              </Link>
