@@ -64,9 +64,10 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
                       ))}
                     </ul>
                 </div>
-                 <div className="flex flex-col items-end pt-12">
+                 <div className="flex flex-col items-center pt-12">
                      <div className="w-48 h-16 border-b border-foreground/50"></div>
-                     <p className="text-sm">Firma y Sello</p>
+                     <p className="font-semibold">Atentamente;</p>
+                     <p>Dr. [Nombre del Doctor]</p>
                 </div>
             </div>
         </div>

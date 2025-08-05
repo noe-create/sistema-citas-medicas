@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -106,7 +107,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             <p>REPOSO POR 24 HORAS.</p>
         </section>
 
-        <footer className="mt-16 flex flex-col items-end">
+        <footer className="mt-16 flex flex-col items-center">
             <div className="w-48 border-b border-black"></div>
             <p className="font-semibold">Atentamente;</p>
             <p>Dr. [Nombre del Doctor]</p>
