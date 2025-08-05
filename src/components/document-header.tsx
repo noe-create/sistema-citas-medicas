@@ -2,13 +2,13 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
+import { ViñaIntegralLogo } from './viña-integral-logo';
 
 export function DocumentHeader() {
   return (
     <header className="flex justify-between items-center pb-2 border-b-2 border-black">
       <div className="w-1/4 flex justify-start">
-        <Image src="/logo_salud_integral.svg" alt="Salud Integral Logo" width={64} height={64} />
+        <ViñaIntegralLogo className="h-16 w-16" />
       </div>
       <div className="w-1/2 text-center">
         <h1 className="text-2xl font-bold tracking-wider">Salud Integral</h1>
@@ -20,7 +20,7 @@ export function DocumentHeader() {
         </div>
       </div>
       <div className="w-1/4 flex justify-end">
-         <Image src="/logo_vina_integral.svg" alt="Viña Integral Logo" width={64} height={64} />
+         {/* Placeholder for the second logo */}
       </div>
     </header>
   );
