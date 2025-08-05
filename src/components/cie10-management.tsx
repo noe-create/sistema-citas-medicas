@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DataTable, type ColumnDef } from '@/components/ui/data-table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 const Cie10Form = dynamic(() => import('./cie10-form').then(mod => mod.Cie10Form), {
   loading: () => <div className="p-8"><Skeleton className="h-48 w-full" /></div>,
