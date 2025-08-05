@@ -39,13 +39,10 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
     <Card className="h-full border-primary/50 text-sm printable-area">
       <div className="p-4 printable-content">
         <header className="flex justify-between items-start pb-2 border-b-2 border-black">
-          <div className="w-1/4">
-             <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-24" />
+          <div className="w-1/3">
+             <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-32" />
           </div>
-          <div className="w-1/2 text-center">
-            {/* This space can be used for a central title if needed later */}
-          </div>
-          <div className="w-1/2 flex justify-end text-right text-[8px] leading-tight">
+          <div className="w-2/3 flex justify-end text-right text-[8px] leading-tight">
             <div>
                 <p className="font-bold">CENTRO POLICLINICO VALENCIA C.A</p>
                 <p>Rif.: J075055861 Nit.: 0028937032</p>
