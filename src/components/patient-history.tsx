@@ -100,18 +100,18 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             </div>
         </aside>
         <main className="w-3/4">
-            {selectedConsultation ? (
-                <>
-                    <Button onClick={handlePrint} className="mb-4 w-full no-print">
-                        <Printer className="mr-2 h-4 w-4"/>
-                        Imprimir Documentos
-                    </Button>
-                    <div className="space-y-4 printable-area">
+            <Button onClick={handlePrint} className="mb-4 w-full no-print">
+                <Printer className="mr-2 h-4 w-4"/>
+                Imprimir Documentos
+            </Button>
+             <div className="printable-area space-y-4">
+                {selectedConsultation ? (
+                    <>
                         <div className="printable-content">
                             <MedicalReportDisplay consultation={selectedConsultation} />
                         </div>
                         {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
-                             <div className="printable-content">
+                            <div className="printable-content">
                                 <PrescriptionDisplay consultation={selectedConsultation} />
                             </div>
                         )}
@@ -120,25 +120,17 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                 <LabOrderDisplay order={associatedLabOrder} />
                             </div>
                         )}
+                    </>
+                ) : selectedEntry?.type === 'lab_order' ? (
+                    <div className="printable-content">
+                        <LabOrderDisplay order={selectedEntry.data as LabOrder} />
                     </div>
-                </>
-            ) : selectedEntry?.type === 'lab_order' ? (
-                <>
-                    <Button onClick={handlePrint} className="mb-4 w-full no-print">
-                        <Printer className="mr-2 h-4 w-4"/>
-                        Imprimir Orden
-                    </Button>
-                    <div className="printable-area">
-                        <div className="printable-content">
-                             <LabOrderDisplay order={selectedEntry.data as LabOrder} />
-                        </div>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground no-print">
+                        <p>Seleccione una entrada del historial para ver los detalles.</p>
                     </div>
-                </>
-            ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground no-print">
-                    <p>Seleccione una entrada del historial para ver los detalles.</p>
-                </div>
-            )}
+                )}
+            </div>
         </main>
     </div>
   );
