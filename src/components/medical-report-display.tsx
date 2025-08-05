@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -44,18 +43,18 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
         <header className="flex justify-between items-center pb-2 border-b-2 border-black">
           <div className="flex-shrink-0">
             <img
-                src="/logo_salud_integral.png"
+                src="/logo.png"
                 alt="Logo Salud Integral"
                 style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
             />
           </div>
           <div className="text-center">
             <h1 className="font-bold text-lg">SALUD INTEGRAL</h1>
-            <p className="text-sm">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+            <p className="text-sm">CENTRO POLICLINICO VALENCIA, C.A.</p>
           </div>
           <div className="flex-shrink-0">
              <img
-                src="/logo_cpv_naranja.png"
+                src="/logo_si.png"
                 alt="Logo CPV"
                 style={{ width: '60px', height: '60px', objectFit: 'contain' }}
             />
