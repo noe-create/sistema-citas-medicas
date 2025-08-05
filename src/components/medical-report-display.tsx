@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -41,22 +42,22 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
     <Card className="h-full border-primary/50 text-sm">
       <div className="p-4">
         <header className="flex justify-between items-center pb-2 border-b-2 border-black">
-          <div className="flex-shrink-0">
+          <div className="w-1/4">
             <img
-                src="/logo.png"
-                alt="Logo Salud Integral"
-                style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
+                src="/logo_cpv_gris.png" 
+                alt="Logo CPV"
+                style={{ width: '80px', height: 'auto', objectFit: 'contain' }}
             />
           </div>
-          <div className="text-center">
-            <h1 className="font-bold text-lg">SALUD INTEGRAL</h1>
-            <p className="text-sm">CENTRO POLICLINICO VALENCIA, C.A.</p>
+          <div className="w-1/2 text-center">
+            <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
+            <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, C.A.</p>
           </div>
-          <div className="flex-shrink-0">
+          <div className="w-1/4 flex justify-end">
              <img
-                src="/logo_si.png"
-                alt="Logo CPV"
-                style={{ width: '60px', height: '60px', objectFit: 'contain' }}
+                src="/logo_s.png"
+                alt="Logo Salud Integral Firma"
+                style={{ width: '80px', height: 'auto', objectFit: 'contain' }}
             />
           </div>
         </header>
