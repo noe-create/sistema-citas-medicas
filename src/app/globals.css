@@ -104,36 +104,3 @@ label, button, th {
     @apply bg-background text-foreground;
   }
 }
-
-@media print {
-  body > *:not(.printable-area) {
-    display: none !important;
-  }
-
-  .printable-area {
-    display: block !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .printable-content {
-    display: block;
-    page-break-before: always;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
-  .printable-area > .printable-content:first-child {
-    page-break-before: auto;
-  }
-  
-  .printable-content .text-muted-foreground {
-    color: #555 !important;
-  }
-}

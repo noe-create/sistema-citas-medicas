@@ -23,6 +23,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [selectedEntry, setSelectedEntry] = React.useState<HistoryEntry | null>(null);
   const { toast } = useToast();
+  const printableRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     async function fetchHistory() {
@@ -50,7 +51,61 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   }, [personaId, toast]);
 
   const handlePrint = () => {
-    window.print();
+    const node = printableRef.current;
+    if (!node) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    
+    document.body.appendChild(iframe);
+    
+    const iframeDoc = iframe.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    // Clone stylesheets from the main document to the iframe
+    const stylesheets = Array.from(document.styleSheets);
+    stylesheets.forEach(styleSheet => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = styleSheet.href!;
+        iframeDoc.head.appendChild(link);
+    });
+
+    const printStyles = `
+        @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+        
+        body { 
+            margin: 0; 
+            font-family: 'Figtree', sans-serif;
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact;
+        }
+        .printable-content { 
+            page-break-after: always;
+            margin: 0;
+            padding: 0;
+        }
+        .printable-content:last-child {
+            page-break-after: auto;
+        }
+    `;
+    const styleEl = iframeDoc.createElement('style');
+    styleEl.innerHTML = printStyles;
+    iframeDoc.head.appendChild(styleEl);
+    
+    // Clone the printable content
+    const clonedNode = node.cloneNode(true) as HTMLElement;
+    iframeDoc.body.innerHTML = clonedNode.innerHTML;
+
+    // Use a timeout to ensure styles are loaded before printing
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
+    }, 500);
   };
 
   if (isLoading) {
@@ -81,7 +136,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   
   return (
     <div className="flex gap-6">
-        <aside className="w-1/4 no-print">
+        <aside className="w-1/4">
             <h3 className="font-semibold mb-2">Historial de Visitas</h3>
             <div className="flex flex-col gap-2">
                 {history.map(entry => (
@@ -100,11 +155,11 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             </div>
         </aside>
         <main className="w-3/4">
-            <Button onClick={handlePrint} className="mb-4 w-full no-print">
+            <Button onClick={handlePrint} className="mb-4 w-full">
                 <Printer className="mr-2 h-4 w-4"/>
                 Imprimir Documentos
             </Button>
-             <div className="printable-area space-y-4">
+             <div ref={printableRef} className="space-y-4">
                 {selectedConsultation ? (
                     <>
                         <div className="printable-content">
@@ -126,7 +181,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                         <LabOrderDisplay order={selectedEntry.data as LabOrder} />
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground no-print">
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
                         <p>Seleccione una entrada del historial para ver los detalles.</p>
                     </div>
                 )}
