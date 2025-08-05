@@ -44,17 +44,15 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   return (
     <Card className="h-full border-primary/50 text-sm">
       <div className="p-4">
-        <header className="flex justify-between items-start pb-2 border-b-2 border-black">
-          <div className="relative">
-            <ViñaIntegralLogo className="absolute left-0 top-0 h-16 w-16 opacity-10" />
-            <div className="relative z-10 pl-2 pt-2">
+        <header className="flex justify-between items-center pb-2 border-b-2 border-black">
+          <div className="flex items-center gap-2">
+            <ViñaIntegralLogo className="h-14 w-14" />
+            <div>
               <h1 className="font-bold text-base">SALUD INTEGRAL</h1>
               <p className="text-xs">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
             </div>
           </div>
-          <div className="flex items-center">
-             <CpvLogo className="h-12"/>
-          </div>
+          <CpvLogo className="h-12 w-auto" />
         </header>
 
         <div className="text-center my-2">
