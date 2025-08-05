@@ -19,8 +19,8 @@ export function ViñaIntegralLogo({ className, ...props }: ViñaIntegralLogoProp
     >
       <defs>
         <linearGradient id="logo-gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#38BDF8"/>
-          <stop offset="1" stopColor="#2DD4BF"/>
+          <stop stopColor="#2A64F5"/>
+          <stop offset="1" stopColor="#38BDF8"/>
         </linearGradient>
       </defs>
       <path

@@ -8,6 +8,7 @@ import type { Consultation } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DocumentHeader } from './document-header';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -38,19 +39,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   return (
     <Card className="h-full border-primary/50 text-sm printable-area">
       <div className="p-4 printable-content">
-        <header className="flex justify-between items-start pb-2 border-b-2 border-black">
-          <div className="w-1/3">
-             <img src="/logo_si.png" alt="Salud Integral Logo" className="h-auto w-32" />
-          </div>
-          <div className="w-2/3 flex justify-end text-right text-[8px] leading-tight">
-            <div>
-                <p className="font-bold">CENTRO POLICLINICO VALENCIA C.A</p>
-                <p>Rif.: J075055861 Nit.: 0028937032</p>
-                <p>URB. LA VIÑA, FINAL AV. CARABOBO</p>
-                <p>Teléfonos.: 0241 8268688 8268431 8202710</p>
-            </div>
-          </div>
-        </header>
+        <DocumentHeader />
 
         <div className="text-center my-2">
             <h2 className="font-semibold text-base">Informe Medico</h2>
