@@ -106,47 +106,34 @@ label, button, th {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  
-  .printable-area, .printable-area * {
-    visibility: visible !important;
+  body > *:not(.printable-area) {
+    display: none !important;
   }
 
   .printable-area {
+    display: block !important;
     position: absolute;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
-    height: auto;
-    padding: 0;
-    margin: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .printable-content {
+    display: block;
+    page-break-before: always;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   
-  .printable-content, .printable-content * {
-      visibility: visible !important;
-  }
-  
-  .printable-content {
-      display: block;
-      width: 100%;
-      height: 100%;
-      page-break-before: always;
-  }
-  
   .printable-area > .printable-content:first-child {
-      page-break-before: auto;
+    page-break-before: auto;
   }
-
-
+  
   .printable-content .text-muted-foreground {
     color: #555 !important;
-  }
-  
-  .no-print {
-    display: none !important;
   }
 }
