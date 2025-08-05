@@ -13,9 +13,6 @@ import { searchCie10Codes, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { generatePrescription } from '@/ai/flows/generate-prescription';
-import type { GeneratePrescriptionOutput } from '@/ai/flows/generate-prescription';
-import { PrescriptionDisplay } from '../prescription-display';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from '@/components/ui/dialog';
@@ -149,20 +146,20 @@ const TreatmentOrderBuilder = ({ form }: { form: any }) => {
     }
 
     return (
-        <FormSection icon={<Stethoscope className="h-5 w-5 text-primary"/>} title="Orden de Tratamiento">
+        <FormSection icon={<Stethoscope className="h-5 w-5 text-primary"/>} title="Constructor de Récipe y Tratamiento">
             <div className="p-4 bg-background border rounded-md space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                         <Label htmlFor="medicamentoProcedimiento">Medicamento / Procedimiento</Label>
-                        <Input name="medicamentoProcedimiento" value={currentItem.medicamentoProcedimiento} onChange={handleInputChange} placeholder="Ej: Paracetamol"/>
+                        <Input name="medicamentoProcedimiento" value={currentItem.medicamentoProcedimiento} onChange={handleInputChange} placeholder="Ej: Amoxicilina 500mg"/>
                     </div>
                     <div>
-                        <Label htmlFor="dosis">Dosis</Label>
-                        <Input name="dosis" value={currentItem.dosis} onChange={handleInputChange} placeholder="Ej: 500 mg"/>
+                        <Label htmlFor="dosis">Dosis / Indicación</Label>
+                        <Input name="dosis" value={currentItem.dosis} onChange={handleInputChange} placeholder="Ej: 1 tableta"/>
                     </div>
                     <div>
                         <Label htmlFor="via">Vía</Label>
-                        <Input name="via" value={currentItem.via} onChange={handleInputChange} placeholder="Ej: Oral"/>
+                        <Input name="via" value={currentItem.via} onChange={handleInputChange} placeholder="Ej: Vía Oral"/>
                     </div>
                     <div>
                         <Label htmlFor="frecuencia">Frecuencia</Label>
@@ -179,13 +176,13 @@ const TreatmentOrderBuilder = ({ form }: { form: any }) => {
                  </div>
                  <div className="flex justify-end gap-2">
                     {editingIndex !== null && <Button type="button" variant="ghost" onClick={handleCancelEdit}>Cancelar Edición</Button>}
-                    <Button type="button" onClick={handleAddItem}><PlusCircle className="mr-2 h-4 w-4"/> {editingIndex !== null ? 'Actualizar Ítem' : 'Agregar Ítem'}</Button>
+                    <Button type="button" onClick={handleAddItem}><PlusCircle className="mr-2 h-4 w-4"/> {editingIndex !== null ? 'Actualizar Ítem' : 'Agregar Ítem al Récipe'}</Button>
                  </div>
             </div>
             
             {fields.length > 0 && (
                 <div className="mt-4 space-y-2">
-                    <h4 className="font-medium">Ítems de la Orden</h4>
+                    <h4 className="font-medium">Ítems del Récipe</h4>
                     <div className="border rounded-md divide-y">
                         {fields.map((field, index) => (
                             <div key={field.id} className="p-3 flex justify-between items-start">
@@ -215,43 +212,11 @@ const TreatmentOrderBuilder = ({ form }: { form: any }) => {
 
 export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form: any; patient: Patient, onLabOrderChange: (tests: string[]) => void }) => {
     const { toast } = useToast();
-    const [isGenerating, setIsGenerating] = React.useState(false);
-    const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
     const [isLabOrderOpen, setIsLabOrderOpen] = React.useState(false);
     const [isRadiologyOrderOpen, setIsRadiologyOrderOpen] = React.useState(false);
 
     const { watch, control, setValue } = form;
-    const diagnoses = watch('diagnoses');
-    const treatmentPlan = watch('treatmentPlan');
     const radiologyOrder = watch('radiologyOrder');
-    const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan?.trim().length > 0;
-
-    const handleGeneratePrescription = async () => {
-        setIsGenerating(true);
-        setPrescription(null);
-        try {
-            const formData = form.getValues();
-            const result = await generatePrescription({
-                patientName: patient.name,
-                diagnoses: formData.diagnoses,
-                treatmentPlan: formData.treatmentPlan,
-            });
-            setPrescription(result);
-             toast({
-                title: 'Récipe Generado',
-                description: 'El récipe médico ha sido generado por la IA.',
-            });
-        } catch (e) {
-            console.error(e);
-            toast({
-                title: 'Error al Generar Récipe',
-                description: 'No se pudo generar la receta. Por favor, intente de nuevo.',
-                variant: 'destructive'
-            });
-        } finally {
-            setIsGenerating(false);
-        }
-    };
 
     const handleLabOrderSubmit = (selectedTests: string[]) => {
         if (selectedTests.length > 0) {
@@ -402,14 +367,6 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
             
             <TreatmentOrderBuilder form={form} />
 
-            <FormSection icon={<Wand2 className="h-5 w-5 text-primary"/>} title="Asistente de Récipe Médico con IA" className="bg-secondary/30">
-                <Button type="button" onClick={handleGeneratePrescription} disabled={!canGeneratePrescription || isGenerating} className="w-full">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Generar Récipe con IA (Basado en Plan General)
-                </Button>
-                {!canGeneratePrescription && <p className="text-xs text-center text-muted-foreground">Debe agregar al menos un diagnóstico y un plan general.</p>}
-                {prescription && <PrescriptionDisplay prescription={prescription} />}
-            </FormSection>
         </div>
     );
 };
