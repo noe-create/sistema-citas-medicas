@@ -3,12 +3,13 @@
 
 import * as React from 'react';
 import { ViñaIntegralLogo } from './viña-integral-logo';
+import { SaludIntegralLogo } from './salud-integral-logo';
 
 export function DocumentHeader() {
   return (
     <header className="flex justify-between items-center pb-2 border-b-2 border-black">
-      <div className="w-1/4">
-        <ViñaIntegralLogo className="h-20 w-20" />
+      <div className="w-1/4 flex justify-start">
+        <SaludIntegralLogo className="h-16 w-16" />
       </div>
       <div className="w-1/2 text-center">
         <h1 className="text-2xl font-bold tracking-wider">Salud Integral</h1>
@@ -19,8 +20,8 @@ export function DocumentHeader() {
             <p>Teléfonos.: 0241 8268688 8268431 8202710</p>
         </div>
       </div>
-      <div className="w-1/4">
-        {/* Empty space for balance */}
+      <div className="w-1/4 flex justify-end">
+         <ViñaIntegralLogo className="h-16 w-16" />
       </div>
     </header>
   );
