@@ -7,7 +7,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope, MonitorHeart } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope, Monitor } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateTreatmentItemInput, Service } from '@/lib/types';
 import { searchCie10Codes, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -299,8 +299,8 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
             <FormSection icon={<Pill className="h-5 w-5 text-primary"/>} title="Plan y Órdenes">
                  <FormField control={form.control} name="treatmentPlan" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Plan General y Observaciones</FormLabel>
-                        <FormControl><Textarea placeholder="Indicaciones generales, plan de seguimiento, estudios solicitados, etc." {...field} rows={4} /></FormControl>
+                        <FormLabel>Plan General y Secuencia de Órdenes</FormLabel>
+                        <FormControl><Textarea placeholder="Especifique el plan de seguimiento e indique la secuencia u orden para realizar los exámenes de laboratorio y radiología. Ej: 1. Realizar exámenes de laboratorio en ayunas. 2. Luego, proceder con la radiografía de tórax." {...field} rows={4} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -330,7 +330,7 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                         render={({ field }) => (
                             <FormItem>
                                 <div className="flex justify-between items-center">
-                                    <FormLabel className="flex items-center gap-2"><MonitorHeart className="h-4 w-4 text-muted-foreground"/>Órdenes de Radiología e Imágenes</FormLabel>
+                                    <FormLabel className="flex items-center gap-2"><Monitor className="h-4 w-4 text-muted-foreground"/>Órdenes de Radiología e Imágenes</FormLabel>
                                     <FormField
                                         control={control}
                                         name="radiologyNotApplicable"
