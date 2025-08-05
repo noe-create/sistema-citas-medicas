@@ -149,8 +149,8 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             treatmentPlan: '',
             treatmentItems: [],
             examenFisicoGeneral: '',
-            radiologyNotApplicable: false,
             radiologyOrder: '',
+            radiologyNotApplicable: false,
             antecedentesFamiliares: '',
             antecedentesPersonales: {
               patologicos: '',
@@ -189,7 +189,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step + 1);
+            setCurrentStep(step => step - 1);
         }
     };
     

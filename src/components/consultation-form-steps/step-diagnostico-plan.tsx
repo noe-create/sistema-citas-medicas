@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as 
 import { LabOrderForm } from '../lab-order-form';
 import { FormSection } from './form-section';
 import { Checkbox } from '../ui/checkbox';
+import { RadiologyOrderForm } from '../radiology-order-form';
 
 // Sub-component for CIE-10 Autocomplete
 interface Cie10AutocompleteProps {
@@ -217,18 +218,13 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
     const [isLabOrderOpen, setIsLabOrderOpen] = React.useState(false);
+    const [isRadiologyOrderOpen, setIsRadiologyOrderOpen] = React.useState(false);
 
     const { watch, control, setValue } = form;
     const diagnoses = watch('diagnoses');
     const treatmentPlan = watch('treatmentPlan');
-    const radiologyNotApplicable = watch('radiologyNotApplicable');
+    const radiologyOrder = watch('radiologyOrder');
     const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan?.trim().length > 0;
-
-    React.useEffect(() => {
-        if (radiologyNotApplicable) {
-            setValue('radiologyOrder', '');
-        }
-    }, [radiologyNotApplicable, setValue]);
 
     const handleGeneratePrescription = async () => {
         setIsGenerating(true);
@@ -268,6 +264,21 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
         setIsLabOrderOpen(false);
     };
 
+    const handleRadiologyOrderSubmit = (selectedStudies: string[]) => {
+        if (selectedStudies.length > 0) {
+            const currentOrders = radiologyOrder || '';
+            const newOrders = selectedStudies.join('\n');
+            const updatedOrders = currentOrders ? `${currentOrders}\n${newOrders}` : newOrders;
+            setValue('radiologyOrder', updatedOrders, { shouldValidate: true });
+            
+            toast({
+                title: 'Estudios de Imagenología Añadidos',
+                description: `${selectedStudies.length} estudios han sido añadidos a la orden.`,
+            });
+        }
+        setIsRadiologyOrderOpen(false);
+    };
+
     return (
         <div className="space-y-6">
             <FormSection icon={<BrainCircuit className="h-5 w-5 text-primary"/>} title="Impresión Diagnóstica">
@@ -304,24 +315,46 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                         <FormMessage />
                     </FormItem>
                 )} />
-                <Dialog open={isLabOrderOpen} onOpenChange={setIsLabOrderOpen}>
-                    <Button type="button" variant="outline" onClick={() => setIsLabOrderOpen(true)} className="w-full mt-2">
-                        <Beaker className="mr-2 h-4 w-4" />
-                        Generar Orden de Laboratorio
-                    </Button>
-                    <DialogContent className="sm:max-w-2xl p-0 gap-0">
-                        <DialogHeader className="p-4 border-b">
-                            <DialogTitle>Seleccionar Exámenes de Laboratorio</DialogTitle>
-                            <DialogDesc>
-                                Busque o seleccione de la lista los exámenes a solicitar.
-                            </DialogDesc>
-                        </DialogHeader>
-                        <LabOrderForm 
-                            onSubmitted={handleLabOrderSubmit}
-                            onCancel={() => setIsLabOrderOpen(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
+
+                <div className="space-y-2 pt-4">
+                    <Dialog open={isLabOrderOpen} onOpenChange={setIsLabOrderOpen}>
+                        <Button type="button" variant="outline" onClick={() => setIsLabOrderOpen(true)} className="w-full">
+                            <Beaker className="mr-2 h-4 w-4" />
+                            Generar Orden de Laboratorio
+                        </Button>
+                        <DialogContent className="sm:max-w-2xl p-0 gap-0">
+                            <DialogHeader className="p-4 border-b">
+                                <DialogTitle>Seleccionar Exámenes de Laboratorio</DialogTitle>
+                                <DialogDesc>
+                                    Busque o seleccione de la lista los exámenes a solicitar.
+                                </DialogDesc>
+                            </DialogHeader>
+                            <LabOrderForm 
+                                onSubmitted={handleLabOrderSubmit}
+                                onCancel={() => setIsLabOrderOpen(false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isRadiologyOrderOpen} onOpenChange={setIsRadiologyOrderOpen}>
+                        <Button type="button" variant="outline" onClick={() => setIsRadiologyOrderOpen(true)} className="w-full">
+                            <Monitor className="mr-2 h-4 w-4" />
+                            Generar Órdenes de Imágenes
+                        </Button>
+                        <DialogContent className="sm:max-w-2xl p-0 gap-0">
+                            <DialogHeader className="p-4 border-b">
+                                <DialogTitle>Seleccionar Estudios de Imagenología</DialogTitle>
+                                <DialogDesc>
+                                    Busque o seleccione de la lista los estudios a solicitar.
+                                </DialogDesc>
+                            </DialogHeader>
+                            <RadiologyOrderForm
+                                onSubmitted={handleRadiologyOrderSubmit}
+                                onCancel={() => setIsRadiologyOrderOpen(false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                </div>
                 
                 <div className="space-y-2 pt-4">
                      <FormField
@@ -339,7 +372,12 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                                                 <FormControl>
                                                     <Checkbox
                                                         checked={checkboxField.value}
-                                                        onCheckedChange={checkboxField.onChange}
+                                                        onCheckedChange={(checked) => {
+                                                          checkboxField.onChange(checked);
+                                                          if (checked) {
+                                                            setValue('radiologyOrder', '');
+                                                          }
+                                                        }}
                                                     />
                                                 </FormControl>
                                                 <FormLabel className="text-xs font-normal">No aplica</FormLabel>
@@ -352,7 +390,7 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                                         placeholder="Especifique los estudios de imagenología requeridos. Ej: RX de Tórax PA y Lateral, Ecografía Abdominal..."
                                         rows={3}
                                         {...field}
-                                        disabled={radiologyNotApplicable}
+                                        disabled={form.watch('radiologyNotApplicable')}
                                     />
                                 </FormControl>
                                 <FormMessage />
