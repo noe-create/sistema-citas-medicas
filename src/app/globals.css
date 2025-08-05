@@ -122,6 +122,8 @@ label, button, th {
     height: 100%;
     padding: 0;
     margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   
   .printable-content, .printable-content * {
