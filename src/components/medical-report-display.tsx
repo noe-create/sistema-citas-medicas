@@ -8,7 +8,7 @@ import type { Consultation, SignosVitales } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ViñaIntegralLogo } from './viña-integral-logo';
+import Image from 'next/image';
 
 interface MedicalReportDisplayProps {
   consultation: Consultation;
@@ -43,9 +43,29 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   return (
     <Card className="h-full border-primary/50 text-sm">
       <div className="p-4">
-        <header className="text-center pb-2 border-b-2 border-black">
-          <h1 className="font-bold text-lg">SALUD INTEGRAL</h1>
-          <p className="text-sm">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+        <header className="flex justify-between items-center pb-2 border-b-2 border-black">
+          <div className="flex-shrink-0">
+            <Image
+                src="/logo_salud_integral.png"
+                alt="Logo Salud Integral"
+                width={150}
+                height={50}
+                className="object-contain"
+            />
+          </div>
+          <div className="text-center">
+            <h1 className="font-bold text-lg">SALUD INTEGRAL</h1>
+            <p className="text-sm">CENTRO POLITÉCNICO VALENCIA, "LA VIÑA"</p>
+          </div>
+          <div className="flex-shrink-0">
+            <Image
+                src="/logo_cpv_naranja.png"
+                alt="Logo CPV"
+                width={60}
+                height={60}
+                className="object-contain"
+            />
+          </div>
         </header>
 
         <div className="text-center my-2">
