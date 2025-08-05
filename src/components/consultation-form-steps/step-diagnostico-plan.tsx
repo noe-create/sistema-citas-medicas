@@ -7,7 +7,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope, MonitorHeart } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateTreatmentItemInput, Service } from '@/lib/types';
 import { searchCie10Codes, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from '@/components/ui/dialog';
 import { LabOrderForm } from '../lab-order-form';
 import { FormSection } from './form-section';
+import { Checkbox } from '../ui/checkbox';
 
 // Sub-component for CIE-10 Autocomplete
 interface Cie10AutocompleteProps {
@@ -217,10 +218,17 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
     const [prescription, setPrescription] = React.useState<GeneratePrescriptionOutput | null>(null);
     const [isLabOrderOpen, setIsLabOrderOpen] = React.useState(false);
 
-    const { watch } = form;
+    const { watch, control, setValue } = form;
     const diagnoses = watch('diagnoses');
     const treatmentPlan = watch('treatmentPlan');
+    const radiologyNotApplicable = watch('radiologyNotApplicable');
     const canGeneratePrescription = diagnoses.length > 0 && treatmentPlan?.trim().length > 0;
+
+    React.useEffect(() => {
+        if (radiologyNotApplicable) {
+            setValue('radiologyOrder', '');
+        }
+    }, [radiologyNotApplicable, setValue]);
 
     const handleGeneratePrescription = async () => {
         setIsGenerating(true);
@@ -314,6 +322,44 @@ export const StepDiagnosticoPlan = ({ form, patient, onLabOrderChange }: { form:
                         />
                     </DialogContent>
                 </Dialog>
+                
+                <div className="space-y-2 pt-4">
+                     <FormField
+                        control={control}
+                        name="radiologyOrder"
+                        render={({ field }) => (
+                            <FormItem>
+                                <div className="flex justify-between items-center">
+                                    <FormLabel className="flex items-center gap-2"><MonitorHeart className="h-4 w-4 text-muted-foreground"/>Órdenes de Radiología e Imágenes</FormLabel>
+                                    <FormField
+                                        control={control}
+                                        name="radiologyNotApplicable"
+                                        render={({ field: checkboxField }) => (
+                                            <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={checkboxField.value}
+                                                        onCheckedChange={checkboxField.onChange}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="text-xs font-normal">No aplica</FormLabel>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="Especifique los estudios de imagenología requeridos. Ej: RX de Tórax PA y Lateral, Ecografía Abdominal..."
+                                        rows={3}
+                                        {...field}
+                                        disabled={radiologyNotApplicable}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
             </FormSection>
             
             <TreatmentOrderBuilder form={form} />

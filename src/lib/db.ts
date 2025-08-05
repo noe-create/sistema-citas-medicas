@@ -92,11 +92,17 @@ async function runMigrations(dbInstance: Database) {
         console.log("Added createdAt column to personas table.");
     }
     
-    // Migration to add surveyInvitationToken to consultations
+    // Migration for consultations table
     const consultationsCols = await dbInstance.all("PRAGMA table_info('consultations')").catch(() => []);
-    if (consultationsCols.length > 0 && !consultationsCols.some(c => c.name === 'surveyInvitationToken')) {
-        await dbInstance.exec('ALTER TABLE consultations ADD COLUMN surveyInvitationToken TEXT');
-        console.log("Added surveyInvitationToken column to consultations table.");
+    if (consultationsCols.length > 0) {
+        if (!consultationsCols.some(c => c.name === 'surveyInvitationToken')) {
+            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN surveyInvitationToken TEXT');
+            console.log("Added surveyInvitationToken column to consultations table.");
+        }
+        if (!consultationsCols.some(c => c.name === 'radiologyOrders')) {
+            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN radiologyOrders TEXT');
+            console.log("Added radiologyOrders column to consultations table.");
+        }
     }
 
     // Migration for titulares table (tipo -> unidadServicio, empresaId removal)
@@ -266,6 +272,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             signosVitales TEXT,
             examenFisicoGeneral TEXT,
             treatmentPlan TEXT,
+            radiologyOrders TEXT,
             surveyInvitationToken TEXT,
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
         );

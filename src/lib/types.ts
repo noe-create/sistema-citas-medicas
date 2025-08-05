@@ -273,6 +273,7 @@ export interface Consultation {
   treatmentOrder?: TreatmentOrder;
   surveyInvitationToken?: string;
   invoice?: Invoice;
+  radiologyOrders?: string;
 }
 
 export interface CreateConsultationDocumentInput {
@@ -288,6 +289,7 @@ export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'cons
     documents?: CreateConsultationDocumentInput[];
     treatmentItems?: CreateTreatmentItemInput[];
     renderedServices?: Service[];
+    radiologyOrder?: string;
 }
 
 export interface PacienteConInfo extends Persona {

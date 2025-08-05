@@ -807,8 +807,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
                 id, pacienteId, waitlistId, consultationDate, motivoConsulta, enfermedadActual, 
                 revisionPorSistemas, antecedentesPersonales, antecedentesFamiliares, 
                 antecedentesGinecoObstetricos, antecedentesPediatricos, signosVitales, 
-                examenFisicoGeneral, treatmentPlan, surveyInvitationToken
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                examenFisicoGeneral, treatmentPlan, surveyInvitationToken, radiologyOrders
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             consultationId, data.pacienteId, data.waitlistId,
             consultationDate.toISOString(),
             data.motivoConsulta ? JSON.stringify(data.motivoConsulta) : null,
@@ -819,7 +819,8 @@ export async function createConsultation(data: CreateConsultationInput): Promise
             data.antecedentesPediatricos ? JSON.stringify(data.antecedentesPediatricos) : null,
             data.signosVitales ? JSON.stringify(data.signosVitales) : null,
             data.examenFisicoGeneral, data.treatmentPlan,
-            surveyInvitationToken
+            surveyInvitationToken,
+            data.radiologyOrder
         );
         
         if (data.diagnoses && data.diagnoses.length > 0) {
@@ -1730,3 +1731,4 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     
 
     
+

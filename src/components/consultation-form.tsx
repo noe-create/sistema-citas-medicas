@@ -105,6 +105,8 @@ const consultationSchema = z.object({
   diagnosticoLibre: z.string().optional(),
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
   treatmentItems: z.array(treatmentItemSchema).optional(),
+  radiologyOrder: z.string().optional(),
+  radiologyNotApplicable: z.boolean().optional(),
 }).refine(data => (data.diagnoses && data.diagnoses.length > 0) || (!!data.diagnosticoLibre && data.diagnosticoLibre.trim().length > 0), {
     message: 'Debe agregar al menos un diagnóstico del catálogo o especificar uno manualmente.',
     path: ['diagnoses'],
@@ -131,7 +133,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
             { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
             { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
-            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'diagnosticoLibre', 'treatmentPlan', 'treatmentItems'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'diagnosticoLibre', 'treatmentPlan', 'treatmentItems', 'radiologyOrder'] },
         ];
         return baseSteps;
     }, []);
@@ -147,6 +149,8 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             treatmentPlan: '',
             treatmentItems: [],
             examenFisicoGeneral: '',
+            radiologyNotApplicable: false,
+            radiologyOrder: '',
             antecedentesFamiliares: '',
             antecedentesPersonales: {
               patologicos: '',
@@ -202,6 +206,8 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 });
             }
 
+            const radiologyOrderValue = values.radiologyNotApplicable ? 'No aplica' : values.radiologyOrder;
+
             const createdConsultation = await createConsultation({
                 waitlistId: patient.id,
                 pacienteId: patient.pacienteId,
@@ -217,6 +223,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 diagnoses: finalDiagnoses,
                 treatmentPlan: values.treatmentPlan,
                 treatmentItems: values.treatmentItems,
+                radiologyOrder: radiologyOrderValue,
                 renderedServices: [],
             });
 
