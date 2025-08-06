@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,9 +22,15 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     };
 
     return (
-        <div className="w-[10.5cm] h-[17cm] border border-black flex flex-col p-1 bg-white">
+        <div 
+            className="w-[10.5cm] border border-black flex flex-col p-1 bg-white"
+            style={{ height: '21.59cm' }}
+        >
             {/* Header */}
-            <div className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2">
+            <div 
+                className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2"
+                style={{ height: '4.5cm' }}
+            >
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
                 <div className="flex-grow text-center text-black">
                     <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
@@ -34,7 +41,10 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             </div>
 
             {/* Body */}
-            <div className="border-x border-black flex-grow flex flex-col p-2">
+            <div 
+                className="border-x border-black flex flex-col p-2"
+                style={{ height: '13.5cm' }}
+            >
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">Rp./Indicaciones:</p>
                     <div className="flex items-center gap-1 text-sm">
@@ -57,7 +67,10 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             </div>
             
             {/* Footer */}
-            <div className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200">
+            <div 
+                className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200 flex flex-col justify-center"
+                style={{ height: '3.5cm' }}
+            >
                 <div className="flex justify-between">
                     <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                     <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
@@ -74,7 +87,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full py-[3cm] px-[2cm] flex items-center justify-center">
+    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center" style={{ padding: '3cm 2cm' }}>
        <style jsx global>{`
         @media print {
           @page {
