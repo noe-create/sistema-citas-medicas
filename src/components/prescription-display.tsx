@@ -23,6 +23,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     return (
         <div 
             className="w-[10.5cm] border border-black flex flex-col bg-white"
+            style={{ height: '21.59cm' }}
         >
             {/* Header */}
             <div 
@@ -85,7 +86,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center p-[1cm]">
+    <div className="printable-area bg-white text-black font-sans">
        <style jsx global>{`
         @media print {
           @page {
@@ -97,13 +98,26 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             print-color-adjust: exact !important;
           }
           .printable-area {
+            width: 100vw;
+            height: 100vh;
+          }
+          .printable-content {
             width: 100%;
             height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1cm;
+            gap: 1cm;
           }
         }
       `}</style>
-      <div className="flex w-full h-full justify-center items-center gap-[1cm]">
+      <div className="printable-content hidden print:flex print:w-full print:h-full print:justify-center print:items-center print:p-[1cm] print:gap-[1cm]">
         <RecipeBlock consultation={consultation} />
+        <RecipeBlock consultation={consultation} />
+      </div>
+       {/* Fallback for screen view */}
+      <div className="flex w-full h-full justify-center items-center p-[1cm] gap-[1cm] print:hidden">
         <RecipeBlock consultation={consultation} />
       </div>
     </div>
