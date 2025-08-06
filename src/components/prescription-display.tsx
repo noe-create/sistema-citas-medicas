@@ -74,7 +74,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-[27.94cm] h-[21.59cm] p-[2cm] flex items-center justify-center">
+    <div className="printable-area bg-white text-black font-sans w-[27.94cm] h-[21.59cm] p-[2.5cm] flex items-center justify-center">
        <style jsx global>{`
         @media print {
           @page {
