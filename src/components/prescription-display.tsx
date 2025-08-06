@@ -5,7 +5,7 @@ import type { Consultation } from '@/lib/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
+const RecipeBlock = ({ consultation, position }: { consultation: Consultation, position: 'top' | 'bottom' }) => {
     const getSpecialtyTitle = () => {
         const serviceType = (consultation.paciente as any).serviceType;
         switch (serviceType) {
@@ -21,9 +21,22 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     };
 
     return (
-        <div className="w-[10.5cm] h-auto border border-black flex flex-col p-1 bg-white">
+        <div 
+          className="w-[21cm] h-[13.97cm] border border-black flex flex-col p-1 bg-white"
+          style={{
+            // Bleed for central cut
+            ...(position === 'top' && { marginBottom: '3mm' }),
+            ...(position === 'bottom' && { marginTop: '3mm' }),
+          }}
+        >
             {/* Header */}
-             <div className="border border-black rounded-lg p-2 flex items-center justify-between gap-2">
+             <div 
+                className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2"
+                style={{
+                  // Bleed for central cut (bottom recipe's header stretches up)
+                  ...(position === 'bottom' && { paddingTop: 'calc(0.5rem + 3mm)' }),
+                }}
+             >
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
                 <div className="flex-grow text-center text-black">
                     <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
@@ -34,7 +47,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             </div>
 
             {/* Body */}
-            <div className="border-x border-black flex-grow flex flex-col p-2 min-h-[9cm]">
+            <div className="border-x border-black flex-grow flex flex-col p-2">
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">Rp./Indicaciones:</p>
                     <div className="flex items-center gap-1 text-sm">
@@ -56,12 +69,22 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
                 </div>
             </div>
             
-            {/* Footer with bleed adjustment for internal fold */}
-            <div className="border border-black p-2 text-xs text-black font-sans bg-gray-200 rounded-b-lg" style={{ paddingTop: 'calc(0.5rem + 3mm)' }}>
+            {/* Footer */}
+            <div 
+              className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200"
+              style={{ 
+                // Bleed for internal fold (footer stretches up)
+                paddingTop: 'calc(0.5rem + 3mm)',
+                // Bleed for central cut (top recipe's footer stretches down)
+                ...(position === 'top' && { paddingBottom: 'calc(0.5rem + 3mm)' }),
+              }}
+            >
                 <div className="flex justify-between">
                     <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                     <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
                 </div>
+                 <p className="text-center mt-1">Avenida Carabobo, frente al Diagnóstico Urológico La Viña, en la urbanización La Viña, Valencia, Carabobo.</p>
+                 <p className="text-center">Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
             </div>
         </div>
     );
@@ -69,16 +92,15 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
 
 export function PrescriptionDisplay({ consultation }: { consultation: Consultation }) {
-  // This component is designed to be printed on a horizontal Letter-sized sheet.
-  // It creates two identical recipe blocks side-by-side.
-
+  // This component is designed to be printed on a vertical Letter-sized sheet.
+  // It creates two identical recipe blocks, one above the other.
   return (
-    <div className="printable-area bg-white text-black font-sans p-4">
+    <div className="printable-area bg-white text-black font-sans w-[21.59cm] h-[27.94cm] p-[1cm] flex flex-col justify-center items-center">
       {/* Print-specific styles to ensure layout is respected */}
       <style jsx global>{`
         @media print {
           @page {
-            size: letter landscape;
+            size: letter portrait;
             margin: 0;
           }
           body {
@@ -86,25 +108,24 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             print-color-adjust: exact !important;
           }
           .printable-area {
-            margin: auto;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 100vw;
-            height: 100vh;
           }
         }
       `}</style>
       
-      <div className="flex justify-center items-center gap-8">
-        <div className="flex flex-col gap-4">
-            <div style={{ marginBottom: '-3mm' }}>
-                <RecipeBlock consultation={consultation} />
-            </div>
-            <div style={{ marginTop: '-3mm' }}>
-                <RecipeBlock consultation={consultation} />
-            </div>
-        </div>
+      <div className="flex flex-col">
+          <div style={{ marginBottom: '-3mm' }}>
+            <RecipeBlock consultation={consultation} position="top" />
+          </div>
+          <div style={{ marginTop: '-3mm' }}>
+            <RecipeBlock consultation={consultation} position="bottom" />
+          </div>
       </div>
 
     </div>
