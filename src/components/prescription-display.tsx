@@ -23,7 +23,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="w-[11cm] border border-black flex flex-col bg-white"
+            className="w-[10.5cm] border border-black flex flex-col bg-white"
             style={{ height: '21.59cm' }}
         >
             {/* Header */}
