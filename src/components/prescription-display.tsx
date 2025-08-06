@@ -34,7 +34,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             </div>
 
             {/* Body */}
-            <div className="border border-black flex-grow mt-1 flex flex-col p-2 min-h-[14cm]">
+            <div className="border-x border-black flex-grow flex flex-col p-2 min-h-[9cm]">
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">Rp./Indicaciones:</p>
                     <div className="flex items-center gap-1 text-sm">
@@ -56,13 +56,12 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
                 </div>
             </div>
             
-            {/* Footer */}
-            <div className="border border-black mt-1 p-2 text-xs text-black font-sans">
-                <div className="flex justify-between border-b-2 border-black pb-1 mb-1">
+            {/* Footer with bleed adjustment for internal fold */}
+            <div className="border border-black p-2 text-xs text-black font-sans bg-gray-200 rounded-b-lg" style={{ paddingTop: 'calc(0.5rem + 3mm)' }}>
+                <div className="flex justify-between">
                     <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                     <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
                 </div>
-                <p className="text-center">Avenida Carabobo, frente al Diagnóstico Urológico La Viña, en la urbanización La Viña, Valencia, Carabobo.Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
             </div>
         </div>
     );
@@ -90,16 +89,22 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             margin: auto;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Align to top */
+            align-items: center;
             width: 100vw;
             height: 100vh;
           }
         }
       `}</style>
       
-      <div className="flex justify-center items-start gap-8">
-        <RecipeBlock consultation={consultation} />
-        <RecipeBlock consultation={consultation} />
+      <div className="flex justify-center items-center gap-8">
+        <div className="flex flex-col gap-4">
+            <div style={{ marginBottom: '-3mm' }}>
+                <RecipeBlock consultation={consultation} />
+            </div>
+            <div style={{ marginTop: '-3mm' }}>
+                <RecipeBlock consultation={consultation} />
+            </div>
+        </div>
       </div>
 
     </div>
