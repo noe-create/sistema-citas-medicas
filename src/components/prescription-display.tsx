@@ -43,27 +43,27 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
       `}</style>
 
       {/* PAGE 1: EXTERIOR (Cover and Back Cover) */}
-      <div className="print-page w-[21.59cm] h-[27.94cm] border flex flex-col m-auto">
+      <div className="print-page w-[21.59cm] h-[27.94cm] flex flex-col m-auto">
         {/* TOP HALF: BACK COVER (Rotated 180 degrees) */}
-        <div className="w-full h-1/2 border-b flex-shrink-0" style={{ transform: 'rotate(180deg)' }}>
-          <div className="w-full h-full p-[2cm]">
+        <div className="w-full h-1/2 flex-shrink-0" style={{ transform: 'rotate(180deg)' }}>
+          <div className="w-full h-full p-[2cm] border">
             {/* Back cover content would go here, currently blank as requested */}
           </div>
         </div>
         
         {/* BOTTOM HALF: FRONT COVER */}
         <div className="w-full h-1/2 flex-shrink-0">
-          <div className="w-full h-full p-[2cm] flex flex-col items-center justify-center">
+          <div className="w-full h-full p-[2cm] flex flex-col items-center justify-center border">
             <SaludIntegralLogo className="w-[5cm] h-auto" />
           </div>
         </div>
       </div>
 
       {/* PAGE 2: INTERIOR (Recipe and General Indications) */}
-      <div className="print-page w-[21.59cm] h-[27.94cm] border flex flex-col m-auto">
+      <div className="print-page w-[21.59cm] h-[27.94cm] flex flex-col m-auto">
         {/* TOP HALF: GENERAL INDICATIONS */}
-        <div className="w-full h-1/2 border-b flex-shrink-0 relative">
-          <div className="w-full h-full p-[2cm]">
+        <div className="w-full h-1/2 flex-shrink-0 relative">
+          <div className="w-full h-full p-[2cm] border">
             <SaludIntegralLogo className="w-[3cm] h-auto absolute top-[2cm] right-[2cm]" />
              {/* General indications content would go here */}
           </div>
@@ -71,7 +71,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
         
         {/* BOTTOM HALF: MAIN RECIPE BODY */}
         <div className="w-full h-1/2 flex-shrink-0">
-           <div className="w-full h-full p-[2cm]">
+           <div className="w-full h-full p-[2cm] border">
              {/* Main recipe content (patient info, Rp, signature) would go here */}
            </div>
         </div>
