@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -87,7 +86,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center py-[3cm] px-[2cm]">
+    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center py-[3cm]">
        <style jsx global>{`
         @media print {
           @page {
