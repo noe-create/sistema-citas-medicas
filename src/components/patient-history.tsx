@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { getPatientHistory } from '@/actions/patient-actions';
 import type { HistoryEntry, LabOrder, Consultation } from '@/lib/types';
-import { Loader2, Calendar, ClipboardCheck, Printer } from 'lucide-react';
+import { Loader2, Calendar, ClipboardCheck, Printer, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,21 +14,25 @@ import { MedicalReportDisplay } from './medical-report-display';
 import { Button } from './ui/button';
 import { PrescriptionDisplay } from './prescription-display';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 interface PatientHistoryProps {
   personaId: string;
+}
+
+type DocumentToView = {
+    type: 'informe' | 'recipe' | 'laboratorio';
+    data: Consultation | LabOrder;
 }
 
 export function PatientHistory({ personaId }: PatientHistoryProps) {
   const [history, setHistory] = React.useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [selectedEntry, setSelectedEntry] = React.useState<HistoryEntry | null>(null);
+  const [documentToView, setDocumentToView] = React.useState<DocumentToView | null>(null);
   const { toast } = useToast();
   
-  const medicalReportRef = React.useRef<HTMLDivElement>(null);
-  const prescriptionRef = React.useRef<HTMLDivElement>(null);
-  const labOrderRef = React.useRef<HTMLDivElement>(null);
-
+  const printRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     async function fetchHistory() {
@@ -54,9 +58,9 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     }
     fetchHistory();
   }, [personaId, toast]);
-
-  const handlePrint = (nodeRef: React.RefObject<HTMLDivElement>) => {
-    const node = nodeRef.current;
+  
+  const handlePrint = () => {
+    const node = printRef.current;
     if (!node) return;
 
     const iframe = document.createElement('iframe');
@@ -107,6 +111,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     }, 500);
   };
 
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -133,6 +138,15 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   const selectedConsultation = selectedEntry?.type === 'consultation' ? selectedEntry.data as Consultation : null;
   const associatedLabOrder = selectedConsultation ? findLabOrderForConsultation(selectedConsultation.id) : null;
   
+  const getModalTitle = () => {
+    if (!documentToView) return '';
+    switch(documentToView.type) {
+        case 'informe': return 'Visor de Informe Médico';
+        case 'recipe': return 'Visor de Récipe Médico';
+        case 'laboratorio': return 'Visor de Orden de Laboratorio';
+    }
+  }
+
   return (
     <div className="flex gap-6">
         <aside className="w-1/4">
@@ -156,58 +170,84 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
         <main className="w-3/4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Visor de Documentos</CardTitle>
-                    <CardDescription>Seleccione un documento del historial y luego utilice los botones para imprimir.</CardDescription>
+                    <CardTitle>Documentos de la Visita</CardTitle>
+                    <CardDescription>Seleccione un documento del historial y luego utilice los botones para ver o imprimir.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      {selectedConsultation ? (
-                        <>
-                            <div className="p-4 border rounded-lg">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-semibold">Informe Médico</h4>
-                                    <Button onClick={() => handlePrint(medicalReportRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Informe</Button>
-                                </div>
-                                <div ref={medicalReportRef}><MedicalReportDisplay consultation={selectedConsultation} /></div>
-                            </div>
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader className="flex-row justify-between items-center">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-lg">Informe Médico</CardTitle>
+                                        <CardDescription>Resumen de la consulta médica.</CardDescription>
+                                    </div>
+                                    <Button onClick={() => setDocumentToView({ type: 'informe', data: selectedConsultation })}>Ver e Imprimir</Button>
+                                </CardHeader>
+                            </Card>
                             
                             {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
-                                <div className="p-4 border rounded-lg">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-semibold">Récipe Médico</h4>
-                                        <Button onClick={() => handlePrint(prescriptionRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Récipe</Button>
-                                    </div>
-                                    <div ref={prescriptionRef}><PrescriptionDisplay consultation={selectedConsultation} /></div>
-                                </div>
+                                <Card>
+                                    <CardHeader className="flex-row justify-between items-center">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-lg">Récipe Médico</CardTitle>
+                                            <CardDescription>Indicaciones y medicamentos.</CardDescription>
+                                        </div>
+                                        <Button onClick={() => setDocumentToView({ type: 'recipe', data: selectedConsultation })}>Ver e Imprimir</Button>
+                                    </CardHeader>
+                                </Card>
                             )}
 
                             {associatedLabOrder && (
-                                <div className="p-4 border rounded-lg">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-semibold">Orden de Laboratorio</h4>
-                                        <Button onClick={() => handlePrint(labOrderRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden</Button>
-                                    </div>
-                                    <div ref={labOrderRef}><LabOrderDisplay order={associatedLabOrder} /></div>
-                                </div>
+                               <Card>
+                                    <CardHeader className="flex-row justify-between items-center">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-lg">Orden de Laboratorio</CardTitle>
+                                            <CardDescription>Exámenes de laboratorio solicitados.</CardDescription>
+                                        </div>
+                                        <Button onClick={() => setDocumentToView({ type: 'laboratorio', data: associatedLabOrder })}>Ver e Imprimir</Button>
+                                    </CardHeader>
+                                </Card>
                             )}
-                        </>
-                    ) : selectedEntry?.type === 'lab_order' ? (
-                        <div className="p-4 border rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                                <h4 className="font-semibold">Orden de Laboratorio</h4>
-                                <Button onClick={() => handlePrint(labOrderRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden</Button>
-                            </div>
-                            <div ref={labOrderRef}><LabOrderDisplay order={selectedEntry.data as LabOrder} /></div>
                         </div>
+                    ) : selectedEntry?.type === 'lab_order' ? (
+                        <Card>
+                            <CardHeader className="flex-row justify-between items-center">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-lg">Orden de Laboratorio</CardTitle>
+                                    <CardDescription>Exámenes de laboratorio solicitados.</CardDescription>
+                                </div>
+                                <Button onClick={() => setDocumentToView({ type: 'laboratorio', data: selectedEntry.data as LabOrder })}>Ver e Imprimir</Button>
+                            </CardHeader>
+                        </Card>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                            <p>Seleccione una entrada del historial para ver los detalles.</p>
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center border-dashed border rounded-lg">
+                             <FileText className="h-10 w-10 mb-2" />
+                            <p>Seleccione una entrada del historial para ver los documentos disponibles.</p>
                         </div>
                     )}
                 </CardContent>
             </Card>
         </main>
+        
+        <Dialog open={!!documentToView} onOpenChange={(open) => !open && setDocumentToView(null)}>
+            <DialogContent className="max-w-5xl">
+                <DialogHeader>
+                    <DialogTitle>{getModalTitle()}</DialogTitle>
+                    <DialogDescription>
+                        Puede usar el botón de abajo para imprimir este documento.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[70vh] overflow-auto">
+                    {documentToView?.type === 'informe' && <div ref={printRef}><MedicalReportDisplay consultation={documentToView.data as Consultation} /></div>}
+                    {documentToView?.type === 'recipe' && <div ref={printRef}><PrescriptionDisplay consultation={documentToView.data as Consultation} /></div>}
+                    {documentToView?.type === 'laboratorio' && <div ref={printRef}><LabOrderDisplay order={documentToView.data as LabOrder} /></div>}
+                </div>
+                <div className="flex justify-end pt-4">
+                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Imprimir Documento</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
-
-
