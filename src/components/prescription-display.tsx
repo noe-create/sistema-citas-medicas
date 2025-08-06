@@ -3,20 +3,77 @@
 
 import * as React from 'react';
 import type { Consultation } from '@/lib/types';
-import { SaludIntegralLogo } from './logo-salud-integral';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const RecipeBlock = ({ consultation }: { consultation: Consultation }) => (
+    <div className="w-[10.5cm] h-[19cm] border border-blue-800 flex flex-col p-1 bg-white">
+        {/* Header */}
+        <div className="border border-blue-800 rounded-lg p-2 flex items-center gap-2">
+            <svg
+                className="w-8 h-8 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                stroke="#000080"
+            >
+                <path d="M7 21C7.83391 21.0456 8.66014 20.8226 9.37 20.36L12 18.5L14.63 20.36C15.3399 20.8226 16.1661 21.0456 17 21H7Z" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 21V11C17 9 16 8 15 8H9C8 8 7 9 7 11V21" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M15 8V6C15 4 14.5 2 12 2C9.5 2 9 4 9 6V8" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="flex-grow text-center text-blue-800">
+                <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
+                <p className="text-xs font-sans font-semibold">MÉDICO ODONTÓLOGO</p>
+                <p className="text-xs font-sans">RIF.: V200561698</p>
+            </div>
+        </div>
+
+        {/* Body */}
+        <div className="border border-blue-800 flex-grow mt-1 flex flex-col p-2">
+            <div className="flex justify-between items-start text-blue-800">
+                <p className="text-sm font-semibold">Rp./Indicaciones:</p>
+                <div className="flex items-center gap-1">
+                    <p className="text-sm">Fecha</p>
+                    <div className="flex gap-0.5">
+                        <div className="w-4 h-4 border border-blue-800"></div>
+                        <div className="w-4 h-4 border border-blue-800"></div>
+                        <div className="w-4 h-4 border border-blue-800"></div>
+                    </div>
+                </div>
+            </div>
+            {/* Prescription content area */}
+            <div className="flex-grow min-h-[12cm]">
+              {consultation.treatmentOrder?.items.map((item, index) => (
+                <p key={index} className="text-sm font-sans text-black py-1">
+                    - {item.medicamentoProcedimiento} {item.dosis} {item.via} {item.frecuencia} {item.duracion}
+                </p>
+              ))}
+            </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="border border-blue-800 mt-1 p-2 text-xs text-blue-800 font-sans">
+            <div className="flex justify-between border-b-2 border-blue-800 pb-1 mb-1">
+                <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
+                <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
+            </div>
+            <p className="text-center">Calle Froilan Correa, Edif. Don Pepe, Cagua Estado Aragua. Telf: (0412) 539.10.25</p>
+        </div>
+    </div>
+);
+
 
 export function PrescriptionDisplay({ consultation }: { consultation: Consultation }) {
-  // NOTE: This component is designed to be printed on a vertical Letter-sized sheet (8.5in x 11in).
-  // The layout is a diptych, meant to be folded in the middle.
-  // Printing should be double-sided, flipping on the long edge.
+  // This component is designed to be printed on a horizontal Letter-sized sheet.
+  // It creates two identical recipe blocks side-by-side.
 
   return (
-    <div className="printable-area bg-white text-black font-sans">
+    <div className="printable-area bg-white text-black font-sans p-4">
       {/* Print-specific styles to ensure layout is respected */}
       <style jsx global>{`
         @media print {
           @page {
-            size: letter portrait;
+            size: letter landscape;
             margin: 0;
           }
           body {
@@ -24,57 +81,20 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             print-color-adjust: exact !important;
           }
           .printable-area {
-            margin: 0;
-            padding: 0;
+            margin: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100vw;
             height: 100vh;
-          }
-          .print-page {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            page-break-after: always;
-          }
-          .print-page:last-child {
-            page-break-after: avoid;
+            gap: 0.5cm;
           }
         }
       `}</style>
-
-      {/* PAGE 1: EXTERIOR (Cover and Back Cover) */}
-      <div className="print-page w-[21.59cm] h-[27.94cm] flex flex-col m-auto">
-        {/* TOP HALF: BACK COVER (Rotated 180 degrees) */}
-        <div className="w-full h-1/2 flex-shrink-0" style={{ transform: 'rotate(180deg)' }}>
-          <div className="w-full h-full p-[2cm] border">
-            {/* Back cover content would go here, currently blank as requested */}
-          </div>
-        </div>
-        
-        {/* BOTTOM HALF: FRONT COVER */}
-        <div className="w-full h-1/2 flex-shrink-0">
-          <div className="w-full h-full p-[2cm] flex flex-col items-center justify-center border">
-            <SaludIntegralLogo className="w-[5cm] h-auto" />
-          </div>
-        </div>
-      </div>
-
-      {/* PAGE 2: INTERIOR (Recipe and General Indications) */}
-      <div className="print-page w-[21.59cm] h-[27.94cm] flex flex-col m-auto">
-        {/* TOP HALF: GENERAL INDICATIONS */}
-        <div className="w-full h-1/2 flex-shrink-0 relative">
-          <div className="w-full h-full p-[2cm] border">
-            <SaludIntegralLogo className="w-[3cm] h-auto absolute top-[2cm] right-[2cm]" />
-             {/* General indications content would go here */}
-          </div>
-        </div>
-        
-        {/* BOTTOM HALF: MAIN RECIPE BODY */}
-        <div className="w-full h-1/2 flex-shrink-0">
-           <div className="w-full h-full p-[2cm] border">
-             {/* Main recipe content (patient info, Rp, signature) would go here */}
-           </div>
-        </div>
+      
+      <div className="flex justify-center items-center gap-4">
+        <RecipeBlock consultation={consultation} />
+        <RecipeBlock consultation={consultation} />
       </div>
 
     </div>
