@@ -23,12 +23,12 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="w-[10.5cm] border border-black flex flex-col p-1 bg-white"
+            className="w-[10.5cm] border border-black flex flex-col bg-white"
             style={{ height: '21.59cm' }}
         >
             {/* Header */}
             <div 
-                className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2"
+                className="border-b border-black rounded-t-lg p-[1cm] flex items-center justify-between gap-2"
                 style={{ height: '4.5cm' }}
             >
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
@@ -42,7 +42,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
             {/* Body */}
             <div 
-                className="border-x border-black flex flex-col p-2"
+                className="border-b border-black flex flex-col p-[1cm] flex-grow"
                 style={{ height: '13.5cm' }}
             >
                 <div className="flex justify-between items-start text-black">
@@ -68,7 +68,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             
             {/* Footer */}
             <div 
-                className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200 flex flex-col justify-center"
+                className="rounded-b-lg p-[1cm] text-xs text-black font-sans bg-gray-200 flex flex-col justify-center"
                 style={{ height: '3.5cm' }}
             >
                 <div className="flex justify-between">
@@ -87,7 +87,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center" style={{ padding: '3cm 2cm' }}>
+    <div className="printable-area bg-white text-black font-sans w-full h-full flex items-center justify-center py-[3.0cm] px-[2.0cm]">
        <style jsx global>{`
         @media print {
           @page {
