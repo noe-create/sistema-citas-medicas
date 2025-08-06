@@ -6,7 +6,7 @@ import Image from 'next/image';
 export function DocumentHeader() {
   return (
     <header className="flex justify-between items-center text-center pb-2 border-b-2 border-black">
-      <div className="w-24">
+      <div className="w-24 h-auto">
         <Image src="/logo_salud_integral.svg" alt="Logo Salud Integral" width={100} height={50} />
       </div>
       <div className="flex flex-col items-center flex-grow px-4">
@@ -18,7 +18,7 @@ export function DocumentHeader() {
           <p>Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
         </div>
       </div>
-      <div className="w-24">
+      <div className="w-24 h-auto">
         <Image src="/logo_cpv.svg" alt="Logo CPV" width={100} height={50} />
       </div>
     </header>
