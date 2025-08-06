@@ -86,7 +86,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
   // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans">
+    <div className="printable-area bg-white text-black font-sans flex justify-center items-center gap-[1cm] p-[1cm]">
        <style jsx global>{`
         @media print {
           @page {
@@ -97,29 +97,10 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .printable-area {
-            width: 100vw;
-            height: 100vh;
-          }
-          .printable-content {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1cm;
-            gap: 1cm;
-          }
         }
       `}</style>
-      <div className="printable-content hidden print:flex print:w-full print:h-full print:justify-center print:items-center print:p-[1cm] print:gap-[1cm]">
-        <RecipeBlock consultation={consultation} />
-        <RecipeBlock consultation={consultation} />
-      </div>
-       {/* Fallback for screen view */}
-      <div className="flex w-full h-full justify-center items-center p-[1cm] gap-[1cm] print:hidden">
-        <RecipeBlock consultation={consultation} />
-      </div>
+      <RecipeBlock consultation={consultation} />
+      <RecipeBlock consultation={consultation} />
     </div>
   );
 }
