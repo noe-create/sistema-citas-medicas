@@ -36,7 +36,13 @@ export function PrescriptionDisplay({ consultation }: PrescriptionDisplayProps) 
   return (
     <Card className="h-full border-primary/50 text-sm printable-area">
        <div className="p-4 printable-content">
-            <DocumentHeader />
+            <div className="flex items-center px-4">
+                <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '60px' }} />
+                <div className="flex-grow">
+                  <DocumentHeader />
+                </div>
+                <img src="/logo_si.png" alt="Logo Salud Integral Derecha" style={{ height: '60px' }} />
+            </div>
 
             <div className="text-center my-2">
                 <h2 className="font-semibold text-base">Récipe Médico</h2>
