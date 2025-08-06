@@ -40,7 +40,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
                 <div className="flex-grow text-center text-blue-800">
                     <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
                     <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
-                    <p className="text-xs font-sans">RIF.: V200561698</p>
+                    <p className="text-xs font-sans">Rif: J075055861</p>
                 </div>
             </div>
 
