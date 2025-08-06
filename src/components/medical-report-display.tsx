@@ -39,12 +39,12 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   return (
     <Card className="h-full border-primary/50 text-sm printable-area">
       <div className="p-4 printable-content">
-        <div className="flex items-center px-4">
-            <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '60px' }} />
+        <div className="flex items-center px-6">
+            <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '70px' }} />
             <div className="flex-grow">
               <DocumentHeader />
             </div>
-            <img src="/logo_si.png" alt="Logo Salud Integral Derecha" style={{ height: '60px' }} />
+            <img src="/logo_si.png" alt="Logo Salud Integral Derecha" style={{ height: '70px' }} />
         </div>
 
         <div className="text-center my-2">
