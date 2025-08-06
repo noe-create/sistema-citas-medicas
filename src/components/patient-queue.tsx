@@ -26,7 +26,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { calculateAge } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { RescheduleForm } from './reschedule-form';
-import { PostConsultationRecipeViewer } from './post-consultation-recipe-viewer';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina general': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina General' },
@@ -57,7 +56,6 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
   const [patientToReschedule, setPatientToReschedule] = React.useState<Patient | null>(null);
-  const [completedConsultation, setCompletedConsultation] = React.useState<Consultation | null>(null);
 
   if (!user) {
     return null;
@@ -175,7 +173,6 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     onListRefresh();
     setIsSheetOpen(false);
     setSelectedPatientId(null);
-    setCompletedConsultation(consultation);
   };
 
   const visibleServices = React.useMemo(() => {
@@ -360,13 +357,6 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
                   <RescheduleForm onSubmit={handleRescheduleSubmit} />
               </DialogContent>
           </Dialog>
-      )}
-      
-      {completedConsultation && (
-        <PostConsultationRecipeViewer
-          consultation={completedConsultation}
-          onClose={() => setCompletedConsultation(null)}
-        />
       )}
     </>
   );

@@ -186,7 +186,7 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
                                 </CardHeader>
                             </Card>
                             
-                            {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
+                            {(selectedConsultation.treatmentPlan || (selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0)) && (
                                 <Card>
                                     <CardHeader className="flex-row justify-between items-center">
                                         <div className="space-y-1">
