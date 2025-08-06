@@ -312,6 +312,8 @@ export interface LabOrder {
     tests: string[];
     // Denormalized for display
     paciente: Persona & { nombreCompleto?: string; cedula?: string; };
+    diagnosticoPrincipal?: string;
+    treatmentPlan?: string;
 }
 
 export type HistoryEntry =

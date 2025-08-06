@@ -750,8 +750,10 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     );
 
     const labOrdersRows = await await db.all(
-        `SELECT lo.* FROM lab_orders lo
+        `SELECT lo.*, c.treatmentPlan, (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = lo.consultationId) as diagnosticoPrincipal
+         FROM lab_orders lo
          JOIN pacientes pac ON lo.pacienteId = pac.id
+         JOIN consultations c ON lo.consultationId = c.id
          WHERE pac.personaId = ?
          ORDER BY lo.orderDate DESC`,
         personaId
@@ -769,7 +771,9 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
                 paciente: {
                     ...persona,
                     fechaNacimiento: new Date(persona.fechaNacimiento)
-                }
+                },
+                diagnosticoPrincipal: order.diagnosticoPrincipal,
+                treatmentPlan: order.treatmentPlan
             }
         };
     }));
@@ -1614,6 +1618,12 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
     revalidatePath('/dashboard/hce');
     
     const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p JOIN pacientes ON p.id = pacientes.personaId WHERE pacientes.id = ?`, pacienteId);
+    
+    const consultationInfo = await db.get(
+      `SELECT treatmentPlan, (SELECT GROUP_CONCAT(cie10Description, '; ') FROM consultation_diagnoses WHERE consultationId = c.id) as diagnosticoPrincipal
+       FROM consultations c WHERE c.id = ?`,
+      consultationId
+    );
 
     return {
         id: orderId,
@@ -1625,7 +1635,9 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
         paciente: {
             ...persona,
             fechaNacimiento: new Date(persona.fechaNacimiento),
-        }
+        },
+        diagnosticoPrincipal: consultationInfo?.diagnosticoPrincipal,
+        treatmentPlan: consultationInfo?.treatmentPlan,
     };
 }
 
@@ -1731,4 +1743,5 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     
 
     
+
 

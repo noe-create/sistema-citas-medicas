@@ -53,8 +53,19 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
             </section>
         
             <div className="space-y-4 text-left mt-4">
+                {(order.diagnosticoPrincipal || order.treatmentPlan) && (
+                  <section>
+                      <h4 className="font-bold underline">IMPRESIÓN DIAGNÓSTICA Y PLAN</h4>
+                      {order.diagnosticoPrincipal && <p><strong>Diagnóstico:</strong> {order.diagnosticoPrincipal}</p>}
+                      {order.treatmentPlan && <p><strong>Plan:</strong> {order.treatmentPlan}</p>}
+                  </section>
+                )}
+
+                <div className="border-t border-black my-4"></div>
+
                 <div>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-2">
+                    <h4 className="font-bold underline">EXÁMENES SOLICITADOS</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-2 mt-2">
                       {order.tests.map((test, index) => (
                         <li key={index}>{test}</li>
                       ))}
