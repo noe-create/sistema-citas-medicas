@@ -32,7 +32,7 @@ const RecipeColumn = ({ consultation }: { consultation: Consultation }) => {
   return (
     <div className="flex flex-col h-full p-4">
       {/* Encabezado */}
-      <div className="flex items-center">
+      <div className="flex items-center px-8">
           <img src="/logo_salud_integral.svg" alt="Logo Salud Integral Izquierda" style={{ height: '80px' }} />
           <div className="flex-grow text-center text-xs">
               <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
@@ -66,7 +66,7 @@ const RecipeColumn = ({ consultation }: { consultation: Consultation }) => {
       </div>
 
       {/* Firma */}
-      <div className="flex flex-col items-center justify-end pt-8">
+      <div className="flex flex-col items-center justify-end pt-8 mt-auto">
           <div className="w-48 border-b border-black"></div>
           <p className="font-semibold text-xs mt-1">Firma y Sello</p>
       </div>
@@ -77,17 +77,10 @@ const RecipeColumn = ({ consultation }: { consultation: Consultation }) => {
 
 export function PrescriptionDisplay({ consultation }: PrescriptionDisplayProps) {
   return (
-    <div className="printable-area printable-recipe-horizontal text-black bg-white">
-        <div className="flex h-full">
-            <div className="w-1/2 h-full">
-                <RecipeColumn consultation={consultation} />
-            </div>
-            <div className="border-l border-dashed border-gray-400 h-full"></div>
-            <div className="w-1/2 h-full">
-                <RecipeColumn consultation={consultation} />
-            </div>
+    <div className="printable-area text-black bg-white">
+        <div className="h-full">
+            <RecipeColumn consultation={consultation} />
         </div>
     </div>
   );
 }
-
