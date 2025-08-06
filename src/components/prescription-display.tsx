@@ -5,7 +5,7 @@ import type { Consultation } from '@/lib/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
+const RecipeBlock = ({ consultation, label }: { consultation: Consultation, label: string }) => {
     const getSpecialtyTitle = () => {
         const serviceType = (consultation.paciente as any).serviceType;
         switch (serviceType) {
@@ -45,7 +45,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
                 style={{ height: '13.5cm' }}
             >
                 <div className="flex justify-between items-start text-black">
-                    <p className="text-sm font-semibold">Rp./Indicaciones:</p>
+                    <p className="text-sm font-semibold">{label}</p>
                     <div className="flex items-center gap-1 text-sm">
                         <span>Fecha:</span>
                         <div className="flex gap-0.5">
@@ -106,9 +106,9 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
           }
         }
       `}</style>
-      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm]">
-        <RecipeBlock consultation={consultation} />
-        <RecipeBlock consultation={consultation} />
+      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm] p-[1cm]">
+        <RecipeBlock consultation={consultation} label="Medicamentos:" />
+        <RecipeBlock consultation={consultation} label="Rp./Indicaciones:" />
       </div>
     </div>
   );
