@@ -23,8 +23,8 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="w-[10.5cm] border border-black flex flex-col bg-white"
-            style={{ height: '21.59cm' }}
+            className="w-full border border-black flex flex-col bg-white"
+            style={{ height: '13.59cm' }} 
         >
             {/* Header */}
             <div 
@@ -43,7 +43,6 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             {/* Body */}
             <div 
                 className="border-b border-black flex flex-col p-[1cm] flex-grow"
-                style={{ height: '13.5cm' }}
             >
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">Rp./Indicaciones:</p>
@@ -84,14 +83,14 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
 
 export function PrescriptionDisplay({ consultation }: { consultation: Consultation }) {
-  // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
-  // It creates two identical recipe blocks side-by-side to fill a horizontal page.
+  // This component is designed to be printed on a Letter-sized sheet in portrait,
+  // with two recipes stacked vertically.
   return (
-    <div className="printable-area bg-white text-black font-sans flex justify-center items-center gap-4 p-4">
+    <div className="printable-area bg-white text-black font-sans p-[1cm] w-full">
        <style jsx global>{`
         @media print {
           @page {
-            size: letter landscape;
+            size: letter portrait;
             margin: 0;
           }
           body {
@@ -100,8 +99,11 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
           }
         }
       `}</style>
-      <RecipeBlock consultation={consultation} />
-      <RecipeBlock consultation={consultation} />
+      <div className="w-full h-full flex flex-col">
+        <RecipeBlock consultation={consultation} />
+        <div className="border-t border-dashed border-gray-400 my-2"></div>
+        <RecipeBlock consultation={consultation} />
+      </div>
     </div>
   );
 }
