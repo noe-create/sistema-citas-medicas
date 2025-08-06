@@ -23,7 +23,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="w-[10.5cm] border border-black flex flex-col bg-white"
+            className="flex-1 border border-black flex flex-col bg-white h-full"
         >
             {/* Header */}
             <div 
@@ -85,23 +85,27 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a Letter-sized sheet in landscape,
   // with two recipes side-by-side.
   return (
-    <div className="printable-area bg-white text-black font-sans p-[1cm] w-full min-h-screen">
+    <div className="printable-area bg-white text-black font-sans w-full h-full">
        <style jsx global>{`
         @media print {
           @page {
             size: letter landscape;
-            margin: 0;
+            margin: 1cm;
           }
           body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            margin: 0;
+            padding: 0;
           }
           .printable-area {
             display: block !important;
+            width: 100%;
+            height: 100%;
           }
         }
       `}</style>
-      <div className="w-full h-full flex flex-row items-center justify-center gap-[1cm]">
+      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm]">
         <RecipeBlock consultation={consultation} />
         <RecipeBlock consultation={consultation} />
       </div>
