@@ -7,7 +7,7 @@ export function DocumentHeader() {
   return (
     <header className="flex justify-between items-center text-center pb-2 border-b-2 border-black">
       <div className="w-24">
-        <Image src="/logo_salud_integral.svg" alt="Logo Salud Integral" className="w-full h-auto" width="0" height="0" sizes="100vw" />
+        <Image src="/logo_salud_integral.svg" alt="Logo Salud Integral" width={100} height={50} />
       </div>
       <div className="flex flex-col items-center flex-grow px-4">
         <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
@@ -19,7 +19,7 @@ export function DocumentHeader() {
         </div>
       </div>
       <div className="w-24">
-        <Image src="/logo_cpv.svg" alt="Logo CPV" className="w-full h-auto" width="0" height="0" sizes="100vw" />
+        <Image src="/logo_cpv.svg" alt="Logo CPV" width={100} height={50} />
       </div>
     </header>
   );
