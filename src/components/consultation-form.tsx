@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -11,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, ArrowRight, Save } from 'lucide-react';
-import type { Patient, Service } from '@/lib/types';
+import type { Patient, Service, Consultation } from '@/lib/types';
 import { createConsultation, createLabOrder } from '@/actions/patient-actions';
 import { calculateAge, cn } from '@/lib/utils';
 import { StepAnamnesis } from './consultation-form-steps/step-anamnesis';
@@ -114,7 +113,7 @@ const consultationSchema = z.object({
 
 interface ConsultationFormProps {
     patient: Patient;
-    onConsultationComplete: () => void;
+    onConsultationComplete: (consultation: Consultation) => void;
 }
 
 // --- Main Form Component ---
@@ -189,7 +188,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step - 1);
+            setCurrentStep(step => step + 1);
         }
     };
     
@@ -236,13 +235,8 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 });
             }
             
-            toast({
-                title: 'Consulta Guardada y Completada',
-                description: `La historia clínica de ${patient.name} ha sido actualizada.`,
-            });
-            
             form.reset();
-            onConsultationComplete();
+            onConsultationComplete(createdConsultation);
 
         } catch (error) {
             console.error("Error saving consultation:", error);

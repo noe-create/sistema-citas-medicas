@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Patient } from '@/lib/types';
+import type { Patient, Consultation } from '@/lib/types';
 import { ConsentFormSuggester } from './consent-form-suggester';
 import { PatientHistory } from './patient-history';
 import dynamic from 'next/dynamic';
@@ -25,7 +25,7 @@ interface ManagePatientDialogProps {
   patient: Patient;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onConsultationComplete: () => void;
+  onConsultationComplete: (consultation: Consultation) => void;
 }
 
 export function ManagePatientDialog({ patient, isOpen, onOpenChange, onConsultationComplete }: ManagePatientDialogProps) {
