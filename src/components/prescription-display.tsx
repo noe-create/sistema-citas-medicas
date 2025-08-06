@@ -23,7 +23,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="flex-1 border border-black flex flex-col bg-white h-full"
+            className="flex-1 border border-black flex flex-col bg-white"
         >
             {/* Header */}
             <div 
@@ -41,7 +41,8 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
             {/* Body */}
             <div 
-                className="border-b border-black flex flex-col p-[1cm] flex-grow"
+                className="border-b border-black flex flex-col p-[1cm]"
+                style={{ height: '13.5cm' }}
             >
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">Rp./Indicaciones:</p>
@@ -105,7 +106,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
           }
         }
       `}</style>
-      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm]">
+      <div className="w-full h-full flex flex-row items-stretch justify-center gap-4">
         <RecipeBlock consultation={consultation} />
         <RecipeBlock consultation={consultation} />
       </div>
