@@ -31,9 +31,10 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
             >
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
                 <div className="flex-grow text-center text-black">
-                    <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
-                    <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
+                    <h2 className="text-xl font-serif font-bold">Centro Policlínico Valencia C.A.</h2>
                     <p className="text-xs font-sans">Rif: J075055861</p>
+                    <p className="text-lg font-serif font-bold mt-2">Dra. Alcida Joselin Perez C.</p>
+                    <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
                 </div>
                  <img src="/logo_si.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
             </div>
@@ -105,7 +106,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
           }
         }
       `}</style>
-      <div className="w-full h-full flex flex-row items-stretch justify-center gap-4">
+      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm]">
         <RecipeBlock consultation={consultation} />
         <RecipeBlock consultation={consultation} />
       </div>
