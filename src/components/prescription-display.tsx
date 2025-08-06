@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -23,7 +22,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
 
     return (
         <div 
-            className="flex-1 border border-black flex flex-col bg-white"
+            className="flex-1 border border-black flex flex-col bg-white rounded-lg"
         >
             {/* Header */}
             <div 
