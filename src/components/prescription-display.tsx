@@ -21,7 +21,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     };
 
     return (
-        <div className="w-[10.5cm] h-[16cm] border border-black flex flex-col p-1 bg-white">
+        <div className="w-[10.5cm] h-[17cm] border border-black flex flex-col p-1 bg-white">
             {/* Header */}
             <div className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2">
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
