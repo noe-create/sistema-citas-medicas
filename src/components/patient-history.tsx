@@ -13,6 +13,7 @@ import { LabOrderDisplay } from './lab-order-display';
 import { MedicalReportDisplay } from './medical-report-display';
 import { Button } from './ui/button';
 import { PrescriptionDisplay } from './prescription-display';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface PatientHistoryProps {
   personaId: string;
@@ -23,7 +24,11 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [selectedEntry, setSelectedEntry] = React.useState<HistoryEntry | null>(null);
   const { toast } = useToast();
-  const printableRef = React.useRef<HTMLDivElement>(null);
+  
+  const medicalReportRef = React.useRef<HTMLDivElement>(null);
+  const prescriptionRef = React.useRef<HTMLDivElement>(null);
+  const labOrderRef = React.useRef<HTMLDivElement>(null);
+
 
   React.useEffect(() => {
     async function fetchHistory() {
@@ -50,8 +55,8 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     fetchHistory();
   }, [personaId, toast]);
 
-  const handlePrint = () => {
-    const node = printableRef.current;
+  const handlePrint = (nodeRef: React.RefObject<HTMLDivElement>) => {
+    const node = nodeRef.current;
     if (!node) return;
 
     const iframe = document.createElement('iframe');
@@ -65,13 +70,14 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     const iframeDoc = iframe.contentWindow?.document;
     if (!iframeDoc) return;
 
-    // Clone stylesheets from the main document to the iframe
     const stylesheets = Array.from(document.styleSheets);
     stylesheets.forEach(styleSheet => {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = styleSheet.href!;
-        iframeDoc.head.appendChild(link);
+        if (styleSheet.href) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = styleSheet.href;
+            iframeDoc.head.appendChild(link);
+        }
     });
 
     const printStyles = `
@@ -83,24 +89,19 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact;
         }
-        .printable-content { 
-            page-break-after: always;
+        @page {
+            size: auto;
             margin: 0;
-            padding: 0;
-        }
-        .printable-content:last-child {
-            page-break-after: auto;
         }
     `;
     const styleEl = iframeDoc.createElement('style');
     styleEl.innerHTML = printStyles;
     iframeDoc.head.appendChild(styleEl);
     
-    // Clone the printable content
     const clonedNode = node.cloneNode(true) as HTMLElement;
-    iframeDoc.body.innerHTML = clonedNode.innerHTML;
+    iframeDoc.body.innerHTML = ''; // Clear previous content
+    iframeDoc.body.appendChild(clonedNode);
 
-    // Use a timeout to ensure styles are loaded before printing
     setTimeout(() => {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
@@ -155,38 +156,50 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             </div>
         </aside>
         <main className="w-3/4">
-            <Button onClick={handlePrint} className="mb-4 w-full">
-                <Printer className="mr-2 h-4 w-4"/>
-                Imprimir Documentos
-            </Button>
-             <div ref={printableRef} className="space-y-4">
-                {selectedConsultation ? (
-                    <>
-                        <div className="printable-content">
-                            <MedicalReportDisplay consultation={selectedConsultation} />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Visor de Documentos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {selectedConsultation ? (
+                        <>
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold">Informe Médico</h4>
+                                <div ref={medicalReportRef}><MedicalReportDisplay consultation={selectedConsultation} /></div>
+                                <Button onClick={() => handlePrint(medicalReportRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Informe</Button>
+                            </div>
+                            
+                            {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
+                                <div className="p-4 border rounded-lg">
+                                    <h4 className="font-semibold">Récipe Médico</h4>
+                                    <div ref={prescriptionRef}><PrescriptionDisplay consultation={selectedConsultation} /></div>
+                                    <Button onClick={() => handlePrint(prescriptionRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Récipe</Button>
+                                </div>
+                            )}
+
+                            {associatedLabOrder && (
+                                <div className="p-4 border rounded-lg">
+                                    <h4 className="font-semibold">Orden de Laboratorio</h4>
+                                    <div ref={labOrderRef}><LabOrderDisplay order={associatedLabOrder} /></div>
+                                    <Button onClick={() => handlePrint(labOrderRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden de Laboratorio</Button>
+                                </div>
+                            )}
+                        </>
+                    ) : selectedEntry?.type === 'lab_order' ? (
+                        <div className="p-4 border rounded-lg">
+                            <h4 className="font-semibold">Orden de Laboratorio</h4>
+                            <div ref={labOrderRef}><LabOrderDisplay order={selectedEntry.data as LabOrder} /></div>
+                            <Button onClick={() => handlePrint(labOrderRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden de Laboratorio</Button>
                         </div>
-                        {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
-                            <div className="printable-content">
-                                <PrescriptionDisplay consultation={selectedConsultation} />
-                            </div>
-                        )}
-                        {associatedLabOrder && (
-                            <div className="printable-content">
-                                <LabOrderDisplay order={associatedLabOrder} />
-                            </div>
-                        )}
-                    </>
-                ) : selectedEntry?.type === 'lab_order' ? (
-                    <div className="printable-content">
-                        <LabOrderDisplay order={selectedEntry.data as LabOrder} />
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                        <p>Seleccione una entrada del historial para ver los detalles.</p>
-                    </div>
-                )}
-            </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            <p>Seleccione una entrada del historial para ver los detalles.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </main>
     </div>
   );
 }
+
