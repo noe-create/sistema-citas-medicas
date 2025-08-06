@@ -3,86 +3,80 @@
 
 import * as React from 'react';
 import type { Consultation } from '@/lib/types';
-import ReactMarkdown from 'react-markdown';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { DocumentHeader } from './document-header';
-
-const PrescriptionBody = ({ consultation }: { consultation: Consultation }) => {
-    const formatPrescriptionBody = () => {
-        if (!consultation.treatmentOrder || !consultation.treatmentOrder.items) return '';
-        return consultation.treatmentOrder.items.map(item => {
-            const parts = [
-                `**${item.medicamentoProcedimiento}**`,
-                item.dosis,
-                item.via,
-                item.frecuencia,
-                item.duracion
-            ].filter(Boolean).join(', ');
-
-            return `- ${parts}${item.instrucciones ? `\n  - *Instrucciones: ${item.instrucciones}*` : ''}`;
-        }).join('\n');
-    };
-
-    const prescriptionBody = formatPrescriptionBody();
-
-    return (
-        <div className="flex-grow mt-4 px-2">
-            <span className="font-bold text-3xl">Rp./</span>
-            <div className="prose prose-sm dark:prose-invert max-w-none mt-1 pl-2">
-                <ReactMarkdown>{prescriptionBody}</ReactMarkdown>
-            </div>
-        </div>
-    );
-};
+import { SaludIntegralLogo } from './logo-salud-integral';
 
 export function PrescriptionDisplay({ consultation }: { consultation: Consultation }) {
+  // NOTE: This component is designed to be printed on a vertical Letter-sized sheet (8.5in x 11in).
+  // The layout is a diptych, meant to be folded in the middle.
+  // Printing should be double-sided, flipping on the long edge.
 
   return (
-    <div className="printable-area bg-white text-black font-sans text-sm p-8">
-      {/* Container for Print Styles */}
+    <div className="printable-area bg-white text-black font-sans">
+      {/* Print-specific styles to ensure layout is respected */}
       <style jsx global>{`
         @media print {
           @page {
             size: letter portrait;
-            margin: 1in;
+            margin: 0;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .printable-area {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+          }
+          .print-page {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
-            background: white;
-            color: black;
+            page-break-after: always;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
           }
         }
       `}</style>
 
-      {/* Single Page Layout */}
-      <div className="print-page w-full h-full flex flex-col bg-white">
-        
-        {/* Header */}
-        <DocumentHeader />
-        
-        {/* Patient Info */}
-        <div className="flex justify-between items-start text-xs border-y border-black py-2 my-4">
-            <p><strong>Paciente:</strong> {consultation.paciente.name}</p>
-            <p><strong>C.I:</strong> {consultation.paciente.cedula}</p>
-            <p><strong>Fecha:</strong> {format(new Date(consultation.consultationDate), 'dd/MM/yyyy')}</p>
-        </div>
-
-        {/* Recipe Body */}
-        <div className="flex-grow">
-            <PrescriptionBody consultation={consultation} />
+      {/* PAGE 1: EXTERIOR (Cover and Back Cover) */}
+      <div className="print-page w-[21.59cm] h-[27.94cm] border flex flex-col m-auto">
+        {/* TOP HALF: BACK COVER (Rotated 180 degrees) */}
+        <div className="w-full h-1/2 border-b flex-shrink-0" style={{ transform: 'rotate(180deg)' }}>
+          <div className="w-full h-full p-[2cm]">
+            {/* Back cover content would go here, currently blank as requested */}
+          </div>
         </div>
         
-        {/* Signature */}
-        <div className="flex flex-col items-center justify-end mt-auto pt-16">
-            <div className="w-48 border-b border-black"></div>
-            <p className="font-semibold text-xs mt-1">Firma y Sello</p>
+        {/* BOTTOM HALF: FRONT COVER */}
+        <div className="w-full h-1/2 flex-shrink-0">
+          <div className="w-full h-full p-[2cm] flex flex-col items-center justify-center">
+            <SaludIntegralLogo className="w-[5cm] h-auto" />
+          </div>
         </div>
       </div>
+
+      {/* PAGE 2: INTERIOR (Recipe and General Indications) */}
+      <div className="print-page w-[21.59cm] h-[27.94cm] border flex flex-col m-auto">
+        {/* TOP HALF: GENERAL INDICATIONS */}
+        <div className="w-full h-1/2 border-b flex-shrink-0 relative">
+          <div className="w-full h-full p-[2cm]">
+            <SaludIntegralLogo className="w-[3cm] h-auto absolute top-[2cm] right-[2cm]" />
+             {/* General indications content would go here */}
+          </div>
+        </div>
+        
+        {/* BOTTOM HALF: MAIN RECIPE BODY */}
+        <div className="w-full h-1/2 flex-shrink-0">
+           <div className="w-full h-full p-[2cm]">
+             {/* Main recipe content (patient info, Rp, signature) would go here */}
+           </div>
+        </div>
+      </div>
+
     </div>
   );
 }
