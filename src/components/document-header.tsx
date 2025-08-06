@@ -1,13 +1,13 @@
+
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 
 export function DocumentHeader() {
   return (
     <header className="flex justify-between items-center text-center pb-2 border-b-2 border-black">
       <div className="w-24 h-auto">
-        <Image src="/logo_salud_integral.svg" alt="Logo Salud Integral" width={100} height={50} />
+        <img src="/logo_salud_integral.svg" alt="Logo Salud Integral" />
       </div>
       <div className="flex flex-col items-center flex-grow px-4">
         <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
@@ -19,7 +19,7 @@ export function DocumentHeader() {
         </div>
       </div>
       <div className="w-24 h-auto">
-        <Image src="/logo_cpv.svg" alt="Logo CPV" width={100} height={50} />
+        <img src="/logo_cpv.svg" alt="Logo CPV" />
       </div>
     </header>
   );
