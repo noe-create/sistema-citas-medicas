@@ -108,10 +108,14 @@ label, button, th {
 /* Print-specific styles */
 @media print {
   body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .printable-area {
     display: block !important;
+  }
+   @page {
+    size: letter landscape;
+    margin: 0;
   }
 }
