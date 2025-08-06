@@ -57,11 +57,6 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
                 </div>
                 {/* Prescription content area */}
                 <div className="flex-grow mt-2">
-                  {consultation.treatmentOrder?.items.map((item, index) => (
-                    <p key={index} className="text-sm font-sans text-black py-1">
-                        - {item.medicamentoProcedimiento} {item.dosis} {item.via} {item.frecuencia} {item.duracion}
-                    </p>
-                  ))}
                 </div>
             </div>
             
