@@ -45,6 +45,7 @@ import type { User as UserType } from '@/lib/types';
 import { logout } from '@/actions/auth-actions';
 import { ThemeToggle } from './theme-toggle';
 import { ChangePasswordForm } from './change-password-form';
+import { SaludIntegralLogo } from './logo-salud-integral';
 
 interface MenuItem {
     href: string;
@@ -114,7 +115,7 @@ export function AppShell({ children, user, permissions }: { children: React.Reac
         <Sidebar collapsible="icon">
           <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
              <Link href="/dashboard" className="flex justify-center items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-                <img src="/logo_cpv.svg" alt="Logo CPV" className="h-10 w-10 flex-shrink-0"/>
+                <SaludIntegralLogo className="h-10 w-10 flex-shrink-0"/>
                 <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
                     <h2 className="text-xl font-bold font-headline tracking-tight leading-tight">MediHub</h2>
                     <span className="font-bold text-xl text-primary leading-tight">C.P.V</span>

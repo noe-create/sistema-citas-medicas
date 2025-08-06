@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { SaludIntegralLogo } from '@/components/logo-salud-integral';
 
 function LoginButton() {
   const { pending } = useFormStatus();
@@ -31,8 +32,8 @@ export default function LoginPage() {
         <form action={formAction}>
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <ShieldCheck className="h-12 w-12 text-primary" />
+              <div className="p-2 bg-primary/10 rounded-full">
+                <SaludIntegralLogo className="h-16 w-16 text-primary" />
               </div>
             </div>
             <CardTitle className="text-2xl font-headline">MediHub</CardTitle>
