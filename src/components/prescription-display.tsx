@@ -5,7 +5,7 @@ import type { Consultation } from '@/lib/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RecipeBlock = ({ consultation, position }: { consultation: Consultation, position: 'top' | 'bottom' }) => {
+const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     const getSpecialtyTitle = () => {
         const serviceType = (consultation.paciente as any).serviceType;
         switch (serviceType) {
@@ -21,22 +21,9 @@ const RecipeBlock = ({ consultation, position }: { consultation: Consultation, p
     };
 
     return (
-        <div 
-          className="w-[21cm] h-[13.97cm] border border-black flex flex-col p-1 bg-white"
-          style={{
-            // Bleed for central cut
-            ...(position === 'top' && { marginBottom: '3mm' }),
-            ...(position === 'bottom' && { marginTop: '3mm' }),
-          }}
-        >
+        <div className="w-[10.5cm] h-[13.97cm] border border-black flex flex-col p-1 bg-white">
             {/* Header */}
-             <div 
-                className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2"
-                style={{
-                  // Bleed for central cut (bottom recipe's header stretches up)
-                  ...(position === 'bottom' && { paddingTop: 'calc(0.5rem + 3mm)' }),
-                }}
-             >
+            <div className="border border-black rounded-t-lg p-2 flex items-center justify-between gap-2">
                  <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
                 <div className="flex-grow text-center text-black">
                     <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
@@ -70,15 +57,7 @@ const RecipeBlock = ({ consultation, position }: { consultation: Consultation, p
             </div>
             
             {/* Footer */}
-            <div 
-              className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200"
-              style={{ 
-                // Bleed for internal fold (footer stretches up)
-                paddingTop: 'calc(0.5rem + 3mm)',
-                // Bleed for central cut (top recipe's footer stretches down)
-                ...(position === 'top' && { paddingBottom: 'calc(0.5rem + 3mm)' }),
-              }}
-            >
+            <div className="border border-black rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200">
                 <div className="flex justify-between">
                     <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                     <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
@@ -92,15 +71,14 @@ const RecipeBlock = ({ consultation, position }: { consultation: Consultation, p
 
 
 export function PrescriptionDisplay({ consultation }: { consultation: Consultation }) {
-  // This component is designed to be printed on a vertical Letter-sized sheet.
-  // It creates two identical recipe blocks, one above the other.
+  // This component is designed to be printed on a vertical Letter-sized sheet, folded in half.
+  // It creates two identical recipe blocks side-by-side to fill a horizontal page.
   return (
-    <div className="printable-area bg-white text-black font-sans w-[21.59cm] h-[27.94cm] p-[1cm] flex flex-col justify-center items-center">
-      {/* Print-specific styles to ensure layout is respected */}
-      <style jsx global>{`
+    <div className="printable-area bg-white text-black font-sans w-[27.94cm] h-[21.59cm] p-[1cm] flex items-center justify-center">
+       <style jsx global>{`
         @media print {
           @page {
-            size: letter portrait;
+            size: letter landscape;
             margin: 0;
           }
           body {
@@ -108,26 +86,15 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             print-color-adjust: exact !important;
           }
           .printable-area {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 100%;
+            height: 100%;
           }
         }
       `}</style>
-      
-      <div className="flex flex-col">
-          <div style={{ marginBottom: '-3mm' }}>
-            <RecipeBlock consultation={consultation} position="top" />
-          </div>
-          <div style={{ marginTop: '-3mm' }}>
-            <RecipeBlock consultation={consultation} position="bottom" />
-          </div>
+      <div className="flex w-full h-full justify-center items-center gap-8">
+        <RecipeBlock consultation={consultation} />
+        <RecipeBlock consultation={consultation} />
       </div>
-
     </div>
   );
 }
