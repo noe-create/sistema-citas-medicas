@@ -1,21 +1,17 @@
 
-
 'use client';
 
 import * as React from 'react';
-import { Card } from '@/components/ui/card';
 import type { Consultation } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DocumentHeader } from './document-header';
 
 interface PrescriptionDisplayProps {
   consultation: Consultation;
 }
 
-export function PrescriptionDisplay({ consultation }: PrescriptionDisplayProps) {
-
+const RecipeColumn = ({ consultation }: { consultation: Consultation }) => {
   const formatPrescriptionBody = () => {
     if (!consultation.treatmentOrder || !consultation.treatmentOrder.items) return '';
     return consultation.treatmentOrder.items.map(item => {
@@ -26,50 +22,72 @@ export function PrescriptionDisplay({ consultation }: PrescriptionDisplayProps) 
             item.frecuencia,
             item.duracion
         ].filter(Boolean).join(', ');
-        
-        return `- ${parts}${item.instrucciones ? `\\n  - *Instrucciones: ${item.instrucciones}*` : ''}`;
-    }).join('\\n');
+
+        return `- ${parts}${item.instrucciones ? `\n  - *Instrucciones: ${item.instrucciones}*` : ''}`;
+    }).join('\n');
   };
-  
+
   const prescriptionBody = formatPrescriptionBody();
 
   return (
-    <Card className="h-full border-primary/50 text-sm printable-area">
-       <div className="p-4 printable-content">
-            <div className="flex items-center px-8">
-                <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '80px' }} />
-                <div className="flex-grow">
-                  <DocumentHeader />
-                </div>
-                <img src="/logo_si.png" alt="Logo Salud Integral Derecha" style={{ height: '80px' }} />
-            </div>
+    <div className="flex flex-col h-full p-4">
+      {/* Encabezado */}
+      <div className="flex items-center">
+          <img src="/logo_salud_integral.svg" alt="Logo Salud Integral Izquierda" style={{ height: '80px' }} />
+          <div className="flex-grow text-center text-xs">
+              <h1 className="text-xl font-bold tracking-wider">SALUD INTEGRAL</h1>
+              <p>CENTRO POLITÉCNICO VALENCIA, C.A.</p>
+              <p>Rif: J075055861 Nit: 0028937032</p>
+              <p>URB. LA VIÑA, FINAL AV. CARABOBO</p>
+              <p>Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
+          </div>
+          <img src="/logo_cpv.svg" alt="Logo CPV Derecha" style={{ height: '80px' }} />
+      </div>
 
-            <div className="text-center my-2">
-                <h2 className="font-semibold text-base">Récipe Médico</h2>
+      {/* Datos del Paciente */}
+      <section className="border-y border-black py-1 mt-4 text-xs">
+        <div className="flex justify-between items-start">
+            <div className="text-left">
+                <p><strong>Paciente:</strong> {consultation.paciente.name}</p>
+                <p><strong>C.I:</strong> {consultation.paciente.cedula}</p>
             </div>
-
-            <section className="border-y border-black py-2">
-                 <div className="flex justify-between items-start">
-                    <div className="text-left text-xs">
-                        <p><strong>Paciente:</strong> {consultation.paciente.name}</p>
-                        <p><strong>C.I:</strong> {consultation.paciente.cedula}</p>
-                    </div>
-                     <div className="text-right text-xs">
-                        <p><strong>Fecha:</strong> {format(new Date(consultation.consultationDate), 'dd/MM/yyyy', { locale: es })}</p>
-                    </div>
-                </div>
-            </section>
-        
-            <div className="space-y-4 text-left mt-4 min-h-[500px]">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{prescriptionBody}</ReactMarkdown>
-                </div>
-            </div>
-            <div className="flex flex-col items-center pt-12">
-                 <div className="w-48 h-16 border-b border-foreground/50"></div>
-                 <p className="font-semibold">Dr. [Nombre del Doctor]</p>
+            <div className="text-right">
+                <p><strong>Fecha:</strong> {format(new Date(consultation.consultationDate), 'dd/MM/yyyy', { locale: es })}</p>
             </div>
         </div>
-    </Card>
+      </section>
+
+      {/* Cuerpo del Récipe */}
+      <div className="flex-grow mt-4">
+        <span className="font-bold text-2xl">Rp./</span>
+        <div className="prose prose-sm dark:prose-invert max-w-none mt-2">
+          <ReactMarkdown>{prescriptionBody}</ReactMarkdown>
+        </div>
+      </div>
+
+      {/* Firma */}
+      <div className="flex flex-col items-center justify-end pt-8">
+          <div className="w-48 border-b border-black"></div>
+          <p className="font-semibold text-xs mt-1">Firma y Sello</p>
+      </div>
+    </div>
+  );
+};
+
+
+export function PrescriptionDisplay({ consultation }: PrescriptionDisplayProps) {
+  return (
+    <div className="printable-area printable-recipe-horizontal text-black bg-white">
+        <div className="flex h-full">
+            <div className="w-1/2 h-full">
+                <RecipeColumn consultation={consultation} />
+            </div>
+            <div className="border-l border-dashed border-gray-400 h-full"></div>
+            <div className="w-1/2 h-full">
+                <RecipeColumn consultation={consultation} />
+            </div>
+        </div>
+    </div>
   );
 }
+

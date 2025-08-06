@@ -104,3 +104,22 @@ label, button, th {
     @apply bg-background text-foreground;
   }
 }
+
+/* Print-specific styles */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .printable-area {
+    display: block !important;
+  }
+  .printable-recipe-horizontal {
+     page: a4-landscape;
+  }
+
+  @page a4-landscape {
+    size: letter landscape;
+    margin: 0.5in;
+  }
+}

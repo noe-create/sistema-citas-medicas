@@ -13,7 +13,7 @@ import { LabOrderDisplay } from './lab-order-display';
 import { MedicalReportDisplay } from './medical-report-display';
 import { Button } from './ui/button';
 import { PrescriptionDisplay } from './prescription-display';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 interface PatientHistoryProps {
   personaId: string;
@@ -77,21 +77,19 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             link.rel = 'stylesheet';
             link.href = styleSheet.href;
             iframeDoc.head.appendChild(link);
+        } else if (styleSheet.cssRules) {
+            const style = document.createElement('style');
+            style.textContent = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join(' ');
+            iframeDoc.head.appendChild(style);
         }
     });
 
     const printStyles = `
-        @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
-        
         body { 
             margin: 0; 
             font-family: 'Figtree', sans-serif;
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact;
-        }
-        @page {
-            size: auto;
-            margin: 0;
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important;
         }
     `;
     const styleEl = iframeDoc.createElement('style');
@@ -159,37 +157,46 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>Visor de Documentos</CardTitle>
+                    <CardDescription>Seleccione un documento del historial y luego utilice los botones para imprimir.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {selectedConsultation ? (
+                     {selectedConsultation ? (
                         <>
                             <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold">Informe Médico</h4>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-semibold">Informe Médico</h4>
+                                    <Button onClick={() => handlePrint(medicalReportRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Informe</Button>
+                                </div>
                                 <div ref={medicalReportRef}><MedicalReportDisplay consultation={selectedConsultation} /></div>
-                                <Button onClick={() => handlePrint(medicalReportRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Informe</Button>
                             </div>
                             
                             {selectedConsultation.treatmentOrder && selectedConsultation.treatmentOrder.items.length > 0 && (
                                 <div className="p-4 border rounded-lg">
-                                    <h4 className="font-semibold">Récipe Médico</h4>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="font-semibold">Récipe Médico</h4>
+                                        <Button onClick={() => handlePrint(prescriptionRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Récipe</Button>
+                                    </div>
                                     <div ref={prescriptionRef}><PrescriptionDisplay consultation={selectedConsultation} /></div>
-                                    <Button onClick={() => handlePrint(prescriptionRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Récipe</Button>
                                 </div>
                             )}
 
                             {associatedLabOrder && (
                                 <div className="p-4 border rounded-lg">
-                                    <h4 className="font-semibold">Orden de Laboratorio</h4>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="font-semibold">Orden de Laboratorio</h4>
+                                        <Button onClick={() => handlePrint(labOrderRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden</Button>
+                                    </div>
                                     <div ref={labOrderRef}><LabOrderDisplay order={associatedLabOrder} /></div>
-                                    <Button onClick={() => handlePrint(labOrderRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden de Laboratorio</Button>
                                 </div>
                             )}
                         </>
                     ) : selectedEntry?.type === 'lab_order' ? (
                         <div className="p-4 border rounded-lg">
-                            <h4 className="font-semibold">Orden de Laboratorio</h4>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold">Orden de Laboratorio</h4>
+                                <Button onClick={() => handlePrint(labOrderRef)} size="sm"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden</Button>
+                            </div>
                             <div ref={labOrderRef}><LabOrderDisplay order={selectedEntry.data as LabOrder} /></div>
-                            <Button onClick={() => handlePrint(labOrderRef)} className="mt-2 w-full"><Printer className="mr-2 h-4 w-4"/>Imprimir Orden de Laboratorio</Button>
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -202,4 +209,5 @@ export function PatientHistory({ personaId }: PatientHistoryProps) {
     </div>
   );
 }
+
 
