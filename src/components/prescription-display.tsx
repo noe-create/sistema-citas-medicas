@@ -57,7 +57,7 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => (
                 <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                 <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
             </div>
-            <p className="text-center">Calle Froilan Correa, Edif. Don Pepe, Cagua Estado Aragua. Telf: (0412) 539.10.25</p>
+            <p className="text-center">Avenida Carabobo, frente al Diagnóstico Urológico La Viña, en la urbanización La Viña, Valencia, Carabobo.Teléfonos: 0241 8268688 / 8268431 / 8202710</p>
         </div>
     </div>
 );
