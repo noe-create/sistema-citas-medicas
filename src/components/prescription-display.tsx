@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -7,7 +6,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
-
     const getSpecialtyTitle = () => {
         const serviceType = (consultation.paciente as any).serviceType;
         switch (serviceType) {
@@ -25,14 +23,14 @@ const RecipeBlock = ({ consultation }: { consultation: Consultation }) => {
     return (
         <div className="w-[10.5cm] h-auto border border-black flex flex-col p-1 bg-white">
             {/* Header */}
-            <div className="border border-black rounded-lg p-2 flex items-center justify-between gap-2">
-                 <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14" />
+             <div className="border border-black rounded-lg p-2 flex items-center justify-between gap-2">
+                 <img src="/logo.png" alt="Logo Salud Integral Izquierda" className="h-14 w-auto" />
                 <div className="flex-grow text-center text-black">
                     <h2 className="text-xl font-serif font-bold">Dra. Alcida Joselin Perez C.</h2>
                     <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
                     <p className="text-xs font-sans">Rif: J075055861</p>
                 </div>
-                 <img src="/logo_si.png" alt="Logo Salud Integral Derecha" className="h-14" />
+                 <img src="/logo_si.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
             </div>
 
             {/* Body */}
@@ -92,15 +90,14 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             margin: auto;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start; /* Align to top */
             width: 100vw;
             height: 100vh;
-            gap: 0.5cm;
           }
         }
       `}</style>
       
-      <div className="flex justify-center items-center gap-4">
+      <div className="flex justify-center items-start gap-8">
         <RecipeBlock consultation={consultation} />
         <RecipeBlock consultation={consultation} />
       </div>
