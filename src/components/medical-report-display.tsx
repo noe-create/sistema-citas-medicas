@@ -49,7 +49,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
           }
         }
       `}</style>
-      <div className="p-4 printable-content">
+      <div className="p-4 printable-content flex flex-col h-full">
         <div className="flex items-center px-8">
             <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '80px' }} />
             <div className="flex-grow">
@@ -75,46 +75,48 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             </div>
         </section>
         
-        <h3 className="font-bold text-center my-2">{getConsultationType()}</h3>
+        <div className="flex-grow">
+            <h3 className="font-bold text-center my-2">{getConsultationType()}</h3>
 
-        <section>
-            <h4 className="font-bold underline">EXAMEN FISICO</h4>
-            <div className="grid grid-cols-3 gap-x-4 my-1">
-                <p><strong>PA EN MMHG:</strong> {getVitalSignValue(sv?.taSistolica)}/{getVitalSignValue(sv?.taDiastolica)}</p>
-                <p><strong>RESP X MIM:</strong> {getVitalSignValue(sv?.fr)}</p>
-                <p><strong>LAT X MIM:</strong> {getVitalSignValue(sv?.fc)}</p>
-            </div>
-            <p className="whitespace-pre-wrap">{consultation.examenFisicoGeneral}</p>
-        </section>
+            <section>
+                <h4 className="font-bold underline">EXAMEN FISICO</h4>
+                <div className="grid grid-cols-3 gap-x-4 my-1">
+                    <p><strong>PA EN MMHG:</strong> {getVitalSignValue(sv?.taSistolica)}/{getVitalSignValue(sv?.taDiastolica)}</p>
+                    <p><strong>RESP X MIM:</strong> {getVitalSignValue(sv?.fr)}</p>
+                    <p><strong>LAT X MIM:</strong> {getVitalSignValue(sv?.fc)}</p>
+                </div>
+                <p className="whitespace-pre-wrap">{consultation.examenFisicoGeneral}</p>
+            </section>
 
-        <section className="mt-2">
-            <h4 className="font-bold underline">IMPRESIÓN DIAGNÓSTISCA</h4>
-            {consultation.diagnoses.map(d => (
-                <p key={d.cie10Code}>- {d.cie10Description}</p>
-            ))}
-        </section>
+            <section className="mt-2">
+                <h4 className="font-bold underline">IMPRESIÓN DIAGNÓSTISCA</h4>
+                {consultation.diagnoses.map(d => (
+                    <p key={d.cie10Code}>- {d.cie10Description}</p>
+                ))}
+            </section>
 
-        <section className="mt-2">
-            <h4 className="font-bold underline">TRATAMIENTO</h4>
-            <div className="prose prose-sm prose-ul:my-0 prose-li:my-0">
-                <p className="font-semibold">TRATAMIENTO INDICADO</p>
-                <p>{consultation.treatmentPlan}</p>
-                {consultation.treatmentOrder && (
-                    <ul>
-                        {consultation.treatmentOrder.items.map(item => (
-                            <li key={item.id}>{item.medicamentoProcedimiento}</li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-        </section>
-        
-        <section className="mt-2">
-            <h4 className="font-bold underline">REPOSO</h4>
-            <p>REPOSO POR 24 HORAS.</p>
-        </section>
+            <section className="mt-2">
+                <h4 className="font-bold underline">TRATAMIENTO</h4>
+                <div className="prose prose-sm prose-ul:my-0 prose-li:my-0">
+                    <p className="font-semibold">TRATAMIENTO INDICADO</p>
+                    <p>{consultation.treatmentPlan}</p>
+                    {consultation.treatmentOrder && (
+                        <ul>
+                            {consultation.treatmentOrder.items.map(item => (
+                                <li key={item.id}>{item.medicamentoProcedimiento}</li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </section>
+            
+            <section className="mt-2">
+                <h4 className="font-bold underline">REPOSO</h4>
+                <p>REPOSO POR 24 HORAS.</p>
+            </section>
+        </div>
 
-        <footer className="mt-48 flex flex-col items-center">
+        <footer className="flex flex-col items-center pt-8">
             <div className="w-48 border-b border-black"></div>
             <p className="font-semibold">Atentamente;</p>
             <p>Dr. [Nombre del Doctor]</p>
