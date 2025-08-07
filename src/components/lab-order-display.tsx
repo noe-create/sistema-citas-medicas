@@ -24,7 +24,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
   const ageString = age !== null ? `${age} Año(s)`: 'Calculando...';
 
   return (
-    <div className="h-full text-sm printable-area">
+    <div className="h-full text-sm">
       <style jsx global>{`
         @media print {
           @page {
@@ -82,7 +82,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
                       ))}
                     </ul>
                 </div>
-                 <div className="flex flex-col items-center">
+                 <div className="flex flex-col items-center pt-8">
                      <div className="w-48 h-16 border-b border-foreground/50"></div>
                      <p className="font-semibold">Atentamente;</p>
                      <p>Dr. [Nombre del Doctor]</p>
