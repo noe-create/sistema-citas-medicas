@@ -114,7 +114,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             <p>REPOSO POR 24 HORAS.</p>
         </section>
 
-        <footer className="mt-24 flex flex-col items-center">
+        <footer className="mt-48 flex flex-col items-center">
             <div className="w-48 border-b border-black"></div>
             <p className="font-semibold">Atentamente;</p>
             <p>Dr. [Nombre del Doctor]</p>
