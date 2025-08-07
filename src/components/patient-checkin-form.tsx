@@ -30,7 +30,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
-  serviceType: z.enum(['medicina general', 'consulta pediatrica', 'servicio de enfermeria'], {
+  serviceType: z.enum(['medicina familiar', 'consulta pediatrica', 'servicio de enfermeria'], {
     required_error: "El tipo de servicio es requerido."
   }),
 });
@@ -72,7 +72,7 @@ export function PatientCheckinForm({ onSubmitted }: PatientCheckinFormProps) {
     if (age < 18) {
         services.push({ value: 'consulta pediatrica', label: 'Consulta Pediátrica' });
     } else {
-        services.push({ value: 'medicina general', label: 'Medicina General' });
+        services.push({ value: 'medicina familiar', label: 'Medicina Familiar' });
     }
     services.push({ value: 'servicio de enfermeria', label: 'Servicio de Enfermería' });
     

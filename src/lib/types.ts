@@ -2,7 +2,7 @@
 
 export type Genero = 'Masculino' | 'Femenino';
 export type PatientKind = 'titular' | 'beneficiario';
-export type DoctorSpecialty = 'medico general' | 'medico pediatra';
+export type DoctorSpecialty = 'medico familiar' | 'medico pediatra';
 
 // --- NEW RBAC (Role-Based Access Control) Types ---
 export interface Permission {
@@ -104,7 +104,7 @@ export interface SearchResult {
 }
 
 // For Patient Queue
-export type ServiceType = 'medicina general' | 'consulta pediatrica' | 'servicio de enfermeria';
+export type ServiceType = 'medicina familiar' | 'consulta pediatrica' | 'servicio de enfermeria';
 export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
 export type PatientStatus =
   | 'Esperando'
@@ -268,6 +268,7 @@ export interface Consultation {
   signosVitales?: SignosVitales;
   examenFisicoGeneral?: string;
   treatmentPlan: string;
+  reposo?: string;
   diagnoses: Diagnosis[];
   documents?: ConsultationDocument[];
   treatmentOrder?: TreatmentOrder;
@@ -290,6 +291,7 @@ export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'cons
     treatmentItems?: CreateTreatmentItemInput[];
     renderedServices?: Service[];
     radiologyOrder?: string;
+    reposo?: string;
 }
 
 export interface PacienteConInfo extends Persona {

@@ -103,6 +103,10 @@ async function runMigrations(dbInstance: Database) {
             await dbInstance.exec('ALTER TABLE consultations ADD COLUMN radiologyOrders TEXT');
             console.log("Added radiologyOrders column to consultations table.");
         }
+        if (!consultationsCols.some(c => c.name === 'reposo')) {
+            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN reposo TEXT');
+            console.log("Added reposo column to consultations table.");
+        }
     }
 
     // Migration for titulares table (tipo -> unidadServicio, empresaId removal)
@@ -274,6 +278,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             treatmentPlan TEXT,
             radiologyOrders TEXT,
             surveyInvitationToken TEXT,
+            reposo TEXT,
             FOREIGN KEY (pacienteId) REFERENCES pacientes(id) ON DELETE CASCADE
         );
         
@@ -579,7 +584,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
     const serviceCount = await dbInstance.get('SELECT COUNT(*) as count FROM services');
     if (serviceCount.count === 0) {
         const services = [
-            { id: 'serv-consulta-general', name: 'Consulta Medicina General', description: 'Consulta médica para adultos.', price: 50.00 },
+            { id: 'serv-consulta-general', name: 'Consulta Medicina Familiar', description: 'Consulta médica para adultos.', price: 50.00 },
             { id: 'serv-consulta-ped', name: 'Consulta Pediátrica', description: 'Consulta médica para niños.', price: 60.00 },
             { id: 'serv-sutura-simple', name: 'Sutura Simple', description: 'Sutura de heridas menores (hasta 5 puntos).', price: 30.00 },
             { id: 'serv-sutura-compleja', name: 'Sutura Compleja', description: 'Sutura de heridas mayores (más de 5 puntos).', price: 75.00 },

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -104,6 +105,7 @@ const consultationSchema = z.object({
   diagnosticoLibre: z.string().optional(),
   treatmentPlan: z.string().min(1, 'El plan de tratamiento es obligatorio.'),
   treatmentItems: z.array(treatmentItemSchema).optional(),
+  reposo: z.string().optional(),
   radiologyOrder: z.string().optional(),
   radiologyNotApplicable: z.boolean().optional(),
 }).refine(data => (data.diagnoses && data.diagnoses.length > 0) || (!!data.diagnosticoLibre && data.diagnosticoLibre.trim().length > 0), {
@@ -132,7 +134,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             { id: 'anamnesis', name: 'Anamnesis', fields: ['motivoConsulta', 'enfermedadActual', 'revisionPorSistemas'] },
             { id: 'antecedentes', name: 'Antecedentes', fields: ['antecedentesPersonales', 'antecedentesFamiliares', 'antecedentesGinecoObstetricos', 'antecedentesPediatricos'] },
             { id: 'examen', name: 'Examen Físico', fields: ['signosVitales', 'examenFisicoGeneral'] },
-            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'diagnosticoLibre', 'treatmentPlan', 'treatmentItems', 'radiologyOrder'] },
+            { id: 'plan', name: 'Diagnóstico y Plan', fields: ['diagnoses', 'diagnosticoLibre', 'treatmentPlan', 'treatmentItems', 'reposo', 'radiologyOrder'] },
         ];
         return baseSteps;
     }, []);
@@ -147,6 +149,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
             diagnosticoLibre: '',
             treatmentPlan: '',
             treatmentItems: [],
+            reposo: '',
             examenFisicoGeneral: '',
             radiologyOrder: '',
             radiologyNotApplicable: false,
@@ -188,7 +191,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
 
     const handlePrev = () => {
         if (currentStep > 0) {
-            setCurrentStep(step => step + 1);
+            setCurrentStep(step => step - 1);
         }
     };
     
@@ -223,6 +226,7 @@ export function ConsultationForm({ patient, onConsultationComplete }: Consultati
                 treatmentPlan: values.treatmentPlan,
                 treatmentItems: values.treatmentItems,
                 radiologyOrder: radiologyOrderValue,
+                reposo: values.reposo,
                 renderedServices: [],
             });
 

@@ -15,14 +15,14 @@ import { PersonaSearch } from './persona-search';
 import { Label } from './ui/label';
 
 const specialties: { value: DoctorSpecialty; label: string }[] = [
-    { value: 'medico general', label: 'Médico General' },
+    { value: 'medico familiar', label: 'Médico Familiar' },
     { value: 'medico pediatra', label: 'Médico Pediatra' },
 ];
 
 const baseSchema = z.object({
   username: z.string().min(3, { message: 'El nombre de usuario es requerido (mínimo 3 caracteres).' }),
   roleId: z.string({ required_error: 'El rol es requerido.' }),
-  specialty: z.enum(['medico general', 'medico pediatra']).optional(),
+  specialty: z.enum(['medico familiar', 'medico pediatra']).optional(),
   personaId: z.string().optional(),
 });
 

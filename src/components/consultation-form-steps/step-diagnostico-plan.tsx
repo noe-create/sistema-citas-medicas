@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope, Monitor } from 'lucide-react';
+import { Loader2, X, PlusCircle, Wand2, FilePenLine, Trash2, Beaker, ChevronsUpDown, Check, Pill, BrainCircuit, Stethoscope, Monitor, Bed } from 'lucide-react';
 import type { Patient, Cie10Code, Diagnosis, CreateTreatmentItemInput, Service } from '@/lib/types';
 import { searchCie10Codes, createLabOrder } from '@/actions/patient-actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -206,6 +207,21 @@ const TreatmentOrderBuilder = ({ form }: { form: any }) => {
                 </div>
             )}
             <FormField control={form.control} name="treatmentItems" render={() => <FormMessage/>} />
+             <FormField
+                control={form.control}
+                name="reposo"
+                render={({ field }) => (
+                <FormItem className="pt-4">
+                    <FormLabel className="flex items-center gap-2"><Bed className="h-4 w-4 text-muted-foreground"/>Reposo Médico</FormLabel>
+                    <FormControl>
+                        <Input
+                            placeholder="Ej. Reposo relativo por 48 horas"
+                            {...field}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )} />
         </FormSection>
     );
 }

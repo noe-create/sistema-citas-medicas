@@ -28,7 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { RescheduleForm } from './reschedule-form';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
-  'medicina general': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina General' },
+  'medicina familiar': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina Familiar' },
   'consulta pediatrica': { icon: <Baby className="h-5 w-5 text-pink-500" />, title: 'Consulta Pediátrica' },
   'servicio de enfermeria': { icon: <Stethoscope className="h-5 w-5 text-green-500" />, title: 'Servicio de Enfermería' },
 };
@@ -186,8 +186,8 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
       if (user.specialty === 'medico pediatra') {
         return allServices.filter((s) => s === 'consulta pediatrica' || s === 'servicio de enfermeria');
       }
-      if (user.specialty === 'medico general') {
-        return allServices.filter((s) => s === 'medicina general' || s === 'servicio de enfermeria');
+      if (user.specialty === 'medico familiar') {
+        return allServices.filter((s) => s === 'medicina familiar' || s === 'servicio de enfermeria');
       }
       return allServices; // Default doctor can see all
     }
