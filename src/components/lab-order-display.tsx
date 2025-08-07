@@ -3,7 +3,6 @@
 'use client';
 
 import * as React from 'react';
-import { Card } from '@/components/ui/card';
 import type { LabOrder } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -25,7 +24,7 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
   const ageString = age !== null ? `${age} Año(s)`: 'Calculando...';
 
   return (
-    <Card className="h-full border-primary/50 text-sm printable-area">
+    <div className="h-full text-sm printable-area">
       <style jsx global>{`
         @media print {
           @page {
@@ -90,6 +89,6 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
                 </div>
             </div>
         </div>
-    </Card>
+    </div>
   );
 }

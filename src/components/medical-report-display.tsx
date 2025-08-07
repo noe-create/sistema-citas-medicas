@@ -3,7 +3,6 @@
 'use client';
 
 import * as React from 'react';
-import { Card } from '@/components/ui/card';
 import type { Consultation } from '@/lib/types';
 import { calculateAge } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -37,7 +36,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   const sv = consultation.signosVitales;
 
   return (
-    <Card className="h-full border-primary/50 text-sm printable-area">
+    <div className="text-sm printable-area">
        <style jsx global>{`
         @media print {
           @page {
@@ -122,6 +121,6 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             <p>Medicina Familiar</p>
         </footer>
       </div>
-    </Card>
+    </div>
   );
 }
