@@ -36,12 +36,13 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
                     <p className="text-lg font-serif font-bold mt-2">Dra. Alcida Joselin Perez C.</p>
                     <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
                 </div>
-                 <img src="/logo.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
+                 <img src="/logo_si.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
             </div>
 
             {/* Body */}
             <div 
                 className="border-b border-black flex flex-col p-[1cm] flex-grow"
+                style={{ height: '13.59cm' }}
             >
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">{label}</p>
@@ -80,7 +81,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a Letter-sized sheet in landscape,
   // with two recipes side-by-side.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full p-[1cm]">
+    <div className="printable-area bg-white text-black font-sans w-full h-full">
        <style jsx global>{`
         @media print {
           @page {
