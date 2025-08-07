@@ -26,6 +26,18 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
 
   return (
     <Card className="h-full border-primary/50 text-sm printable-area">
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: letter portrait;
+            margin: 1cm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+      `}</style>
        <div className="p-4 printable-content">
             <div className="flex items-center px-8">
               <img src="/logo.png" alt="Logo Salud Integral Izquierda" style={{ height: '80px' }} />
