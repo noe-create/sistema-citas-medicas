@@ -23,9 +23,6 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
     return (
         <div 
             className="flex-1 border border-black flex flex-col bg-white rounded-lg"
-            style={{
-                height: '21.5cm'
-            }}
         >
             {/* Header */}
             <div 
@@ -44,8 +41,7 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
 
             {/* Body */}
             <div 
-                className="border-b border-black flex flex-col p-[1cm]"
-                style={{ height: '13.5cm' }}
+                className="border-b border-black flex flex-col p-[1cm] flex-grow"
             >
                 <div className="flex justify-between items-start text-black">
                     <p className="text-sm font-semibold">{label}</p>
@@ -65,10 +61,10 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
             
             {/* Footer */}
             <div 
-                className="rounded-b-lg p-[1cm] text-xs text-black font-sans bg-gray-200 flex flex-col justify-center"
-                style={{ height: '3.5cm' }}
+                className="rounded-b-lg p-2 text-xs text-black font-sans bg-gray-200 flex flex-col justify-center"
+                style={{ minHeight: '3.5cm' }}
             >
-                <div className="flex justify-between">
+                <div className="flex justify-between px-2">
                     <p><strong>PACIENTE:</strong> {consultation.paciente.nombreCompleto}</p>
                     <p><strong>C.I. Nº:</strong> {consultation.paciente.cedula}</p>
                 </div>
@@ -84,7 +80,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
   // This component is designed to be printed on a Letter-sized sheet in landscape,
   // with two recipes side-by-side.
   return (
-    <div className="printable-area bg-white text-black font-sans w-full h-full">
+    <div className="printable-area bg-white text-black font-sans w-full h-full p-[1cm]">
        <style jsx global>{`
         @media print {
           @page {
@@ -101,6 +97,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
             display: block !important;
             width: 100%;
             height: 100%;
+            padding: 0;
           }
         }
       `}</style>
