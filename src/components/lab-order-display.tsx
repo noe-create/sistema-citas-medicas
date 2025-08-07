@@ -76,13 +76,13 @@ export function LabOrderDisplay({ order }: LabOrderDisplayProps) {
 
                 <div>
                     <h4 className="font-bold underline">EXÁMENES SOLICITADOS</h4>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-2 mt-2">
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-3 mt-2">
                       {order.tests.map((test, index) => (
                         <li key={index}>{test}</li>
                       ))}
                     </ul>
                 </div>
-                 <div className="flex flex-col items-center pt-6">
+                 <div className="flex flex-col items-center">
                      <div className="w-48 h-16 border-b border-foreground/50"></div>
                      <p className="font-semibold">Atentamente;</p>
                      <p>Dr. [Nombre del Doctor]</p>
