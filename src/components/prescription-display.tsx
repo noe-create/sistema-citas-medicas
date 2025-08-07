@@ -23,6 +23,9 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
     return (
         <div 
             className="flex-1 border border-black flex flex-col bg-white rounded-lg"
+            style={{
+                height: '21.5cm'
+            }}
         >
             {/* Header */}
             <div 
@@ -36,7 +39,7 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
                     <p className="text-lg font-serif font-bold mt-2">Dra. Alcida Joselin Perez C.</p>
                     <p className="text-xs font-sans font-semibold">{getSpecialtyTitle()}</p>
                 </div>
-                 <img src="/logo_si.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
+                 <img src="/logo.png" alt="Logo Salud Integral Derecha" className="h-14 w-auto" />
             </div>
 
             {/* Body */}
@@ -55,7 +58,7 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
                         </div>
                     </div>
                 </div>
-                {/* Prescription content area */}
+                {/* Prescription content area is intentionally left blank for handwritten notes */}
                 <div className="flex-grow mt-2">
                 </div>
             </div>
@@ -101,7 +104,7 @@ export function PrescriptionDisplay({ consultation }: { consultation: Consultati
           }
         }
       `}</style>
-      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm] p-[1cm]">
+      <div className="w-full h-full flex flex-row items-stretch justify-center gap-[1cm]">
         <RecipeBlock consultation={consultation} label="Medicamentos:" />
         <RecipeBlock consultation={consultation} label="Rp./Indicaciones:" />
       </div>
