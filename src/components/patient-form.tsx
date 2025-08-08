@@ -100,7 +100,14 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
 
   const fechaNacimiento = form.watch('fechaNacimiento');
   const cedulaNumero = form.watch('cedulaNumero');
+  const unidadServicio = form.watch('unidadServicio');
   const [showRepresentativeField, setShowRepresentativeField] = React.useState(false);
+  
+  React.useEffect(() => {
+    if (unidadServicio !== 'Empleado') {
+        form.setValue('numeroFicha', '');
+    }
+  }, [unidadServicio, form]);
 
   React.useEffect(() => {
     if (isPersonaSelected) { 
@@ -232,20 +239,6 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                       </FormItem>
                   )}
               />
-              
-            <FormField
-                  control={form.control}
-                  name="numeroFicha"
-                  render={({ field }) => (
-                      <FormItem>
-                          <FormLabel className="flex items-center gap-2"><Hash className="h-4 w-4 text-muted-foreground" />Número de Ficha (Opcional)</FormLabel>
-                          <FormControl>
-                              <Input placeholder="Máximo 4 dígitos" {...field} maxLength={4} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} />
-                          </FormControl>
-                          <FormMessage />
-                      </FormItem>
-                  )}
-              />
 
             <FormField
                 control={form.control}
@@ -354,6 +347,22 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                 </FormItem>
               )}
             />
+
+            {unidadServicio === 'Empleado' && (
+                <FormField
+                    control={form.control}
+                    name="numeroFicha"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="flex items-center gap-2"><Hash className="h-4 w-4 text-muted-foreground" />Número de Ficha</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Máximo 4 dígitos" {...field} maxLength={4} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
         </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
