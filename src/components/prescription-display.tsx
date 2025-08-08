@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
     const getSpecialtyTitle = () => {
         const serviceType = (consultation.paciente as any).serviceType;
         switch (serviceType) {
-            case 'medicina general':
+            case 'medicina familiar':
                 return 'MEDICINA FAMILIAR';
             case 'consulta pediatrica':
                 return 'MÉDICO PEDIATRA';
