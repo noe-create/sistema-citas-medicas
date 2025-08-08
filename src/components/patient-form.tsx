@@ -45,17 +45,10 @@ const patientSchema = z.object({
   telefono2: z.string().optional(),
   email: z.string().email({ message: 'Email inválido.' }).optional().or(z.literal('')),
   direccion: z.string().optional(),
-  unidadServicio: z.string().min(1, 'La unidad/servicio es requerida.'),
-  unidadServicioOtro: z.string().optional(),
+  unidadServicio: z.enum(['Empleado', 'Afiliado Corporativo', 'Privado'], {
+    required_error: 'El tipo de cuenta es requerido.',
+  }),
   representanteId: z.string().optional(),
-}).refine(data => {
-    if (data.unidadServicio === 'Otro') {
-        return !!data.unidadServicioOtro && data.unidadServicioOtro.trim().length > 0;
-    }
-    return true;
-}, {
-    message: "Por favor, especifique la otra unidad/servicio.",
-    path: ["unidadServicioOtro"],
 }).refine(data => {
     if (data.fechaNacimiento) {
         const age = calculateAge(data.fechaNacimiento);
@@ -82,7 +75,6 @@ interface PatientFormProps {
 export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }: PatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [unitPopoverOpen, setUnitPopoverOpen] = React.useState(false);
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
   
   const form = useForm<PatientFormValues>({
@@ -99,13 +91,11 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
         telefono2: '',
         email: '',
         direccion: '',
-        unidadServicio: '',
-        unidadServicioOtro: '',
+        unidadServicio: undefined,
         representanteId: titular?.persona.representanteId || undefined
     },
   });
 
-  const unidadServicio = form.watch('unidadServicio');
   const isPersonaSelected = !!selectedPersona;
 
   const fechaNacimiento = form.watch('fechaNacimiento');
@@ -157,9 +147,7 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
     }
 
     if (!selectedPersona && titular) {
-        const isStandardUnit = DEPARTMENTS.includes(titular.unidadServicio);
-        form.setValue('unidadServicio', isStandardUnit ? titular.unidadServicio : 'Otro');
-        form.setValue('unidadServicioOtro', isStandardUnit ? '' : titular.unidadServicio);
+        form.setValue('unidadServicio', titular.unidadServicio as any);
         form.setValue('numeroFicha', titular.numeroFicha);
     }
   }, [selectedPersona, titular, form]);
@@ -168,13 +156,9 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
   async function onSubmit(values: PatientFormValues) {
     setIsSubmitting(true);
     
-    const finalUnidadServicio = values.unidadServicio === 'Otro' ? values.unidadServicioOtro : values.unidadServicio;
-    
     const submissionData = {
         ...values,
-        unidadServicio: finalUnidadServicio,
     };
-    delete (submissionData as any).unidadServicioOtro;
 
     if (titular) {
         await onSubmitted(titular.id, titular.personaId, submissionData);
@@ -199,35 +183,6 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
     setIsSubmitting(false);
   }
   
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  const filteredCategories = React.useMemo(() => {
-    if (!debouncedSearchTerm) {
-      return DEPARTMENTS_GROUPED;
-    }
-    const lowercasedFilter = debouncedSearchTerm.toLowerCase();
-    const filtered: typeof DEPARTMENTS_GROUPED = [];
-
-    DEPARTMENTS_GROUPED.forEach(category => {
-      const departments = category.departments.filter(dept =>
-        dept.toLowerCase().includes(lowercasedFilter)
-      );
-      if (departments.length > 0) {
-        filtered.push({ ...category, departments });
-      }
-    });
-
-    return filtered;
-  }, [debouncedSearchTerm]);
-
-  const defaultOpenAccordionItems = React.useMemo(() => {
-    if (debouncedSearchTerm) {
-        return filteredCategories.map(c => c.category);
-    }
-    return [];
-  }, [debouncedSearchTerm, filteredCategories]);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -377,90 +332,28 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                 </div>
             )}
             
-            <div className="md:col-span-2 space-y-2">
-                 <FormField
-                    control={form.control}
-                    name="unidadServicio"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Unidad/Servicio</FormLabel>
-                            <Popover open={unitPopoverOpen} onOpenChange={setUnitPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                         <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                                            {field.value || "Seleccione una unidad/servicio"}
-                                        </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <div className="p-2 border-b">
-                                        <Input
-                                            placeholder="Buscar unidad o servicio..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                    <ScrollArea className="h-72">
-                                        <Accordion type="multiple" defaultValue={defaultOpenAccordionItems} className="p-2">
-                                            {filteredCategories.map((category) => (
-                                                <AccordionItem value={category.category} key={category.category}>
-                                                    <AccordionTrigger>{category.category}</AccordionTrigger>
-                                                    <AccordionContent>
-                                                        <div className="space-y-1 pl-2">
-                                                            {category.departments.map((dept) => (
-                                                                <Button
-                                                                    key={dept}
-                                                                    variant="ghost"
-                                                                    className="w-full justify-start font-normal h-auto py-1.5"
-                                                                    onClick={() => {
-                                                                        field.onChange(dept);
-                                                                        setUnitPopoverOpen(false);
-                                                                    }}
-                                                                >
-                                                                    {dept}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            ))}
-                                        </Accordion>
-                                    </ScrollArea>
-                                    <div className="p-2 border-t">
-                                         <Button
-                                            variant="ghost"
-                                            className="w-full justify-start font-normal"
-                                            onClick={() => {
-                                                field.onChange("Otro");
-                                                setUnitPopoverOpen(false);
-                                            }}
-                                        >
-                                            Otro...
-                                        </Button>
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                 />
-
-                {unidadServicio === 'Otro' && (
-                    <FormField
-                        control={form.control}
-                        name="unidadServicioOtro"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Especifique la Unidad/Servicio</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Nombre del departamento" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
-            </div>
+            <FormField
+              control={form.control}
+              name="unidadServicio"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />Tipo de Cuenta</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un tipo de cuenta" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Empleado">Empleado</SelectItem>
+                      <SelectItem value="Afiliado Corporativo">Afiliado Corporativo</SelectItem>
+                      <SelectItem value="Privado">Privado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
         </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
