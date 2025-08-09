@@ -121,7 +121,7 @@ async function runMigrations(dbInstance: Database) {
             // Copy data from old table to new table
             await dbInstance.exec(`
                 INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha)
-                SELECT id, personaId, tipo, numeroFicha FROM titulares_old;
+                SELECT id, personaId, tipo, NULL FROM titulares_old;
             `);
 
             await dbInstance.exec('DROP TABLE titulares_old;');
@@ -488,14 +488,14 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await personaStmt.finalize();
 
         const titulares = [
-            { id: "t1", personaId: "p1", unidadServicio: "Cardiología" },
-            { id: "t2", personaId: "p2", unidadServicio: "Recursos Humanos" },
-            { id: "t3", personaId: "p3", unidadServicio: "Urología" },
-            { id: "t4", personaId: "p4", unidadServicio: "Pediatría" },
+            { id: "t1", personaId: "p1", unidadServicio: "Empleado", numeroFicha: "1234" },
+            { id: "t2", personaId: "p2", unidadServicio: "Privado", numeroFicha: null },
+            { id: "t3", personaId: "p3", unidadServicio: "Afiliado Corporativo", numeroFicha: null },
+            { id: "t4", personaId: "p4", unidadServicio: "Empleado", numeroFicha: "4321" },
         ];
-        const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, unidadServicio) VALUES (?, ?, ?)');
+        const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)');
         for (const t of titulares) {
-            await titularStmt.run(t.id, t.personaId, t.unidadServicio);
+            await titularStmt.run(t.id, t.personaId, t.unidadServicio, t.numeroFicha);
         }
         await titularStmt.finalize();
         
