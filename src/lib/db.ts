@@ -113,9 +113,10 @@ async function runMigrations(dbInstance: Database) {
         await dbInstance.exec('BEGIN TRANSACTION;');
         try {
             await dbInstance.exec('ALTER TABLE titulares RENAME TO titulares_old;');
-            // Recreates tables with new schema if they don't exist
+            
+            // This table creation is now inside the if block, which is safer
             await dbInstance.exec(`
-                CREATE TABLE IF NOT EXISTS titulares (
+                CREATE TABLE titulares (
                     id TEXT PRIMARY KEY,
                     personaId TEXT NOT NULL UNIQUE,
                     unidadServicio TEXT NOT NULL,
@@ -124,10 +125,9 @@ async function runMigrations(dbInstance: Database) {
                 );
             `);
 
-            // Copy data from old table to new table
             await dbInstance.exec(`
-                INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha)
-                SELECT id, personaId, tipo, NULL FROM titulares_old;
+                INSERT INTO titulares (id, personaId, unidadServicio)
+                SELECT id, personaId, tipo FROM titulares_old;
             `);
 
             await dbInstance.exec('DROP TABLE titulares_old;');
@@ -145,7 +145,9 @@ async function runMigrations(dbInstance: Database) {
         }
     }
 
-    if (titularesCols.length > 0 && !titularesCols.some(c => c.name === 'numeroFicha')) {
+    // This check is now separate and safe
+    const updatedTitularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
+    if (updatedTitularesCols.length > 0 && !updatedTitularesCols.some(c => c.name === 'numeroFicha')) {
         await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
         console.log("Added numeroFicha column to titulares table.");
     }
@@ -613,3 +615,5 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
+
+    
