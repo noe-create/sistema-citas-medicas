@@ -135,6 +135,10 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
     }
     
     if (personaToLoad) {
+        const dateString = personaToLoad.fechaNacimiento as unknown as string;
+        const date = new Date(dateString);
+        const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+
         form.reset({
           ...form.getValues(),
           primerNombre: personaToLoad.primerNombre || '',
@@ -143,7 +147,7 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
           segundoApellido: personaToLoad.segundoApellido || '',
           nacionalidad: personaToLoad.nacionalidad,
           cedulaNumero: personaToLoad.cedulaNumero,
-          fechaNacimiento: new Date(personaToLoad.fechaNacimiento),
+          fechaNacimiento: utcDate,
           genero: personaToLoad.genero,
           telefono1: personaToLoad.telefono1,
           telefono2: personaToLoad.telefono2,

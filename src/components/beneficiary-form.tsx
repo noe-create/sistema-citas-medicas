@@ -114,6 +114,10 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
     }
 
     if (personaToLoad) {
+      const dateString = personaToLoad.fechaNacimiento as unknown as string;
+      const date = new Date(dateString);
+      const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+
       form.reset({
         primerNombre: personaToLoad.primerNombre || '',
         segundoNombre: personaToLoad.segundoNombre || '',
@@ -121,7 +125,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
         segundoApellido: personaToLoad.segundoApellido || '',
         nacionalidad: personaToLoad.nacionalidad,
         cedulaNumero: personaToLoad.cedulaNumero,
-        fechaNacimiento: new Date(personaToLoad.fechaNacimiento),
+        fechaNacimiento: utcDate,
         genero: personaToLoad.genero,
         email: personaToLoad.email || '',
         telefono1: personaToLoad.telefono1 || '',
