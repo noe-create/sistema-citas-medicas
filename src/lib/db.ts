@@ -20,12 +20,7 @@ async function runMigrations(dbInstance: Database) {
 
     // Universal migration for 'personas' table
     const personasCols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    const hasOldNombreCompleto = personasCols.some(c => c.name === 'nombreCompleto');
-    const hasOldCedulaNotNull = personasCols.some(c => c.name === 'cedula' && c.notnull);
-    const hasOldSingleCedula = personasCols.some(c => c.name === 'cedula');
-    const hasNewCedula = personasCols.some(c => c.name === 'nacionalidad');
-
-    if (personasCols.length > 0 && !hasNewCedula) {
+    if (personasCols.length > 0 && !personasCols.some(c => c.name === 'nacionalidad')) {
         console.log("Old 'personas' schema detected. Running unified migration...");
         await dbInstance.exec('BEGIN TRANSACTION;');
         try {
@@ -33,6 +28,8 @@ async function runMigrations(dbInstance: Database) {
             await createTables(dbInstance); // Creates the new clean schema
 
             const oldColumns = (await dbInstance.all("PRAGMA table_info('personas_old')")).map(c => c.name);
+            const hasOldNombreCompleto = oldColumns.includes('nombreCompleto');
+            const hasOldSingleCedula = oldColumns.includes('cedula');
 
             const selectExpressions = [
                 'id',
@@ -116,7 +113,16 @@ async function runMigrations(dbInstance: Database) {
         await dbInstance.exec('BEGIN TRANSACTION;');
         try {
             await dbInstance.exec('ALTER TABLE titulares RENAME TO titulares_old;');
-            await createTables(dbInstance); // Recreates tables with new schema
+            // Recreates tables with new schema if they don't exist
+            await dbInstance.exec(`
+                CREATE TABLE IF NOT EXISTS titulares (
+                    id TEXT PRIMARY KEY,
+                    personaId TEXT NOT NULL UNIQUE,
+                    unidadServicio TEXT NOT NULL,
+                    numeroFicha TEXT,
+                    FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE
+                );
+            `);
 
             // Copy data from old table to new table
             await dbInstance.exec(`
