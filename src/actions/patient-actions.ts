@@ -131,7 +131,7 @@ export async function getPersonas(query?: string, page: number = 1, pageSize: nu
     `;
     const selectParams = [...whereParams, pageSize, offset];
     
-    const rows = await await db.all(selectQuery, ...selectParams);
+    const rows = await db.all(selectQuery, ...selectParams);
     const personas = rows.map((row: any) => ({
         ...row,
         fechaNacimiento: new Date(row.fechaNacimiento),
@@ -191,7 +191,7 @@ export async function getTitulares(query?: string, page: number = 1, pageSize: n
     `;
     const selectParams = [...whereParams, pageSize, offset];
     
-    const rows = await await db.all(selectQuery, ...selectParams);
+    const rows = await db.all(selectQuery, ...selectParams);
     
     const titulares = rows.map(row => ({
         id: row.id,
@@ -409,7 +409,7 @@ export async function getAllBeneficiarios(query?: string): Promise<BeneficiarioC
     
     selectQuery += ' ORDER BY p.primerNombre, p.primerApellido';
     
-    const rows = await await db.all(selectQuery, ...params);
+    const rows = await db.all(selectQuery, ...params);
     return rows.map((row: any) => ({
         id: row.id,
         personaId: row.personaId,
@@ -522,18 +522,18 @@ export async function searchPeopleForCheckin(query: string): Promise<SearchResul
         LIMIT 20
     `;
     const personasParams = hasQuery ? [searchQuery, searchQuery] : [];
-    const personas = await await db.all(personasQuery, ...personasParams);
+    const personas = await db.all(personasQuery, ...personasParams);
     
     if (personas.length === 0) return [];
     
     const personaIds = personas.map(p => p.id);
     const placeholders = personaIds.map(() => '?').join(',');
 
-    const titularesInfo = await await db.all(`
+    const titularesInfo = await db.all(`
         SELECT personaId, id, unidadServicio FROM titulares WHERE personaId IN (${placeholders})
     `, ...personaIds);
 
-    const beneficiariosInfo = await await db.all(`
+    const beneficiariosInfo = await db.all(`
         SELECT b.personaId, b.titularId, ${titularNameSql} as titularNombre
         FROM beneficiarios b
         JOIN titulares t ON b.titularId = t.id
@@ -679,20 +679,20 @@ async function parseConsultation(db: any, row: any): Promise<Consultation | null
     if (!row) return null;
     const { fum, ...restOfGineco } = row.antecedentesGinecoObstetricos ? JSON.parse(row.antecedentesGinecoObstetricos) : {};
 
-    const diagnoses = await await db.all('SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?', row.id);
-    const documents = await await db.all('SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC', row.id);
+    const diagnoses = await db.all('SELECT cie10Code, cie10Description FROM consultation_diagnoses WHERE consultationId = ?', row.id);
+    const documents = await db.all('SELECT * FROM consultation_documents WHERE consultationId = ? ORDER BY uploadedAt ASC', row.id);
     
     const orderRow = await db.get('SELECT * FROM treatment_orders WHERE consultationId = ?', row.id);
     let treatmentOrder: TreatmentOrder | undefined = undefined;
     if (orderRow) {
-        const items = await await db.all('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', orderRow.id);
+        const items = await db.all('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', orderRow.id);
         treatmentOrder = { ...orderRow, items: items, createdAt: new Date(orderRow.createdAt) };
     }
     
     const invoiceRow = await db.get('SELECT * FROM invoices WHERE consultationId = ?', row.id);
     let invoice: Invoice | undefined = undefined;
     if(invoiceRow) {
-        const items = await await db.all('SELECT * FROM invoice_items WHERE invoiceId = ?', invoiceRow.id);
+        const items = await db.all('SELECT * FROM invoice_items WHERE invoiceId = ?', invoiceRow.id);
         invoice = { ...invoiceRow, items: items, createdAt: new Date(invoiceRow.createdAt) };
     }
     
@@ -721,7 +721,7 @@ async function parseConsultation(db: any, row: any): Promise<Consultation | null
         antecedentesGinecoObstetricos: row.antecedentesGinecoObstetricos ? { ...restOfGineco, fum: fum ? new Date(fum) : undefined } : undefined,
         antecedentesPediatricos: row.antecedentesPediatricos ? JSON.parse(row.antecedentesPediatricos) : undefined,
         diagnoses,
-        documents: documents.map(d => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
+        documents: documents.map((d: any) => ({ ...d, uploadedAt: new Date(d.uploadedAt) })),
         treatmentOrder,
         invoice,
     };
@@ -731,7 +731,7 @@ async function parseConsultation(db: any, row: any): Promise<Consultation | null
 export async function getPatientHistory(personaId: string): Promise<HistoryEntry[]> {
     const db = await getDb();
     
-    const consultationsRows = await await db.all(
+    const consultationsRows = await db.all(
         `SELECT c.* FROM consultations c
          JOIN pacientes pac ON c.pacienteId = pac.id
          WHERE pac.personaId = ?
@@ -749,7 +749,7 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
         })
     );
 
-    const labOrdersRows = await await db.all(
+    const labOrdersRows = await db.all(
         `SELECT lo.*, c.treatmentPlan, (SELECT GROUP_CONCAT(cd.cie10Description, '; ') FROM consultation_diagnoses cd WHERE cd.consultationId = lo.consultationId) as diagnosticoPrincipal
          FROM lab_orders lo
          JOIN pacientes pac ON lo.pacienteId = pac.id
@@ -760,7 +760,7 @@ export async function getPatientHistory(personaId: string): Promise<HistoryEntry
     );
     
     const labOrders: HistoryEntry[] = await Promise.all(labOrdersRows.map(async (order) => {
-        const items = await await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
+        const items = await db.all('SELECT testName FROM lab_order_items WHERE labOrderId = ?', order.id);
         const persona = await db.get(`SELECT *, ${fullNameSql} as nombreCompleto, ${fullCedulaSql} as cedula FROM personas p WHERE p.id = ?`, personaId);
         return {
             type: 'lab_order' as const,
@@ -829,7 +829,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         );
         
         if (data.diagnoses && data.diagnoses.length > 0) {
-            const diagnosisStmt = await await db.prepare('INSERT INTO consultation_diagnoses (id, consultationId, cie10Code, cie10Description) VALUES (?, ?, ?, ?)');
+            const diagnosisStmt = await db.prepare('INSERT INTO consultation_diagnoses (id, consultationId, cie10Code, cie10Description) VALUES (?, ?, ?, ?)');
             for (const diagnosis of data.diagnoses) {
                 await diagnosisStmt.run(generateId('d'), consultationId, diagnosis.cie10Code, diagnosis.cie10Description);
             }
@@ -837,7 +837,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
         }
 
         if (data.documents && data.documents.length > 0) {
-            const docStmt = await await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, documentType, description, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            const docStmt = await db.prepare('INSERT INTO consultation_documents (id, consultationId, fileName, fileType, documentType, description, fileData, uploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
             for (const doc of data.documents) {
                 await docStmt.run(
                     generateId('doc'), consultationId, doc.fileName, doc.fileType,
@@ -854,7 +854,7 @@ export async function createConsultation(data: CreateConsultationInput): Promise
                 orderId, data.pacienteId, consultationId, 'Pendiente', new Date().toISOString()
             );
 
-            const itemStmt = await await db.prepare(`
+            const itemStmt = await db.prepare(`
                 INSERT INTO treatment_order_items 
                 (id, treatmentOrderId, medicamentoProcedimiento, dosis, via, frecuencia, duracion, instrucciones, status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -923,7 +923,7 @@ export async function getEmpresas(query?: string, page: number = 1, pageSize: nu
     let selectQuery = `SELECT * FROM empresas${whereClause} ORDER BY name LIMIT ? OFFSET ?`;
     const selectParams = [...whereParams, pageSize, offset];
 
-    const empresas = await await db.all(selectQuery, ...selectParams);
+    const empresas = await db.all(selectQuery, ...selectParams);
     
     return { empresas, totalCount };
 }
@@ -1204,7 +1204,7 @@ export async function getManagedCie10Codes(
     selectParams.push(pageSize, offset);
   }
 
-  const codes = await await db.all(selectQuery, ...selectParams);
+  const codes = await db.all(selectQuery, ...selectParams);
 
   return { codes, totalCount };
 }
@@ -1260,7 +1260,7 @@ export async function bulkCreateCie10Codes(codes: Cie10Code[]): Promise<{ import
 
     await db.exec('BEGIN TRANSACTION');
     try {
-        const stmt = await await db.prepare('INSERT OR IGNORE INTO cie10_codes (code, description) VALUES (?, ?)');
+        const stmt = await db.prepare('INSERT OR IGNORE INTO cie10_codes (code, description) VALUES (?, ?)');
         for (const code of codes) {
             const result = await stmt.run(code.code.toUpperCase(), code.description);
             if (result.changes > 0) {
@@ -1325,7 +1325,7 @@ export async function getListaPacientes(query?: string): Promise<PacienteConInfo
     
     selectQuery += ' GROUP BY p.id ORDER BY p.primerNombre, p.primerApellido';
 
-    const rows = await await db.all(selectQuery, ...params);
+    const rows = await db.all(selectQuery, ...params);
     
     return rows.map((row: any) => {
         const roles = [];
@@ -1367,7 +1367,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
 
     baseQuery += ' ORDER BY o.createdAt DESC';
     
-    const orderIdsResult = await await db.all<{ id: string }>(baseQuery, ...params);
+    const orderIdsResult = await db.all<{ id: string }>(baseQuery, ...params);
     const orderIds = orderIdsResult.map(r => r.id);
 
     if (orderIds.length === 0) {
@@ -1390,7 +1390,7 @@ export async function getTreatmentOrders(query?: string): Promise<TreatmentOrder
         `, orderId);
 
         if (row) {
-            const items = await await db.all<TreatmentOrderItem[]>('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', row.id);
+            const items = await db.all<TreatmentOrderItem[]>('SELECT * FROM treatment_order_items WHERE treatmentOrderId = ?', row.id);
             orders.push({
                 ...row,
                 createdAt: new Date(row.createdAt),
@@ -1539,7 +1539,7 @@ export async function getMorbidityReport(filters: { from: Date; to: Date; accoun
         ORDER BY frequency DESC
     `;
     
-    const data = await await db.all(query, ...params);
+    const data = await db.all(query, ...params);
     return data;
 }
 
@@ -1557,7 +1557,7 @@ export async function getOperationalReport(filters: { from: Date, to: Date }): P
         WHERE c.consultationDate BETWEEN ? AND ? AND w.status = 'Completado'
     `, fromISO, toISO);
 
-    const patientsPerDay = await await db.all(`
+    const patientsPerDay = await db.all(`
         SELECT
             DATE(consultationDate) as day,
             COUNT(id) as patientCount
@@ -1603,7 +1603,7 @@ export async function createLabOrder(consultationId: string, pacienteId: string,
             'Pendiente'
         );
 
-        const itemStmt = await await db.prepare('INSERT INTO lab_order_items (id, labOrderId, testName) VALUES (?, ?, ?)');
+        const itemStmt = await db.prepare('INSERT INTO lab_order_items (id, labOrderId, testName) VALUES (?, ?, ?)');
         for (const testName of tests) {
             await itemStmt.run(generateId('lab_item'), orderId, testName);
         }
@@ -1744,6 +1744,7 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     
 
     
+
 
 
 
