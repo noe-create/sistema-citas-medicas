@@ -12,79 +12,6 @@ import { calculateAge } from './utils';
 
 let db: Database | null = null;
 
-
-async function runMigrations(dbInstance: Database) {
-    console.log('Checking database schema...');
-    
-    // Helper function to check if a column exists
-    const columnExists = async (tableName: string, columnName: string): Promise<boolean> => {
-        try {
-            const result = await dbInstance.all(`PRAGMA table_info(${tableName})`);
-            return result.some(col => col.name === columnName);
-        } catch (error) {
-            // This can happen if the table itself doesn't exist yet, which is fine.
-            return false;
-        }
-    };
-
-    // Migration for 'personas' table
-    if (await columnExists('personas', 'id') && !(await columnExists('personas', 'createdAt'))) {
-        console.log("Applying migration: Adding 'createdAt' to 'personas' table.");
-        await dbInstance.exec('ALTER TABLE personas ADD COLUMN createdAt TEXT');
-    }
-
-    // Migration for 'roles' table
-    if (await columnExists('roles', 'id') && !(await columnExists('roles', 'hasSpecialty'))) {
-        console.log("Applying migration: Adding 'hasSpecialty' to 'roles' table.");
-        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
-    }
-
-    // Migration for 'consultations' table
-    if (await columnExists('consultations', 'id')) {
-        if (!(await columnExists('consultations', 'surveyInvitationToken'))) {
-            console.log("Applying migration: Adding 'surveyInvitationToken' to 'consultations' table.");
-            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN surveyInvitationToken TEXT');
-        }
-        if (!(await columnExists('consultations', 'radiologyOrders'))) {
-            console.log("Applying migration: Adding 'radiologyOrders' to 'consultations' table.");
-            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN radiologyOrders TEXT');
-        }
-        if (!(await columnExists('consultations', 'reposo'))) {
-            console.log("Applying migration: Adding 'reposo' to 'consultations' table.");
-            await dbInstance.exec('ALTER TABLE consultations ADD COLUMN reposo TEXT');
-        }
-    }
-
-    // Migration for 'titulares' table
-    if (await columnExists('titulares', 'id') && !(await columnExists('titulares', 'numeroFicha'))) {
-        console.log("Applying migration: Adding 'numeroFicha' to 'titulares' table.");
-        await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
-    }
-
-    console.log('Database schema check complete.');
-}
-
-
-async function initializeDb(): Promise<Database> {
-    const dbPath = path.join(process.cwd(), 'database.db');
-    
-    const dbInstance = await open({
-        filename: dbPath,
-        driver: sqlite3.Database,
-        mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
-    });
-
-    await dbInstance.exec('PRAGMA foreign_keys = ON;');
-    
-    await createTables(dbInstance);
-    await runMigrations(dbInstance);
-    
-    await seedDb(dbInstance);
-
-    return dbInstance;
-}
-
-
 async function createTables(dbInstance: Database): Promise<void> {
      await dbInstance.exec(`
         CREATE TABLE IF NOT EXISTS roles (
@@ -522,13 +449,38 @@ async function seedDb(dbInstance: Database): Promise<void> {
 }
 
 
+async function initializeDb(): Promise<Database> {
+    console.log('Initializing database...');
+    const dbPath = path.join(process.cwd(), 'database.db');
+    
+    const dbInstance = await open({
+        filename: dbPath,
+        driver: sqlite3.Database,
+        mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
+    });
+    console.log('Database file opened.');
+
+    await dbInstance.exec('PRAGMA foreign_keys = ON;');
+    console.log('Foreign keys enabled.');
+    
+    console.log('Creating tables if they do not exist...');
+    await createTables(dbInstance);
+    console.log('Table creation check complete.');
+    
+    console.log('Seeding database if necessary...');
+    await seedDb(dbInstance);
+    console.log('Database seeding complete.');
+    
+    console.log('Database initialization finished.');
+    return dbInstance;
+}
+
 export async function getDb(): Promise<Database> {
     if (!db) {
+        console.log("Database instance not found, initializing...");
         db = await initializeDb();
     }
     return db;
 }
-
-    
 
     
