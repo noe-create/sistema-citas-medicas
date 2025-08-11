@@ -109,40 +109,10 @@ async function runMigrations(dbInstance: Database) {
     // Migration for titulares table (tipo -> unidadServicio, empresaId removal)
     const titularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
     if (titularesCols.length > 0 && titularesCols.some(c => c.name === 'tipo')) {
-        console.log("Old 'titulares' schema detected. Migrating 'tipo' to 'unidadServicio'...");
-        await dbInstance.exec('BEGIN TRANSACTION;');
-        try {
-            await dbInstance.exec('ALTER TABLE titulares RENAME TO titulares_old;');
-            
-            // This table creation is now inside the if block, which is safer
-            await dbInstance.exec(`
-                CREATE TABLE titulares (
-                    id TEXT PRIMARY KEY,
-                    personaId TEXT NOT NULL UNIQUE,
-                    unidadServicio TEXT NOT NULL,
-                    numeroFicha TEXT,
-                    FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE
-                );
-            `);
-
-            await dbInstance.exec(`
-                INSERT INTO titulares (id, personaId, unidadServicio)
-                SELECT id, personaId, tipo FROM titulares_old;
-            `);
-
-            await dbInstance.exec('DROP TABLE titulares_old;');
-            await dbInstance.exec('COMMIT;');
-            console.log("'titulares' table migrated successfully.");
-        } catch (error) {
-            await dbInstance.exec('ROLLBACK;');
-            console.error("Failed to migrate 'titulares' schema, rolling back.", error);
-            const tableExists = await dbInstance.get("SELECT name FROM sqlite_master WHERE type='table' AND name='titulares_old';");
-            if (tableExists) {
-                await dbInstance.exec('DROP TABLE IF EXISTS titulares;');
-                await dbInstance.exec('ALTER TABLE titulares_old RENAME TO titulares;');
-            }
-            throw new Error("Database migration for titulares table failed.");
-        }
+        console.log("Old 'titulares' schema detected. Dropping and recreating table.");
+        await dbInstance.exec('DROP TABLE IF EXISTS titulares;');
+        await createTables(dbInstance); // Re-creates the table with the correct new schema.
+        console.log("'titulares' table recreated successfully.");
     }
 
     // This check is now separate and safe
