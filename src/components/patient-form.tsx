@@ -209,10 +209,10 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
             </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-            <FormField control={form.control} name="primerNombre" render={({ field }) => ( <FormItem><FormLabel>Primer Nombre</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="segundoNombre" render={({ field }) => ( <FormItem><FormLabel>Segundo Nombre (Opcional)</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="primerApellido" render={({ field }) => ( <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="segundoApellido" render={({ field }) => ( <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="primerNombre" render={({ field }) => ( <FormItem><FormLabel>Primer Nombre</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoNombre" render={({ field }) => ( <FormItem><FormLabel>Segundo Nombre (Opcional)</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="primerApellido" render={({ field }) => ( <FormItem><FormLabel>Primer Apellido</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="segundoApellido" render={({ field }) => ( <FormItem><FormLabel>Segundo Apellido (Opcional)</FormLabel><FormControl><Input {...field} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/[^a-zA-Z\s]/g, ''))} /></FormControl><FormMessage /></FormItem>)} />
             
             <FormField
                 control={form.control}
@@ -237,7 +237,7 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                       <FormItem>
                       <FormLabel className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-muted-foreground" />Número de Cédula (Opcional)</FormLabel>
                       <FormControl>
-                          <Input placeholder="Solo números" {...field} maxLength={8} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} disabled={isPersonaSelected}/>
+                          <Input placeholder="Solo números" {...field} maxLength={8} value={field.value || ''} onChange={(e) => field.onChange((e.target.value || '').replace(/\D/g, ''))} disabled={isPersonaSelected}/>
                       </FormControl>
                       <FormMessage />
                       </FormItem>
@@ -303,8 +303,8 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                     </FormItem>
                 )}
             />
-            <FormField control={form.control} name="telefono1" render={({ field }) => ( <FormItem><FormLabel>Teléfono 1 (Opcional)</FormLabel><FormControl><Input placeholder="02125551234" {...field} value={field.value || ''} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="telefono2" render={({ field }) => ( <FormItem><FormLabel>Teléfono 2 (Opcional)</FormLabel><FormControl><Input placeholder="04141234567" {...field} value={field.value || ''} disabled={isPersonaSelected} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="telefono1" render={({ field }) => ( <FormItem><FormLabel>Teléfono 1 (Opcional)</FormLabel><FormControl><Input placeholder="02125551234" {...field} value={field.value || ''} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="telefono2" render={({ field }) => ( <FormItem><FormLabel>Teléfono 2 (Opcional)</FormLabel><FormControl><Input placeholder="04141234567" {...field} value={field.value || ''} disabled={isPersonaSelected} onChange={(e) => field.onChange((e.target.value || '').replace(/\D/g, ''))}/></FormControl><FormMessage /></FormItem>)} />
             
             <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />Email (Opcional)</FormLabel><FormControl><Input placeholder="juan.perez@email.com" {...field} value={field.value || ''} type="email" disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="direccion" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />Dirección (Opcional)</FormLabel><FormControl><Textarea placeholder="Av. Principal, Edificio Central, Piso 4, Oficina 4B, Caracas" {...field} value={field.value || ''} disabled={isPersonaSelected}/></FormControl><FormMessage /></FormItem>)} />
@@ -360,7 +360,7 @@ export function PatientForm({ titular, onSubmitted, onCancel, excludeIds = [] }:
                         <FormItem>
                             <FormLabel className="flex items-center gap-2"><Hash className="h-4 w-4 text-muted-foreground" />Número de Ficha</FormLabel>
                             <FormControl>
-                                <Input placeholder="Máximo 4 dígitos" {...field} maxLength={4} value={field.value || ''} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))} />
+                                <Input placeholder="Máximo 4 dígitos" {...field} maxLength={4} value={field.value || ''} onChange={(e) => field.onChange((e.target.value || '').replace(/\D/g, ''))} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
