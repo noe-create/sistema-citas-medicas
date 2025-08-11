@@ -15,43 +15,52 @@ let db: Database | null = null;
 
 async function runMigrations(dbInstance: Database) {
     console.log('Checking database schema...');
-    await dbInstance.exec('PRAGMA foreign_keys=OFF;');
+    
+    // Helper function to check if a column exists
+    const columnExists = async (tableName: string, columnName: string): Promise<boolean> => {
+        try {
+            const result = await dbInstance.all(`PRAGMA table_info(${tableName})`);
+            return result.some(col => col.name === columnName);
+        } catch (error) {
+            // This can happen if the table itself doesn't exist yet, which is fine.
+            return false;
+        }
+    };
 
-    const personasCols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    if (personasCols.length > 0 && !personasCols.some(c => c.name === 'createdAt')) {
+    // Migration for 'personas' table
+    if (await columnExists('personas', 'id') && !(await columnExists('personas', 'createdAt'))) {
+        console.log("Applying migration: Adding 'createdAt' to 'personas' table.");
         await dbInstance.exec('ALTER TABLE personas ADD COLUMN createdAt TEXT');
-        console.log("Added createdAt column to personas table.");
     }
-    
-    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')").catch(() => []);
-    if (rolesCols.length > 0 && !rolesCols.some(col => col.name === 'hasSpecialty')) {
+
+    // Migration for 'roles' table
+    if (await columnExists('roles', 'id') && !(await columnExists('roles', 'hasSpecialty'))) {
+        console.log("Applying migration: Adding 'hasSpecialty' to 'roles' table.");
         await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
-         console.log("Added hasSpecialty column to roles table.");
     }
-    
-    const consultationsCols = await dbInstance.all("PRAGMA table_info('consultations')").catch(() => []);
-    if (consultationsCols.length > 0) {
-        if (!consultationsCols.some(c => c.name === 'surveyInvitationToken')) {
+
+    // Migration for 'consultations' table
+    if (await columnExists('consultations', 'id')) {
+        if (!(await columnExists('consultations', 'surveyInvitationToken'))) {
+            console.log("Applying migration: Adding 'surveyInvitationToken' to 'consultations' table.");
             await dbInstance.exec('ALTER TABLE consultations ADD COLUMN surveyInvitationToken TEXT');
-            console.log("Added surveyInvitationToken column to consultations table.");
         }
-        if (!consultationsCols.some(c => c.name === 'radiologyOrders')) {
+        if (!(await columnExists('consultations', 'radiologyOrders'))) {
+            console.log("Applying migration: Adding 'radiologyOrders' to 'consultations' table.");
             await dbInstance.exec('ALTER TABLE consultations ADD COLUMN radiologyOrders TEXT');
-            console.log("Added radiologyOrders column to consultations table.");
         }
-        if (!consultationsCols.some(c => c.name === 'reposo')) {
+        if (!(await columnExists('consultations', 'reposo'))) {
+            console.log("Applying migration: Adding 'reposo' to 'consultations' table.");
             await dbInstance.exec('ALTER TABLE consultations ADD COLUMN reposo TEXT');
-            console.log("Added reposo column to consultations table.");
         }
     }
-    
-    const titularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
-    if (titularesCols.length > 0 && !titularesCols.some(c => c.name === 'numeroFicha')) {
+
+    // Migration for 'titulares' table
+    if (await columnExists('titulares', 'id') && !(await columnExists('titulares', 'numeroFicha'))) {
+        console.log("Applying migration: Adding 'numeroFicha' to 'titulares' table.");
         await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
-        console.log("Added numeroFicha column to titulares table.");
     }
-    
-    await dbInstance.exec('PRAGMA foreign_keys=ON;');
+
     console.log('Database schema check complete.');
 }
 
@@ -519,5 +528,7 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
+
+    
 
     
