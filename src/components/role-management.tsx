@@ -120,7 +120,7 @@ export function RoleManagement() {
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
-              <motion.tbody>
+              <TableBody>
                 <AnimatePresence>
                   {roles.map((role) => (
                       <motion.tr 
@@ -174,7 +174,7 @@ export function RoleManagement() {
                       </motion.tr>
                     ))}
                   </AnimatePresence>
-              </motion.tbody>
+              </TableBody>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

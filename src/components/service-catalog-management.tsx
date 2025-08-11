@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -119,7 +120,7 @@ export function ServiceCatalogManagement() {
                   {canManage && <TableHead className="text-right w-[100px]">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
-              <motion.tbody>
+              <TableBody>
                 <AnimatePresence>
                   {services.map((service) => (
                     <motion.tr key={service.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -147,7 +148,7 @@ export function ServiceCatalogManagement() {
                     </motion.tr>
                   ))}
                 </AnimatePresence>
-              </motion.tbody>
+              </TableBody>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">

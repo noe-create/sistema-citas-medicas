@@ -120,7 +120,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                     <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
                 </TableHeader>
-                <motion.tbody>
+                <TableBody>
                   <AnimatePresence>
                     {beneficiarios.map((beneficiario) => (
                     <motion.tr 
@@ -179,7 +179,7 @@ export function BeneficiaryManagement({ titular, initialBeneficiarios }: Benefic
                     </motion.tr>
                     ))}
                   </AnimatePresence>
-                </motion.tbody>
+                </TableBody>
             </Table>
           ) : (
              <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-card rounded-md border border-dashed">
