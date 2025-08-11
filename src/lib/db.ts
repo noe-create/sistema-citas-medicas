@@ -18,7 +18,7 @@ async function runMigrations(dbInstance: Database) {
     console.log('Checking database schema...');
     await dbInstance.exec('PRAGMA foreign_keys=OFF;');
 
-    // Universal migration for 'personas' table
+    // Migration for 'personas' table
     const personasCols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
     if (personasCols.length > 0 && !personasCols.some(c => c.name === 'nacionalidad')) {
         console.log("Old 'personas' schema detected. Running unified migration...");
@@ -585,5 +585,3 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
-
-    
