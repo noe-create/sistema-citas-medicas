@@ -18,78 +18,18 @@ async function runMigrations(dbInstance: Database) {
     console.log('Checking database schema...');
     await dbInstance.exec('PRAGMA foreign_keys=OFF;');
 
-    // Migration for 'personas' table
     const personasCols = await dbInstance.all("PRAGMA table_info('personas')").catch(() => []);
-    if (personasCols.length > 0 && !personasCols.some(c => c.name === 'nacionalidad')) {
-        console.log("Old 'personas' schema detected. Running unified migration...");
-        await dbInstance.exec('BEGIN TRANSACTION;');
-        try {
-            await dbInstance.exec('ALTER TABLE personas RENAME TO personas_old;');
-            await createTables(dbInstance); // Creates the new clean schema
-
-            const oldColumns = (await dbInstance.all("PRAGMA table_info('personas_old')")).map(c => c.name);
-            const hasOldNombreCompleto = oldColumns.includes('nombreCompleto');
-            const hasOldSingleCedula = oldColumns.includes('cedula');
-
-            const selectExpressions = [
-                'id',
-                hasOldNombreCompleto ? `SUBSTR(nombreCompleto, 1, INSTR(nombreCompleto, ' ') - 1)` : 'primerNombre',
-                hasOldNombreCompleto ? `NULL` : 'segundoNombre',
-                hasOldNombreCompleto ? `SUBSTR(nombreCompleto, INSTR(nombreCompleto, ' ') + 1)` : 'primerApellido',
-                hasOldNombreCompleto ? `NULL` : 'segundoApellido',
-                hasOldSingleCedula ? `CASE WHEN cedula IS NOT NULL AND INSTR(cedula, '-') > 0 THEN SUBSTR(cedula, 1, INSTR(cedula, '-') - 1) ELSE NULL END` : 'NULL', // nacionalidad
-                hasOldSingleCedula ? `CASE WHEN cedula IS NOT NULL AND INSTR(cedula, '-') > 0 THEN SUBSTR(cedula, INSTR(cedula, '-') + 1) ELSE NULL END` : 'NULL', // cedulaNumero
-                'fechaNacimiento',
-                'genero',
-                oldColumns.includes('telefono') ? 'telefono' : (oldColumns.includes('telefono1') ? 'telefono1' : 'NULL'), // telefono1
-                oldColumns.includes('telefonoCelular') ? 'telefonoCelular' : (oldColumns.includes('telefono2') ? 'telefono2' : 'NULL'), // telefono2
-                'email',
-                'direccion',
-                'representanteId'
-            ];
-            
-            const fieldsToInsert = 'id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId';
-
-            await dbInstance.exec(`INSERT INTO personas (${fieldsToInsert}) SELECT ${selectExpressions.join(', ')} FROM personas_old;`);
-
-            await dbInstance.exec('DROP TABLE personas_old;');
-            await dbInstance.exec('COMMIT;');
-            console.log("Unified 'personas' migration successful.");
-        } catch (error) {
-            await dbInstance.exec('ROLLBACK;');
-            console.error("Failed to migrate 'personas' schema, rolling back.", error);
-            const tableExists = await dbInstance.get("SELECT name FROM sqlite_master WHERE type='table' AND name='personas_old';");
-            if (tableExists) {
-                await dbInstance.exec('DROP TABLE IF EXISTS personas;');
-                await dbInstance.exec('ALTER TABLE personas_old RENAME TO personas;');
-            }
-            throw new Error("Database migration for personas table failed.");
-        }
-    }
-
-    // Migration for treatment_orders (if old schema exists)
-    const treatmentOrdersCols = await dbInstance.all("PRAGMA table_info('treatment_orders')").catch(() => []);
-    if (treatmentOrdersCols.length > 0 && treatmentOrdersCols.some(col => col.name === 'procedureDescription')) {
-        console.log("Old treatment table structure detected. Migrating to new schema...");
-        await dbInstance.exec('DROP TABLE IF EXISTS treatment_executions;');
-        await dbInstance.exec('DROP TABLE IF EXISTS treatment_orders;');
-        await createTables(dbInstance); // Re-create just the needed tables
-        console.log("Old treatment tables dropped and new ones created.");
-    }
-
-    // Migration for roles (if hasSpecialty column is missing)
-    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')").catch(() => []);
-    if (rolesCols.length > 0 && !rolesCols.some(col => col.name === 'hasSpecialty')) {
-        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
-    }
-    
-    // Migration to add createdAt to personas
     if (personasCols.length > 0 && !personasCols.some(c => c.name === 'createdAt')) {
         await dbInstance.exec('ALTER TABLE personas ADD COLUMN createdAt TEXT');
         console.log("Added createdAt column to personas table.");
     }
     
-    // Migration for consultations table
+    const rolesCols = await dbInstance.all("PRAGMA table_info('roles')").catch(() => []);
+    if (rolesCols.length > 0 && !rolesCols.some(col => col.name === 'hasSpecialty')) {
+        await dbInstance.exec('ALTER TABLE roles ADD COLUMN hasSpecialty BOOLEAN NOT NULL DEFAULT 0');
+         console.log("Added hasSpecialty column to roles table.");
+    }
+    
     const consultationsCols = await dbInstance.all("PRAGMA table_info('consultations')").catch(() => []);
     if (consultationsCols.length > 0) {
         if (!consultationsCols.some(c => c.name === 'surveyInvitationToken')) {
@@ -105,25 +45,15 @@ async function runMigrations(dbInstance: Database) {
             console.log("Added reposo column to consultations table.");
         }
     }
-
-    // Migration for titulares table (tipo -> unidadServicio, empresaId removal)
+    
     const titularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
-    if (titularesCols.length > 0 && titularesCols.some(c => c.name === 'tipo')) {
-        console.log("Old 'titulares' schema detected. Dropping and recreating table.");
-        await dbInstance.exec('DROP TABLE IF EXISTS titulares;');
-        await createTables(dbInstance); // Re-creates the table with the correct new schema.
-        console.log("'titulares' table recreated successfully.");
-    }
-
-    // This check is now separate and safe
-    const updatedTitularesCols = await dbInstance.all("PRAGMA table_info('titulares')").catch(() => []);
-    if (updatedTitularesCols.length > 0 && !updatedTitularesCols.some(c => c.name === 'numeroFicha')) {
+    if (titularesCols.length > 0 && !titularesCols.some(c => c.name === 'numeroFicha')) {
         await dbInstance.exec('ALTER TABLE titulares ADD COLUMN numeroFicha TEXT');
         console.log("Added numeroFicha column to titulares table.");
     }
-
-
+    
     await dbInstance.exec('PRAGMA foreign_keys=ON;');
+    console.log('Database schema check complete.');
 }
 
 
@@ -427,6 +357,11 @@ async function seedDb(dbInstance: Database): Promise<void> {
         };
 
         const permStmt = await dbInstance.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');
+        // Grant all permissions to superuser
+        for (const p of ALL_PERMISSIONS) {
+            await permStmt.run('superuser', p.id);
+        }
+        
         for (const [roleId, permissions] of Object.entries(rolePermissions)) {
             for (const permissionId of permissions) {
                 await permStmt.run(roleId, permissionId);
