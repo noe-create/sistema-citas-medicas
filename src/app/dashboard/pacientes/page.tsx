@@ -1,3 +1,5 @@
+'use client';
+
 import { PatientManagement } from '@/components/patient-management';
 
 export default function PacientesPage() {
