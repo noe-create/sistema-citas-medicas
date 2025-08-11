@@ -283,7 +283,7 @@ export function BeneficiaryForm({ beneficiario, onSubmitted, onCancel, excludeId
                 <FormItem>
                   <FormLabel>Email (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="correo@ejemplo.com" {...field} disabled={isPersonaSelected}/>
+                    <Input placeholder="correo@ejemplo.com" {...field} value={field.value || ''} disabled={isPersonaSelected}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
