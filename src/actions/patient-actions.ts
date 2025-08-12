@@ -960,10 +960,6 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
     
     // We no longer link companies to 'titulares' directly.
     // If you add that link back, you will need to re-add the check here.
-    // const countResult = await db.get('SELECT COUNT(*) as count FROM titulares WHERE empresaId = ?', id);
-    // if (countResult.count > 0) {
-    //     throw new Error('No se puede eliminar la empresa porque tiene titulares asociados.');
-    // }
     
     const result = await db.run('DELETE FROM empresas WHERE id = ?', id);
     if (result.changes === 0) throw new Error('Empresa no encontrada para eliminar');
@@ -1518,18 +1514,6 @@ export async function getMorbidityReport(filters: { from: Date; to: Date; accoun
         params.push(accountType);
     }
     
-    // This logic needs to be adapted if company is re-introduced
-    // if (empresaId) {
-    //     whereClauses.push(`
-    //         w.personaId IN (
-    //             SELECT t.personaId FROM titulares t WHERE t.empresaId = ?
-    //             UNION
-    //             SELECT b.personaId FROM beneficiarios b JOIN titulares t ON b.titularId = t.id WHERE t.empresaId = ?
-    //         )
-    //     `);
-    //     params.push(empresaId, empresaId);
-    // }
-    
     if (whereClauses.length > 0) {
         query += ` WHERE ${whereClauses.join(' AND ')}`;
     }
@@ -1744,6 +1728,7 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
     
 
     
+
 
 
 
