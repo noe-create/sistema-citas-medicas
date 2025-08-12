@@ -369,8 +369,8 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { code: 'J00', description: 'Nasofaringitis aguda (resfriado común)' },
             { code: 'J02.9', description: 'Faringitis aguda, no especificada' },
             { code: 'A09X', description: 'Enfermedad diarreica y gastroenteritis de presunto origen infeccioso' },
-            { code: 'I10', description: 'Hipertensión esencial (primaria)' },
-            { code: 'E11.9', description: 'Diabetes mellitus tipo 2, sin complicaciones' },
+            { id: 'I10', description: 'Hipertensión esencial (primaria)' },
+            { id: 'E11.9', description: 'Diabetes mellitus tipo 2, sin complicaciones' },
         ];
         const cieStmt = await dbInstance.prepare('INSERT INTO cie10_codes (code, description) VALUES (?, ?)');
         for (const c of codes) {
@@ -407,5 +407,3 @@ export async function getDb(): Promise<Database> {
     }
     return db;
 }
-
-    
