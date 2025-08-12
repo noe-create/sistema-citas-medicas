@@ -1724,12 +1724,3 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
 
   return summary;
 }
-
-    
-
-    
-
-
-
-
-
