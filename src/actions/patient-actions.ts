@@ -275,6 +275,7 @@ export async function createTitular(data: {
     const db = await getDb();
     
     let personaId: string;
+
     if ('personaId' in data) {
       // Use existing persona
       personaId = data.personaId;
@@ -283,7 +284,7 @@ export async function createTitular(data: {
         throw new Error('Esta persona ya tiene el rol de titular.');
       }
     } else {
-      // Create new persona
+      // Create new persona by calling the dedicated action
       personaId = await createPersona(data.persona as any);
     }
   
@@ -1479,10 +1480,9 @@ export async function updateTreatmentOrderStatus(orderId: string, status: 'En Pr
 
 
 // --- Reports Actions ---
-
-export async function getMorbidityReport(filters: { from: Date; to: Date; accountType?: string; empresaId?: string; }): Promise<MorbidityReportRow[]> {
+export async function getMorbidityReport(filters: { from: Date; to: Date; accountType?: string; }): Promise<MorbidityReportRow[]> {
     const db = await getDb();
-    const { from, to, accountType, empresaId } = filters;
+    const { from, to, accountType } = filters;
     
     let query = `
         SELECT
