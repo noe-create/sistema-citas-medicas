@@ -164,16 +164,8 @@ export function Cie10Management() {
       }
   ];
 
-  const handleExportCsv = async () => {
-    // Implement export functionality
-  };
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Implement file import logic
   };
 
   return (
@@ -197,7 +189,6 @@ export function Cie10Management() {
                 <input
                     type="file"
                     ref={fileInputRef}
-                    onChange={handleFileChange}
                     accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                     className="hidden"
                 />
@@ -234,7 +225,7 @@ export function Cie10Management() {
                     </AlertDialogContent>
                 </AlertDialog>
 
-                <Button variant="outline" onClick={handleExportCsv}>
+                <Button variant="outline">
                     <Download className="mr-2 h-4 w-4" />
                     Exportar
                 </Button>
