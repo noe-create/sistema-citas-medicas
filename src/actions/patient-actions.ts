@@ -273,41 +273,32 @@ export async function createTitular(data: {
 }) {
     await ensureDataEntryPermission();
     const db = await getDb();
-    const titularId = generateId('t');
     
-    try {
-        await db.exec('BEGIN TRANSACTION');
-
-        let personaId: string;
-
-        if ('personaId' in data) {
-            const existingTitular = await db.get('SELECT id FROM titulares WHERE personaId = ?', data.personaId);
-            if (existingTitular) {
-                throw new Error('Esta persona ya es un titular.');
-            }
-            personaId = data.personaId;
-        } else {
-            const personaData = { ...data.persona, fechaNacimiento: data.persona.fechaNacimiento.toISOString() };
-            personaId = await getOrCreatePersona(db, personaData as any);
-        }
-
-        await db.run(
-            'INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)',
-            titularId,
-            personaId,
-            data.unidadServicio,
-            data.numeroFicha || null
-        );
-
-        await db.exec('COMMIT');
-    } catch (error) {
-        await db.exec('ROLLBACK');
-        console.error("Error creating titular:", error);
-        throw error;
+    let personaId: string;
+    if ('personaId' in data) {
+      // Use existing persona
+      personaId = data.personaId;
+      const existingTitular = await db.get('SELECT id FROM titulares WHERE personaId = ?', personaId);
+      if (existingTitular) {
+        throw new Error('Esta persona ya tiene el rol de titular.');
+      }
+    } else {
+      // Create new persona
+      personaId = await createPersona(data.persona as any);
     }
-    
+  
+    // Create the titular record
+    const titularId = generateId('t');
+    await db.run(
+      'INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)',
+      titularId,
+      personaId,
+      data.unidadServicio,
+      data.numeroFicha || null
+    );
+  
     revalidatePath('/dashboard/pacientes');
-    return { id: titularId };
+    return { id: titularId, personaId: personaId };
 }
 
 export async function updateTitular(titularId: string, personaId: string, data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula'> & { fechaNacimiento: Date; unidadServicio: string; representanteId?: string; numeroFicha?: string; }) {
@@ -970,7 +961,7 @@ export async function deleteEmpresa(id: string): Promise<{ success: boolean }> {
 
 // --- Central Person Management Actions ---
 
-export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula' | 'createdAt'> & { fechaNacimiento: Date, representanteId?: string }) {
+export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento' | 'nombreCompleto' | 'cedula' | 'createdAt'> & { fechaNacimiento: Date, representanteId?: string }): Promise<string> {
     await ensureDataEntryPermission();
     const db = await getDb();
     
@@ -1011,8 +1002,7 @@ export async function createPersona(data: Omit<Persona, 'id' | 'fechaNacimiento'
 
     revalidatePath('/dashboard/personas');
     
-    const createdPersona = await db.get('SELECT * FROM personas WHERE id = ?', personaId);
-    return { ...createdPersona, fechaNacimiento: new Date(createdPersona.fechaNacimiento) };
+    return personaId;
 }
 
 export async function bulkCreatePersonas(
