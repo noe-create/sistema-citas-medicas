@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -16,6 +17,8 @@ const RecipeBlock = ({ consultation, label }: { consultation: Consultation, labe
                 return 'MÉDICO PEDIATRA';
             case 'servicio de enfermeria':
                 return 'SERVICIO DE ENFERMERÍA';
+            case 'salud ocupacional':
+                return 'SALUD OCUPACIONAL';
             default:
                 return 'MÉDICO TRATANTE';
         }

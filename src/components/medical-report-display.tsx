@@ -23,10 +23,19 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
   }, [paciente.fechaNacimiento]);
 
   const getConsultationType = () => {
-    if (paciente.serviceType === 'consulta pediatrica') {
-      return 'CONSULTA PEDIATRICA';
+    const serviceType = (paciente as any)?.serviceType;
+    switch (serviceType) {
+        case 'consulta pediatrica':
+            return 'CONSULTA PEDIATRICA';
+        case 'medicina familiar':
+            return 'CONSULTA DE MEDICINA FAMILIAR';
+        case 'servicio de enfermeria':
+            return 'INFORME DE ENFERMERÍA';
+        case 'salud ocupacional':
+             return 'INFORME DE SALUD OCUPACIONAL';
+        default:
+            return 'INFORME MÉDICO';
     }
-    return 'CONSULTA DE MEDICINA FAMILIAR';
   }
 
   const getVitalSignValue = (value: any, unit: string = '') => {
