@@ -27,6 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { calculateAge } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { RescheduleForm } from './reschedule-form';
+import { useRouter } from 'next/navigation';
 
 const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }> = {
   'medicina familiar': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina Familiar' },
@@ -54,6 +55,7 @@ interface PatientQueueProps {
 
 export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [selectedPatientId, setSelectedPatientId] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
@@ -147,6 +149,12 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
   };
 
   const handleStartOrContinueConsultation = async (patient: Patient) => {
+    if (patient.serviceType === 'salud ocupacional') {
+        const query = new URLSearchParams({ personaId: patient.personaId }).toString();
+        router.push(`/dashboard/salud-ocupacional?${query}`);
+        return;
+    }
+    
     if (patient.status === 'Esperando' || patient.status === 'Reevaluacion') {
         try {
             await updatePatientStatus(patient.id, 'En Consulta');
