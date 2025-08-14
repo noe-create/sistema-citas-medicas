@@ -14,30 +14,37 @@ import {
 import { PatientQueue } from '@/components/patient-queue';
 import { PatientCheckinForm, type RegistrationData } from '@/components/patient-checkin-form';
 import { PlusCircle, RefreshCw } from 'lucide-react';
-import type { Patient } from '@/lib/types';
+import type { Patient, User as Doctor } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addPatientToWaitlist, getAccountTypeByTitularId, getWaitlist } from '@/actions/patient-actions';
+import { getDoctors } from '@/actions/auth-actions';
 import { useUser } from '@/components/app-shell';
 import { RealTimeClock } from '@/components/real-time-clock';
+import { DoctorAvailability } from '@/components/doctor-availability';
 
 
 export default function SalaDeEsperaPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [patientQueue, setPatientQueue] = React.useState<Patient[]>([]);
+  const [doctors, setDoctors] = React.useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
   const user = useUser();
 
-  const fetchWaitlist = React.useCallback(async () => {
+  const fetchData = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getWaitlist();
-      setPatientQueue(data);
+      const [waitlistData, doctorsData] = await Promise.all([
+        getWaitlist(),
+        getDoctors(),
+      ]);
+      setPatientQueue(waitlistData);
+      setDoctors(doctorsData);
     } catch (error) {
       console.error(error);
       toast({
-        title: 'Error al cargar la sala de espera',
-        description: 'No se pudieron obtener los datos de los pacientes. Intente de nuevo.',
+        title: 'Error al cargar datos',
+        description: 'No se pudieron obtener los datos de la sala de espera o los doctores. Intente de nuevo.',
         variant: 'destructive',
       });
     } finally {
@@ -46,11 +53,11 @@ export default function SalaDeEsperaPage() {
   }, [toast]);
 
   React.useEffect(() => {
-    fetchWaitlist();
-    const intervalId = setInterval(fetchWaitlist, 10000); // Poll every 10 seconds
+    fetchData();
+    const intervalId = setInterval(fetchData, 10000); // Poll every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [fetchWaitlist]);
+  }, [fetchData]);
 
 
   const handleSearchCheckin = async (data: RegistrationData) => {
@@ -79,7 +86,7 @@ export default function SalaDeEsperaPage() {
             title: '¡Paciente Registrado!',
             description: `${data.searchResult.persona.nombreCompleto} ha sido añadido a la cola.`,
         });
-        fetchWaitlist(); // Re-fetch immediately
+        fetchData(); // Re-fetch immediately
         setIsDialogOpen(false);
     } catch (error) {
       console.error("Error al registrar paciente:", error);
@@ -100,7 +107,7 @@ export default function SalaDeEsperaPage() {
           <RealTimeClock />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={fetchWaitlist} disabled={isLoading}>
+          <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -122,7 +129,8 @@ export default function SalaDeEsperaPage() {
           </Dialog>
         </div>
       </div>
-      <PatientQueue user={user} patients={patientQueue} onListRefresh={fetchWaitlist} />
+      <DoctorAvailability doctors={doctors} patients={patientQueue} />
+      <PatientQueue user={user} patients={patientQueue} onListRefresh={fetchData} />
     </>
   );
 }
