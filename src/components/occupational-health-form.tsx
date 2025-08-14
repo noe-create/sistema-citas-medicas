@@ -38,8 +38,9 @@ import {
   Vote,
   Forward,
   User,
+  Check
 } from 'lucide-react';
-import type { Persona } from '@/lib/types';
+import type { Persona, Empresa } from '@/lib/types';
 import { cn, calculateAge } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -145,7 +146,8 @@ const occupationalHealthSchema = z.object({
 
 interface OccupationalHealthFormProps {
   persona: Persona;
-  onFinished: () => void;
+  onFinished: (data: z.infer<typeof occupationalHealthSchema>) => void;
+  onCancel: () => void;
 }
 
 const steps = [
@@ -197,7 +199,7 @@ const riskOptions = [
 ];
 
 function CompanySelector({ field }: { field: any }) {
-  const [empresas, setEmpresas] = React.useState([]);
+  const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
   const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -258,6 +260,7 @@ function CompanySelector({ field }: { field: any }) {
 export function OccupationalHealthForm({
   persona,
   onFinished,
+  onCancel,
 }: OccupationalHealthFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -328,16 +331,15 @@ export function OccupationalHealthForm({
 
   async function onSubmit(values: z.infer<typeof occupationalHealthSchema>) {
     setIsSubmitting(true);
-    console.log(values);
+    // Here you would call the server action to save the data
+    // await saveOccupationalHealthConsultation(persona.id, values);
     toast({
       title: '¡Evaluación Guardada!',
-      description: `La consulta de salud ocupacional para ${persona.nombreCompleto} ha sido guardada.`,
+      description: `La consulta de salud ocupacional para ${persona.nombreCompleto} ha sido registrada.`,
       variant: 'success'
     });
-    // Here you would call the server action to save the data
-    // await saveOccupationalHealthConsultation(values);
     setIsSubmitting(false);
-    onFinished();
+    onFinished(values);
   }
 
   return (
@@ -354,7 +356,7 @@ export function OccupationalHealthForm({
                   Paciente: {persona.nombreCompleto} ({calculateAge(new Date(persona.fechaNacimiento))} años)
                 </CardDescription>
               </div>
-               <Button variant="ghost" onClick={onFinished} type="button">Volver</Button>
+               <Button variant="ghost" onClick={onCancel} type="button">Volver</Button>
             </div>
              <div className="flex items-center justify-center pt-4">
               {steps.map((step, index) => (

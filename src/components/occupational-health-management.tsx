@@ -5,11 +5,17 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Persona } from '@/lib/types';
 import { HceSearch } from '@/components/hce-search';
-import { Telescope, ClipboardPlus } from 'lucide-react';
+import { Telescope, ClipboardPlus, Printer } from 'lucide-react';
 import { OccupationalHealthForm } from './occupational-health-form';
 import { Button } from './ui/button';
 import { useSearchParams } from 'next/navigation';
 import { getPersonaById } from '@/actions/patient-actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import dynamic from 'next/dynamic';
+
+const OccupationalHealthReportDisplay = dynamic(() => import('./occupational-health-report-display').then(mod => mod.OccupationalHealthReportDisplay), {
+  loading: () => <p>Cargando informe...</p>,
+});
 
 export function OccupationalHealthManagement() {
   const searchParams = useSearchParams();
@@ -18,6 +24,10 @@ export function OccupationalHealthManagement() {
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
   const [isFormVisible, setIsFormVisible] = React.useState(false);
   const [isLoadingParam, setIsLoadingParam] = React.useState(true);
+  const [evaluationData, setEvaluationData] = React.useState<any | null>(null);
+  const [isReportVisible, setIsReportVisible] = React.useState(false);
+  const printRef = React.useRef<HTMLDivElement>(null);
+
 
   React.useEffect(() => {
     if (personaIdParam) {
@@ -40,13 +50,72 @@ export function OccupationalHealthManagement() {
   const handleStartConsultation = () => {
     if (selectedPersona) {
       setIsFormVisible(true);
+      setEvaluationData(null); // Clear previous evaluation data
     }
   };
   
-  const handleConsultationFinished = () => {
+  const handleConsultationFinished = (data: any) => {
+      setEvaluationData(data);
       setIsFormVisible(false);
-      setSelectedPersona(null);
   }
+
+  const handleReturnToSearch = () => {
+    setIsFormVisible(false);
+    setSelectedPersona(null);
+    setEvaluationData(null);
+  }
+
+  const handlePrint = () => {
+    const node = printRef.current;
+    if (!node) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    
+    document.body.appendChild(iframe);
+    
+    const iframeDoc = iframe.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    const stylesheets = Array.from(document.styleSheets);
+    stylesheets.forEach(styleSheet => {
+        if (styleSheet.href) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = styleSheet.href;
+            iframeDoc.head.appendChild(link);
+        } else if (styleSheet.cssRules) {
+            const style = document.createElement('style');
+            style.textContent = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join(' ');
+            iframeDoc.head.appendChild(style);
+        }
+    });
+
+    const printStyles = `
+        body { 
+            margin: 0; 
+            font-family: 'Figtree', sans-serif;
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important;
+        }
+    `;
+    const styleEl = iframeDoc.createElement('style');
+    styleEl.innerHTML = printStyles;
+    iframeDoc.head.appendChild(styleEl);
+    
+    const clonedNode = node.cloneNode(true) as HTMLElement;
+    iframeDoc.body.innerHTML = ''; // Clear previous content
+    iframeDoc.body.appendChild(clonedNode);
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
+    }, 500);
+  };
   
   if (isLoadingParam) {
     return (
@@ -63,7 +132,7 @@ export function OccupationalHealthManagement() {
 
   return (
     <div className="space-y-6">
-      {!isFormVisible ? (
+      {!isFormVisible && !evaluationData ? (
         <Card className="mx-auto max-w-2xl">
           <CardHeader>
             <CardTitle>Iniciar Evaluación Ocupacional</CardTitle>
@@ -82,9 +151,49 @@ export function OccupationalHealthManagement() {
             )}
           </CardContent>
         </Card>
-      ) : (
-        selectedPersona && <OccupationalHealthForm persona={selectedPersona} onFinished={handleConsultationFinished} />
-      )}
+      ) : isFormVisible && selectedPersona ? (
+        <OccupationalHealthForm persona={selectedPersona} onFinished={handleConsultationFinished} onCancel={handleReturnToSearch}/>
+      ) : evaluationData && selectedPersona ? (
+        <Card className="mx-auto max-w-2xl">
+           <CardHeader>
+            <CardTitle>Evaluación Completada</CardTitle>
+            <CardDescription>
+              La evaluación para {selectedPersona.nombreCompleto} ha sido registrada.
+            </CardDescription>
+          </CardHeader>
+           <CardContent className="flex flex-col items-center gap-4">
+            <p>Puede ver el informe generado o iniciar una nueva búsqueda.</p>
+            <div className="flex gap-4">
+                <Button onClick={() => setIsReportVisible(true)}>Ver Informe</Button>
+                <Button variant="outline" onClick={handleReturnToSearch}>Nueva Búsqueda</Button>
+            </div>
+           </CardContent>
+        </Card>
+      ) : null}
+
+        <Dialog open={isReportVisible} onOpenChange={setIsReportVisible}>
+            <DialogContent className="max-w-5xl">
+                <DialogHeader>
+                    <DialogTitle>Informe de Salud Ocupacional</DialogTitle>
+                    <DialogDescription>
+                        Puede usar el botón de abajo para imprimir este documento.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[70vh] overflow-auto">
+                    {evaluationData && selectedPersona && (
+                        <div ref={printRef}>
+                            <OccupationalHealthReportDisplay 
+                                data={evaluationData}
+                                persona={selectedPersona}
+                            />
+                        </div>
+                    )}
+                </div>
+                <div className="flex justify-end pt-4">
+                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Imprimir Documento</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
