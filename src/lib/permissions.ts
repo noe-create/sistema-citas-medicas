@@ -21,6 +21,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   { id: 'consultation.perform', name: 'Realizar Consulta Médica', description: 'Permite acceder al módulo de consulta para atender pacientes.', module: 'Atención' },
   { id: 'hce.view', name: 'Ver Historia Clínica (HCE)', description: 'Permite buscar y consultar el historial clínico de los pacientes.', module: 'Atención' },
   { id: 'treatmentlog.manage', name: 'Gestionar Bitácora de Tratamiento', description: 'Permite crear órdenes y registrar ejecuciones de tratamientos.', module: 'Atención' },
+  { id: 'occupationalhealth.manage', name: 'Gestionar Salud Ocupacional', description: 'Permite realizar y consultar evaluaciones de salud ocupacional.', module: 'Atención' },
   
   // Reportes
   { id: 'reports.view', name: 'Ver Reportes', description: 'Permite visualizar reportes de morbilidad y operacionales.', module: 'Reportes' },

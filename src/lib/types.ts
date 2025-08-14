@@ -277,14 +277,6 @@ export interface Consultation {
   radiologyOrders?: string;
 }
 
-export interface CreateConsultationDocumentInput {
-  fileName: string;
-  fileType: string;
-  documentType: DocumentType;
-  description: string;
-  fileData: string; // as a data URI
-}
-
 export interface CreateConsultationInput extends Omit<Consultation, 'id' | 'consultationDate' | 'diagnoses' | 'documents' | 'treatmentOrder' | 'surveyInvitationToken' | 'invoice'> {
     diagnoses: Diagnosis[];
     documents?: CreateConsultationDocumentInput[];
@@ -406,4 +398,33 @@ export interface Invoice {
     status: 'Pendiente' | 'Pagada' | 'Anulada';
     createdAt: Date;
     items?: InvoiceItem[];
+}
+
+
+// --- Occupational Health ---
+export interface OccupationalHealthEvaluation {
+  id: string;
+  personaId: string;
+  companyId?: string;
+  companyName?: string;
+  evaluationDate: Date;
+  patientType: string;
+  consultationPurpose: string;
+  jobPosition: string;
+  jobDescription: string;
+  occupationalRisks: string[];
+  riskDetails: string;
+  personalHistory: string;
+  familyHistory: string;
+  lifestyle: any;
+  mentalHealth?: string;
+  vitalSigns: any;
+  anthropometry: any;
+  physicalExamFindings: string;
+  diagnoses: Diagnosis[];
+  fitnessForWork: 'Apto' | 'Apto con Restricciones' | 'No Apto';
+  occupationalRecommendations: string;
+  generalHealthPlan: string;
+  interconsultation?: string;
+  nextFollowUp?: Date;
 }

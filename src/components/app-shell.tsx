@@ -37,7 +37,8 @@ import {
     Stethoscope,
     Calendar,
     Building2,
-    Briefcase
+    Briefcase,
+    BookHeart
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -61,7 +62,8 @@ const allMenuOptions: MenuItem[] = [
   { href: '/dashboard', icon: <LayoutDashboard />, title: 'Panel', permission: '*', group: 'Inicio' },
   { href: '/dashboard/sala-de-espera', icon: <Clock />, title: 'Sala de Espera', permission: 'waitlist.manage', group: 'Atención' },
   { href: '/dashboard/consulta', icon: <Stethoscope />, title: 'Consulta', permission: 'consultation.perform', group: 'Atención' },
-  { href: '/dashboard/salud-ocupacional', icon: <Briefcase />, title: 'Salud Ocupacional', permission: 'consultation.perform', group: 'Atención' },
+  { href: '/dashboard/salud-ocupacional', icon: <Briefcase />, title: 'Salud Ocupacional', permission: 'occupationalhealth.manage', group: 'Atención' },
+  { href: '/dashboard/historial-ocupacional', icon: <BookHeart />, title: 'Historial Ocupacional', permission: 'occupationalhealth.manage', group: 'Atención' },
   { href: '/dashboard/hce', icon: <HeartPulse />, title: 'Historia Clínica', permission: 'hce.view', group: 'Atención' },
   { href: '/dashboard/bitacora', icon: <ClipboardCheck />, title: 'Bitácora', permission: 'treatmentlog.manage', group: 'Atención' },
   

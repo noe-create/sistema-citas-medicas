@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -261,6 +262,35 @@ async function createTables(dbInstance: Database): Promise<void> {
             FOREIGN KEY (invoiceId) REFERENCES invoices(id) ON DELETE CASCADE,
             FOREIGN KEY (serviceId) REFERENCES services(id) ON DELETE RESTRICT
         );
+
+        CREATE TABLE IF NOT EXISTS occupational_health_evaluations (
+            id TEXT PRIMARY KEY,
+            personaId TEXT NOT NULL,
+            companyId TEXT,
+            companyName TEXT,
+            evaluationDate TEXT NOT NULL,
+            patientType TEXT NOT NULL,
+            consultationPurpose TEXT NOT NULL,
+            jobPosition TEXT NOT NULL,
+            jobDescription TEXT NOT NULL,
+            occupationalRisks TEXT NOT NULL,
+            riskDetails TEXT NOT NULL,
+            personalHistory TEXT NOT NULL,
+            familyHistory TEXT NOT NULL,
+            lifestyle TEXT NOT NULL,
+            mentalHealth TEXT,
+            vitalSigns TEXT NOT NULL,
+            anthropometry TEXT NOT NULL,
+            physicalExamFindings TEXT NOT NULL,
+            diagnoses TEXT NOT NULL,
+            fitnessForWork TEXT NOT NULL,
+            occupationalRecommendations TEXT NOT NULL,
+            generalHealthPlan TEXT NOT NULL,
+            interconsultation TEXT,
+            nextFollowUp TEXT,
+            FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE CASCADE,
+            FOREIGN KEY (companyId) REFERENCES empresas(id) ON DELETE SET NULL
+        );
     `);
 }
 
@@ -290,7 +320,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const rolePermissions = {
             administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'surveys.manage', 'services.manage'],
             asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
-            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage'],
+            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage', 'occupationalhealth.manage'],
             enfermera: ['treatmentlog.manage', 'waitlist.manage'],
         };
         const permStmt = await dbInstance.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');

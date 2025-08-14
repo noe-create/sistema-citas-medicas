@@ -3,23 +3,26 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Persona } from '@/lib/types';
+import type { Persona, Empresa } from '@/lib/types';
 import { HceSearch } from '@/components/hce-search';
 import { Telescope, ClipboardPlus, Printer } from 'lucide-react';
 import { OccupationalHealthForm } from './occupational-health-form';
 import { Button } from './ui/button';
-import { useSearchParams } from 'next/navigation';
-import { getPersonaById } from '@/actions/patient-actions';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { getPersonaById, createOccupationalHealthEvaluation, getEmpresas } from '@/actions/patient-actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/hooks/use-toast';
 
-const OccupationalHealthReportDisplay = dynamic(() => import('./occupational-health-report-display').then(mod => mod.OccupationalHealthReportDisplay), {
+const OccupationalHealthReportDisplay = dynamic(() => import('./occupational-health-report-display').then(mod => mod.default), {
   loading: () => <p>Cargando informe...</p>,
 });
 
 export function OccupationalHealthManagement() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const personaIdParam = searchParams.get('personaId');
+  const { toast } = useToast();
 
   const [selectedPersona, setSelectedPersona] = React.useState<Persona | null>(null);
   const [isFormVisible, setIsFormVisible] = React.useState(false);
@@ -27,7 +30,11 @@ export function OccupationalHealthManagement() {
   const [evaluationData, setEvaluationData] = React.useState<any | null>(null);
   const [isReportVisible, setIsReportVisible] = React.useState(false);
   const printRef = React.useRef<HTMLDivElement>(null);
+  const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
 
+  React.useEffect(() => {
+    getEmpresas().then(data => setEmpresas(data.empresas));
+  }, []);
 
   React.useEffect(() => {
     if (personaIdParam) {
@@ -54,15 +61,32 @@ export function OccupationalHealthManagement() {
     }
   };
   
-  const handleConsultationFinished = (data: any) => {
-      setEvaluationData(data);
-      setIsFormVisible(false);
+  const handleConsultationFinished = async (data: any) => {
+      try {
+        const companyName = data.companyId ? empresas.find(e => e.id === data.companyId)?.name : undefined;
+        const savedEvaluation = await createOccupationalHealthEvaluation(selectedPersona!.id, { ...data, companyName });
+        setEvaluationData(savedEvaluation);
+        setIsFormVisible(false);
+        toast({
+            title: 'Evaluación Guardada',
+            description: `La evaluación de ${selectedPersona?.nombreCompleto} ha sido registrada.`,
+            variant: 'success'
+        });
+      } catch (error) {
+         toast({
+            title: 'Error al Guardar',
+            description: 'No se pudo registrar la evaluación. Por favor, intente de nuevo.',
+            variant: 'destructive'
+        });
+        console.error("Error saving evaluation:", error);
+      }
   }
 
   const handleReturnToSearch = () => {
     setIsFormVisible(false);
     setSelectedPersona(null);
     setEvaluationData(null);
+    router.push('/dashboard/salud-ocupacional');
   }
 
   const handlePrint = () => {
@@ -152,7 +176,7 @@ export function OccupationalHealthManagement() {
           </CardContent>
         </Card>
       ) : isFormVisible && selectedPersona ? (
-        <OccupationalHealthForm persona={selectedPersona} onFinished={handleConsultationFinished} onCancel={handleReturnToSearch}/>
+        <OccupationalHealthForm persona={selectedPersona} onFinished={handleConsultationFinished} onCancel={handleReturnToSearch} empresas={empresas} />
       ) : evaluationData && selectedPersona ? (
         <Card className="mx-auto max-w-2xl">
            <CardHeader>

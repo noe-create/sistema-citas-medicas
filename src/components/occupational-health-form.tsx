@@ -53,7 +53,6 @@ import {
 } from './ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
-import { getEmpresas } from '@/actions/patient-actions';
 import {
   Command,
   CommandEmpty,
@@ -146,6 +145,7 @@ const occupationalHealthSchema = z.object({
 
 interface OccupationalHealthFormProps {
   persona: Persona;
+  empresas: Empresa[];
   onFinished: (data: z.infer<typeof occupationalHealthSchema>) => void;
   onCancel: () => void;
 }
@@ -198,13 +198,8 @@ const riskOptions = [
   { id: 'fisicos', label: 'Físicos' },
 ];
 
-function CompanySelector({ field }: { field: any }) {
-  const [empresas, setEmpresas] = React.useState<Empresa[]>([]);
+function CompanySelector({ field, empresas }: { field: any, empresas: Empresa[] }) {
   const [open, setOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    getEmpresas().then((data) => setEmpresas(data.empresas));
-  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -259,6 +254,7 @@ function CompanySelector({ field }: { field: any }) {
 
 export function OccupationalHealthForm({
   persona,
+  empresas,
   onFinished,
   onCancel,
 }: OccupationalHealthFormProps) {
@@ -331,15 +327,8 @@ export function OccupationalHealthForm({
 
   async function onSubmit(values: z.infer<typeof occupationalHealthSchema>) {
     setIsSubmitting(true);
-    // Here you would call the server action to save the data
-    // await saveOccupationalHealthConsultation(persona.id, values);
-    toast({
-      title: '¡Evaluación Guardada!',
-      description: `La consulta de salud ocupacional para ${persona.nombreCompleto} ha sido registrada.`,
-      variant: 'success'
-    });
+    await onFinished(values);
     setIsSubmitting(false);
-    onFinished(values);
   }
 
   return (
@@ -454,7 +443,7 @@ export function OccupationalHealthForm({
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
                           <FormLabel className="flex items-center gap-2"><Building className="h-4 w-4"/>Empresa del Afiliado</FormLabel>
-                          <CompanySelector field={field} />
+                          <CompanySelector field={field} empresas={empresas} />
                           <FormMessage />
                         </FormItem>
                       )}
