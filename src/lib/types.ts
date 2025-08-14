@@ -104,7 +104,7 @@ export interface SearchResult {
 }
 
 // For Patient Queue
-export type ServiceType = 'medicina familiar' | 'consulta pediatrica' | 'servicio de enfermeria';
+export type ServiceType = 'medicina familiar' | 'consulta pediatrica' | 'servicio de enfermeria' | 'salud ocupacional';
 export type AccountType = 'Empleado' | 'Afiliado Corporativo' | 'Privado';
 export type PatientStatus =
   | 'Esperando'

@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   XCircle,
   ClipboardCheck,
+  Briefcase,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient, ServiceType, PatientStatus, User, Consultation } from '@/lib/types';
@@ -31,6 +32,7 @@ const serviceInfo: Record<ServiceType, { icon: React.ReactNode, title: string }>
   'medicina familiar': { icon: <HeartPulse className="h-5 w-5 text-blue-500" />, title: 'Medicina Familiar' },
   'consulta pediatrica': { icon: <Baby className="h-5 w-5 text-pink-500" />, title: 'Consulta Pediátrica' },
   'servicio de enfermeria': { icon: <Stethoscope className="h-5 w-5 text-green-500" />, title: 'Servicio de Enfermería' },
+  'salud ocupacional': { icon: <Briefcase className="h-5 w-5 text-indigo-500" />, title: 'Salud Ocupacional' },
 };
 
 const statusInfo: Record<PatientStatus, { label: string; color: string; badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -187,7 +189,7 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
         return allServices.filter((s) => s === 'consulta pediatrica' || s === 'servicio de enfermeria');
       }
       if (user.specialty === 'medico familiar') {
-        return allServices.filter((s) => s === 'medicina familiar' || s === 'servicio de enfermeria');
+        return allServices.filter((s) => s === 'medicina familiar' || s === 'servicio de enfermeria' || s === 'salud ocupacional');
       }
       return allServices; // Default doctor can see all
     }
@@ -214,7 +216,10 @@ export function PatientQueue({ user, patients, onListRefresh }: PatientQueueProp
     if (count === 2) {
       return 'md:grid-cols-2';
     }
-    return 'md:grid-cols-3';
+    if (count === 3) {
+      return 'md:grid-cols-3';
+    }
+    return 'lg:grid-cols-4 md:grid-cols-2'; // For 4 services
   }, [visibleServices]);
 
   const totalPatientsInQueue = (patients || []).length;
