@@ -27,7 +27,8 @@ import type {
     TreatmentOrderItem,
     User,
     PatientSummary,
-    Invoice
+    Invoice,
+    OccupationalHealthEvaluation
 } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -1713,4 +1714,89 @@ export async function getPatientSummary(personaId: string): Promise<PatientSumma
   const summary = await summarizePatientHistory({ history: historyString });
 
   return summary;
+}
+
+// --- Occupational Health Actions ---
+export async function createOccupationalHealthEvaluation(personaId: string, data: Omit<OccupationalHealthEvaluation, 'id' | 'personaId' | 'evaluationDate'>): Promise<OccupationalHealthEvaluation> {
+    const db = await getDb();
+    const evaluationId = generateId('occ');
+    const evaluationDate = new Date();
+
+    const newEvaluation: OccupationalHealthEvaluation = {
+        id: evaluationId,
+        personaId,
+        evaluationDate,
+        ...data,
+        // Ensure complex objects are stringified for DB storage
+        occupationalRisks: JSON.stringify(data.occupationalRisks),
+        lifestyle: JSON.stringify(data.lifestyle),
+        vitalSigns: JSON.stringify(data.vitalSigns),
+        anthropometry: JSON.stringify(data.anthropometry),
+        diagnoses: JSON.stringify(data.diagnoses),
+        nextFollowUp: data.nextFollowUp ? data.nextFollowUp : undefined,
+    };
+    
+    await db.run(
+      `INSERT INTO occupational_health_evaluations (
+        id, personaId, companyId, companyName, evaluationDate, patientType, consultationPurpose, 
+        jobPosition, jobDescription, occupationalRisks, riskDetails, 
+        personalHistory, familyHistory, lifestyle, mentalHealth, 
+        vitalSigns, anthropometry, physicalExamFindings, 
+        diagnoses, fitnessForWork, occupationalRecommendations, 
+        generalHealthPlan, interconsultation, nextFollowUp
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      newEvaluation.id,
+      newEvaluation.personaId,
+      newEvaluation.companyId || null,
+      newEvaluation.companyName || null,
+      newEvaluation.evaluationDate.toISOString(),
+      newEvaluation.patientType,
+      newEvaluation.consultationPurpose,
+      newEvaluation.jobPosition,
+      newEvaluation.jobDescription,
+      newEvaluation.occupationalRisks,
+      newEvaluation.riskDetails,
+      newEvaluation.personalHistory,
+      newEvaluation.familyHistory,
+      newEvaluation.lifestyle,
+      newEvaluation.mentalHealth || null,
+      newEvaluation.vitalSigns,
+      newEvaluation.anthropometry,
+      newEvaluation.physicalExamFindings,
+      newEvaluation.diagnoses,
+      newEvaluation.fitnessForWork,
+      newEvaluation.occupationalRecommendations,
+      newEvaluation.generalHealthPlan,
+      newEvaluation.interconsultation || null,
+      newEvaluation.nextFollowUp?.toISOString() || null
+    );
+
+    revalidatePath('/dashboard/historial-ocupacional');
+
+    return {
+        ...data,
+        id: evaluationId,
+        personaId,
+        evaluationDate,
+    };
+}
+
+
+export async function getOccupationalHealthHistory(personaId: string): Promise<OccupationalHealthEvaluation[]> {
+    const db = await getDb();
+    const rows = await db.all(
+        'SELECT * FROM occupational_health_evaluations WHERE personaId = ? ORDER BY evaluationDate DESC',
+        personaId
+    );
+    
+    return rows.map(row => ({
+        ...row,
+        evaluationDate: new Date(row.evaluationDate),
+        nextFollowUp: row.nextFollowUp ? new Date(row.nextFollowUp) : undefined,
+        occupationalRisks: JSON.parse(row.occupationalRisks),
+        lifestyle: JSON.parse(row.lifestyle),
+        vitalSigns: JSON.parse(row.vitalSigns),
+        anthropometry: JSON.parse(row.anthropometry),
+        diagnoses: JSON.parse(row.diagnoses),
+    }));
 }

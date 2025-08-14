@@ -412,16 +412,16 @@ export interface OccupationalHealthEvaluation {
   consultationPurpose: string;
   jobPosition: string;
   jobDescription: string;
-  occupationalRisks: string[];
+  occupationalRisks: string[] | string; // Array in form, string in DB
   riskDetails: string;
   personalHistory: string;
   familyHistory: string;
-  lifestyle: any;
+  lifestyle: any; // JSON string in DB
   mentalHealth?: string;
-  vitalSigns: any;
-  anthropometry: any;
+  vitalSigns: any; // JSON string in DB
+  anthropometry: any; // JSON string in DB
   physicalExamFindings: string;
-  diagnoses: Diagnosis[];
+  diagnoses: Diagnosis[] | string; // Array in form, string in DB
   fitnessForWork: 'Apto' | 'Apto con Restricciones' | 'No Apto';
   occupationalRecommendations: string;
   generalHealthPlan: string;
