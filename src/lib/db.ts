@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import sqlite3 from 'sqlite3';
@@ -382,8 +381,11 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const users = [
             { id: 'usr-super', username: 'superuser', password: 'password123', roleId: 'superuser', specialty: null, personaId: null },
             { id: 'usr-admin', username: 'admin', password: 'password123', roleId: 'administrator', specialty: null, personaId: null },
-            { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: 'p4' },
-            { id: 'usr-doctor', username: 'pediatra', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p2' },
+            { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: null },
+            { id: 'usr-doctor-ped', username: 'pediatra', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p2' },
+            { id: 'usr-doctor-fam', username: 'carlos.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p1' },
+            { id: 'usr-doctor-gomez', username: 'sofia.g', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p4' },
+            { id: 'usr-doctor-hernandez', username: 'luis.h', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p3' },
             { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
         ];
 

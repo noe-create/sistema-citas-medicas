@@ -33,18 +33,14 @@ export function DoctorAvailability({ doctors, patients }: DoctorAvailabilityProp
   const getActiveShift = () => {
     if (!currentTime) return null; // Wait for client-side time
     const currentHour = currentTime.getHours();
-    const currentMinute = currentTime.getMinutes();
-
-    if (currentHour < 12) {
+    
+    if (currentHour >= 7 && currentHour < 12) {
       return 'morning';
     }
     if (currentHour >= 13 && currentHour < 17) {
-        if (currentHour === 13 && currentMinute < 30) {
-            return null; // Break time 12:00 to 1:30
-        }
         return 'afternoon';
     }
-    return null; // Outside of shift hours
+    return null; // Outside of shift hours or during break
   };
   
   const activeShiftKey = getActiveShift();
