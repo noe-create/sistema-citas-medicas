@@ -54,7 +54,7 @@ async function createTables(dbInstance: Database): Promise<void> {
             password TEXT NOT NULL,
             roleId TEXT NOT NULL,
             specialty TEXT,
-            personaId TEXT,
+            personaId TEXT UNIQUE,
             FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE RESTRICT,
             FOREIGN KEY (personaId) REFERENCES personas(id) ON DELETE SET NULL
         );
@@ -297,42 +297,51 @@ async function createTables(dbInstance: Database): Promise<void> {
 
 async function seedDb(dbInstance: Database): Promise<void> {
     const roleCountResult = await dbInstance.get('SELECT COUNT(*) as count FROM roles');
-    if (roleCountResult && roleCountResult.count > 0) return; // DB is already seeded
+    
+    // Only clear and re-seed if roles already exist, to force update during development
+    if (roleCountResult && roleCountResult.count > 0) {
+        console.log("Database already has roles. Clearing user and persona data to re-seed doctors...");
+        await dbInstance.run('DELETE FROM users');
+        await dbInstance.run('DELETE FROM personas');
+    } else {
+         console.log("Seeding database with initial data...");
+    }
 
-    console.log("Seeding database with initial data...");
-
-    // Seed Roles & Permissions
-    const roles = [
-        { id: 'superuser', name: 'Superusuario', description: 'Acceso total a todas las funciones del sistema.', hasSpecialty: 1 },
-        { id: 'administrator', name: 'Administrador', description: 'Gestiona la parametrización del sistema como empresas y catálogos.', hasSpecialty: 0 },
-        { id: 'asistencial', name: 'Asistencial', description: 'Personal de recepción encargado de la admisión de pacientes.', hasSpecialty: 0 },
-        { id: 'doctor', name: 'Doctor', description: 'Personal médico que realiza consultas.', hasSpecialty: 1 },
-        { id: 'enfermera', name: 'Enfermera', description: 'Personal de enfermería que aplica tratamientos.', hasSpecialty: 0 },
-    ];
     await dbInstance.run('BEGIN');
     try {
-        const roleStmt = await dbInstance.prepare('INSERT INTO roles (id, name, description, hasSpecialty) VALUES (?, ?, ?, ?)');
-        for (const role of roles) {
-            await roleStmt.run(role.id, role.name, role.description, role.hasSpecialty);
-        }
-        await roleStmt.finalize();
-
-        const rolePermissions = {
-            administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'surveys.manage', 'services.manage'],
-            asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
-            doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage', 'occupationalhealth.manage'],
-            enfermera: ['treatmentlog.manage', 'waitlist.manage'],
-        };
-        const permStmt = await dbInstance.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');
-        for (const p of ALL_PERMISSIONS) {
-            await permStmt.run('superuser', p.id);
-        }
-        for (const [roleId, permissions] of Object.entries(rolePermissions)) {
-            for (const permissionId of permissions) {
-                await permStmt.run(roleId, permissionId);
+        if (roleCountResult.count === 0) {
+            // Seed Roles & Permissions
+            const roles = [
+                { id: 'superuser', name: 'Superusuario', description: 'Acceso total a todas las funciones del sistema.', hasSpecialty: 1 },
+                { id: 'administrator', name: 'Administrador', description: 'Gestiona la parametrización del sistema como empresas y catálogos.', hasSpecialty: 0 },
+                { id: 'asistencial', name: 'Asistencial', description: 'Personal de recepción encargado de la admisión de pacientes.', hasSpecialty: 0 },
+                { id: 'doctor', name: 'Doctor', description: 'Personal médico que realiza consultas.', hasSpecialty: 1 },
+                { id: 'enfermera', name: 'Enfermera', description: 'Personal de enfermería que aplica tratamientos.', hasSpecialty: 0 },
+            ];
+            const roleStmt = await dbInstance.prepare('INSERT INTO roles (id, name, description, hasSpecialty) VALUES (?, ?, ?, ?)');
+            for (const role of roles) {
+                await roleStmt.run(role.id, role.name, role.description, role.hasSpecialty);
             }
+            await roleStmt.finalize();
+
+            const rolePermissions = {
+                administrator: ['companies.manage', 'cie10.manage', 'reports.view', 'people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'surveys.manage', 'services.manage'],
+                asistencial: ['people.manage', 'titulars.manage', 'beneficiaries.manage', 'patientlist.view', 'waitlist.manage', 'companies.manage'],
+                doctor: ['consultation.perform', 'hce.view', 'treatmentlog.manage', 'reports.view', 'waitlist.manage', 'occupationalhealth.manage'],
+                enfermera: ['treatmentlog.manage', 'waitlist.manage'],
+            };
+            const permStmt = await dbInstance.prepare('INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)');
+            for (const p of ALL_PERMISSIONS) {
+                await permStmt.run('superuser', p.id);
+            }
+            for (const [roleId, permissions] of Object.entries(rolePermissions)) {
+                for (const permissionId of permissions) {
+                    await permStmt.run(roleId, permissionId);
+                }
+            }
+            await permStmt.finalize();
         }
-        await permStmt.finalize();
+
 
         // Seed Personas
         const personas = [
@@ -343,14 +352,14 @@ async function seedDb(dbInstance: Database): Promise<void> {
              { id: "p-titular", p_nombre: "Juan", s_nombre: null, p_apellido: "Perez", s_apellido: null, nac: 'V', ced: "55555555", fecha: "1980-01-01T05:00:00.000Z", gen: "Masculino", email: "juan.perez@email.com", dir: null },
              { id: "p-beneficiario", p_nombre: "Maria", s_nombre: null, p_apellido: "Perez", s_apellido: null, nac: 'V', ced: "66666666", fecha: "2010-06-15T04:00:00.000Z", gen: "Femenino", email: "maria.perez@email.com", dir: null },
         ];
-        const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)');
+        const personaStmt = await dbInstance.prepare('INSERT OR IGNORE INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)');
         for (const p of personas) {
             await personaStmt.run(p.id, p.p_nombre, p.s_nombre, p.p_apellido, p.s_apellido, p.nac, p.ced, p.fecha, p.gen, p.tel1, p.tel2, p.email, p.dir, new Date(p.fecha).toISOString());
         }
         await personaStmt.finalize();
         
         // Seed Pacientes, Titulares, Beneficiarios
-        const pacienteStmt = await dbInstance.prepare('INSERT INTO pacientes (id, personaId) VALUES (?, ?)');
+        const pacienteStmt = await dbInstance.prepare('INSERT OR IGNORE INTO pacientes (id, personaId) VALUES (?, ?)');
         for (const p of personas) {
             await pacienteStmt.run(`pac-${p.id}`, p.id);
         }
@@ -359,7 +368,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const titulares = [
             { id: "t1", personaId: "p-titular", unidadServicio: "Empleado", numeroFicha: "1234" },
         ];
-        const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)');
+        const titularStmt = await dbInstance.prepare('INSERT OR IGNORE INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)');
         for (const t of titulares) {
             await titularStmt.run(t.id, t.personaId, t.unidadServicio, t.numeroFicha);
         }
@@ -368,7 +377,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         const beneficiarios = [
             { id: "b1", personaId: "p-beneficiario", titularId: "t1" },
         ];
-        const beneficiarioStmt = await dbInstance.prepare('INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)');
+        const beneficiarioStmt = await dbInstance.prepare('INSERT OR IGNORE INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)');
         for (const b of beneficiarios) {
             await beneficiarioStmt.run(b.id, b.personaId, b.titularId);
         }
@@ -379,9 +388,10 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { id: 'usr-super', username: 'superuser', password: 'password123', roleId: 'superuser', specialty: null, personaId: null },
             { id: 'usr-admin', username: 'admin', password: 'password123', roleId: 'administrator', specialty: null, personaId: null },
             { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: null },
+            { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
+            // Corrected Doctors
             { id: 'usr-guerrero', username: 'carolina.guerrero', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-cg' },
             { id: 'usr-dicenso', username: 'angela.dicenso', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-ad' },
-            { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
             { id: 'usr-begarano', username: 'mirna.b', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-mb' },
             { id: 'usr-rodrigues', username: 'zulma.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-zr' },
         ];
@@ -394,21 +404,25 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await userStmt.finalize();
 
         // Seed CIE-10
-        const codes = [
-            { code: 'J00', description: 'Nasofaringitis aguda (resfriado común)' },
-            { code: 'J02.9', description: 'Faringitis aguda, no especificada' },
-            { code: 'A09X', description: 'Enfermedad diarreica y gastroenteritis de presunto origen infeccioso' },
-            { code: 'I10', description: 'Hipertensión esencial (primaria)' },
-            { code: 'E11.9', description: 'Diabetes mellitus tipo 2, sin complicaciones' },
-        ];
-        const cieStmt = await dbInstance.prepare('INSERT INTO cie10_codes (code, description) VALUES (?, ?)');
-        for (const c of codes) {
-            await cieStmt.run(c.code, c.description);
+        const cieCount = await dbInstance.get('SELECT COUNT(*) as count FROM cie10_codes');
+        if (cieCount.count === 0) {
+            const codes = [
+                { code: 'J00', description: 'Nasofaringitis aguda (resfriado común)' },
+                { code: 'J02.9', description: 'Faringitis aguda, no especificada' },
+                { code: 'A09X', description: 'Enfermedad diarreica y gastroenteritis de presunto origen infeccioso' },
+                { code: 'I10', description: 'Hipertensión esencial (primaria)' },
+                { code: 'E11.9', description: 'Diabetes mellitus tipo 2, sin complicaciones' },
+            ];
+            const cieStmt = await dbInstance.prepare('INSERT INTO cie10_codes (code, description) VALUES (?, ?)');
+            for (const c of codes) {
+                await cieStmt.run(c.code, c.description);
+            }
+            await cieStmt.finalize();
         }
-        await cieStmt.finalize();
+
 
         await dbInstance.run('COMMIT');
-        console.log("Database seeded successfully.");
+        console.log("Database seeded/updated successfully.");
     } catch (error) {
         await dbInstance.run('ROLLBACK');
         console.error("Failed to seed database:", error);
