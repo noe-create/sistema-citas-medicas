@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { login } from '@/actions/auth-actions';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import Image from 'next/image';
 import { SaludIntegralLogo } from '@/components/logo-salud-integral';
 
 function LoginButton() {
@@ -27,22 +26,12 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
-       <Image
-          src="https://placehold.co/1920x1080.png"
-          alt="Consultorio médico"
-          data-ai-hint="doctor office"
-          fill
-          className="-z-10 object-cover"
-        />
-        <div className="absolute inset-0 -z-10 bg-black/50" />
-      <div className="w-full max-w-sm rounded-xl bg-background/80 p-8 shadow-2xl backdrop-blur-sm dark:bg-card/70">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-muted p-4">
+      <div className="w-full max-w-sm rounded-xl bg-card p-8 shadow-lg">
         <form action={formAction}>
           <div className="text-center mb-8">
             <div className="mb-4 flex justify-center">
-              <div className="p-3 bg-primary/10 rounded-full">
-                 <SaludIntegralLogo className="h-14 w-14"/>
-              </div>
+               <SaludIntegralLogo className="h-16 w-16"/>
             </div>
             <h1 className="text-2xl font-headline">Bienvenido a MediHub</h1>
             <p className="text-muted-foreground mt-1">Ingrese sus credenciales para acceder al sistema.</p>
