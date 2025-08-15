@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ interface DoctorAvailabilityProps {
 
 // Hardcoded schedule for demonstration purposes
 const DOCTOR_SCHEDULE = {
-  morning: ['pediatra', 'carlos.r'], // Usernames of morning shift doctors
+  morning: ['pediatra', 'carlos.r', 'ana.m'], // Usernames of morning shift doctors
   afternoon: ['sofia.g', 'luis.h'], // Usernames of afternoon shift doctors
 };
 

@@ -2,7 +2,7 @@
 
 export type Genero = 'Masculino' | 'Femenino';
 export type PatientKind = 'titular' | 'beneficiario';
-export type DoctorSpecialty = 'medico familiar' | 'medico pediatra';
+export type DoctorSpecialty = 'medico familiar' | 'medico pediatra' | 'salud ocupacional';
 
 // --- NEW RBAC (Role-Based Access Control) Types ---
 export interface Permission {

@@ -127,7 +127,7 @@ export function MedicalReportDisplay({ consultation }: MedicalReportDisplayProps
             )}
         </div>
 
-        <footer className="flex flex-col items-center text-sm pt-4 mt-48">
+        <footer className="flex flex-col items-center text-sm pt-4 mt-auto">
             <div className="w-48 border-b border-black"></div>
             <p className="font-semibold mt-1">Atentamente;</p>
             <p>Dr. [Nombre del Doctor]</p>
