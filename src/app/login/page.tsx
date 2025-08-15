@@ -26,10 +26,10 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex items-stretch justify-center min-h-screen w-full">
-      <div className="flex w-full">
+    <main className="flex min-h-screen w-full">
+      <div className="flex w-full items-stretch">
         {/* Left Side: Image */}
-        <div className="hidden lg:block w-1/2 relative">
+        <div className="relative hidden w-1/2 lg:block">
             <Image 
                 src="https://placehold.co/1200x1800.png"
                 alt="Fondo de clínica moderna"
@@ -41,7 +41,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side: Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
+        <div className="flex w-full items-center justify-center p-8 lg:w-1/2 bg-background">
           <div className="w-full max-w-sm">
             <form action={formAction}>
               <div className="text-center mb-8">
