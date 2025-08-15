@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  const session = await getSession();
+  const session = await getSession(req.cookies);
   const { isLoggedIn } = session;
   const { pathname } = req.nextUrl;
 

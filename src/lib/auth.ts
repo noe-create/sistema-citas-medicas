@@ -1,7 +1,7 @@
 
 
 import { getIronSession, type IronSession } from 'iron-session';
-import { cookies } from 'next/headers';
+import { cookies, type ReadonlyRequestCookies } from 'next/headers';
 import type { User } from './types';
 
 export type SessionData = {
@@ -16,7 +16,9 @@ const defaultSession: SessionData = {
   permissions: [],
 };
 
-export async function getSession(): Promise<IronSession<SessionData>> {
+export async function getSession(
+  cookieStore: ReadonlyRequestCookies = cookies()
+): Promise<IronSession<SessionData>> {
   const sessionOptions = {
     password: process.env.SECRET_COOKIE_PASSWORD!,
     cookieName: 'salud-cpv-session',
@@ -31,7 +33,7 @@ export async function getSession(): Promise<IronSession<SessionData>> {
     throw new Error('SECRET_COOKIE_PASSWORD is not set or is too short. It must be at least 32 characters long.');
   }
 
-  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+  const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
 
   if (!session.isLoggedIn) {
     session.isLoggedIn = defaultSession.isLoggedIn;
