@@ -16,8 +16,8 @@ interface DoctorAvailabilityProps {
 
 // Hardcoded schedule for demonstration purposes
 const DOCTOR_SCHEDULE = {
-  morning: ['pediatra', 'carlos.r', 'ana.m'], // Usernames of morning shift doctors
-  afternoon: ['sofia.g', 'luis.h'], // Usernames of afternoon shift doctors
+  morning: ['carolina.g', 'angela.d'], // Usernames of morning shift doctors
+  afternoon: ['mirna.b', 'zulma.r'], // Usernames of afternoon shift doctors
 };
 
 export function DoctorAvailability({ doctors, patients }: DoctorAvailabilityProps) {
@@ -50,7 +50,7 @@ export function DoctorAvailability({ doctors, patients }: DoctorAvailabilityProp
 
   const activeDoctors = activeShiftKey 
     ? doctors
-        .filter(d => DOCTOR_SCHEDULE[activeShiftKey].includes(d.username))
+        .filter(d => DOCTOR_SCHEDULE[activeShiftKey as keyof typeof DOCTOR_SCHEDULE].includes(d.username))
         .map(doctor => ({
           ...doctor,
           status: patientInConsultation ? 'En Consulta' : 'Disponible',

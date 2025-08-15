@@ -336,12 +336,12 @@ async function seedDb(dbInstance: Database): Promise<void> {
 
         // Seed Personas
         const personas = [
-             { id: "p1", p_nombre: "Carlos", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "12345678", fecha: "1985-02-20T05:00:00.000Z", gen: "Masculino", tel1: "0212-555-1234", tel2: "0414-1234567", email: "carlos.r@email.com", dir: "Av. Urdaneta" },
-             { id: "p2", p_nombre: "Ana", s_nombre: null, p_apellido: "Martinez", s_apellido: null, nac: 'V', ced: "87654321", fecha: "1990-08-10T04:00:00.000Z", gen: "Femenino", tel1: "0241-555-5678", tel2: "0412-7654321", email: "ana.m@email.com", dir: null },
-             { id: "p3", p_nombre: "Luis", s_nombre: null, p_apellido: "Hernandez", s_apellido: null, nac: 'E', ced: "98765432", fecha: "1978-12-05T05:00:00.000Z", gen: "Masculino", tel1: "0261-555-9012", tel2: "0424-9876543", email: "luis.h@email.com", dir: null },
-             { id: "p4", p_nombre: "Sofia", s_nombre: null, p_apellido: "Gomez", s_apellido: null, nac: 'V', ced: "23456789", fecha: "1995-04-30T04:00:00.000Z", gen: "Femenino", tel1: "0212-555-3456", tel2: "0416-2345678", email: "sofia.g@email.com", dir: null },
-             { id: "p5", p_nombre: "Laura", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876543", fecha: "2010-06-15T04:00:00.000Z", gen: "Femenino", email: "laura.r@email.com", dir: null },
-             { id: "p6", p_nombre: "David", s_nombre: null, p_apellido: "Rodriguez", s_apellido: null, nac: 'V', ced: "29876544", fecha: "2012-09-20T04:00:00.000Z", gen: "Masculino", email: "david.r@email.com", dir: null },
+             { id: "p-cg", p_nombre: "Carolina", s_nombre: null, p_apellido: "Guerrero", s_apellido: null, nac: 'V', ced: "11111111", fecha: "1985-02-20T05:00:00.000Z", gen: "Femenino", tel1: "0212-555-1111", tel2: "0414-1111111", email: "carolina.g@email.com", dir: "Av. Bolivar" },
+             { id: "p-ad", p_nombre: "Angela", s_nombre: null, p_apellido: "Dicenso", s_apellido: null, nac: 'V', ced: "22222222", fecha: "1990-08-10T04:00:00.000Z", gen: "Femenino", tel1: "0241-555-2222", tel2: "0412-2222222", email: "angela.d@email.com", dir: null },
+             { id: "p-mb", p_nombre: "Mirna", s_nombre: null, p_apellido: "Begarano", s_apellido: null, nac: 'E', ced: "33333333", fecha: "1978-12-05T05:00:00.000Z", gen: "Femenino", tel1: "0261-555-3333", tel2: "0424-3333333", email: "mirna.b@email.com", dir: null },
+             { id: "p-zr", p_nombre: "Zulma", s_nombre: null, p_apellido: "Rodrigues", s_apellido: null, nac: 'V', ced: "44444444", fecha: "1995-04-30T04:00:00.000Z", gen: "Femenino", tel1: "0212-555-4444", tel2: "0416-4444444", email: "zulma.r@email.com", dir: null },
+             { id: "p-titular", p_nombre: "Juan", s_nombre: null, p_apellido: "Perez", s_apellido: null, nac: 'V', ced: "55555555", fecha: "1980-01-01T05:00:00.000Z", gen: "Masculino", email: "juan.perez@email.com", dir: null },
+             { id: "p-beneficiario", p_nombre: "Maria", s_nombre: null, p_apellido: "Perez", s_apellido: null, nac: 'V', ced: "66666666", fecha: "2010-06-15T04:00:00.000Z", gen: "Femenino", email: "maria.perez@email.com", dir: null },
         ];
         const personaStmt = await dbInstance.prepare('INSERT INTO personas (id, primerNombre, segundoNombre, primerApellido, segundoApellido, nacionalidad, cedulaNumero, fechaNacimiento, genero, telefono1, telefono2, email, direccion, representanteId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)');
         for (const p of personas) {
@@ -357,10 +357,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await pacienteStmt.finalize();
 
         const titulares = [
-            { id: "t1", personaId: "p1", unidadServicio: "Empleado", numeroFicha: "1234" },
-            { id: "t2", personaId: "p2", unidadServicio: "Privado", numeroFicha: null },
-            { id: "t3", personaId: "p3", unidadServicio: "Afiliado Corporativo", numeroFicha: null },
-            { id: "t4", personaId: "p4", unidadServicio: "Empleado", numeroFicha: "4321" },
+            { id: "t1", personaId: "p-titular", unidadServicio: "Empleado", numeroFicha: "1234" },
         ];
         const titularStmt = await dbInstance.prepare('INSERT INTO titulares (id, personaId, unidadServicio, numeroFicha) VALUES (?, ?, ?, ?)');
         for (const t of titulares) {
@@ -369,8 +366,7 @@ async function seedDb(dbInstance: Database): Promise<void> {
         await titularStmt.finalize();
         
         const beneficiarios = [
-            { id: "b1", personaId: "p5", titularId: "t1" },
-            { id: "b2", personaId: "p6", titularId: "t1" },
+            { id: "b1", personaId: "p-beneficiario", titularId: "t1" },
         ];
         const beneficiarioStmt = await dbInstance.prepare('INSERT INTO beneficiarios (id, personaId, titularId) VALUES (?, ?, ?)');
         for (const b of beneficiarios) {
@@ -383,11 +379,10 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { id: 'usr-super', username: 'superuser', password: 'password123', roleId: 'superuser', specialty: null, personaId: null },
             { id: 'usr-admin', username: 'admin', password: 'password123', roleId: 'administrator', specialty: null, personaId: null },
             { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: null },
-            { id: 'usr-doctor-ped', username: 'pediatra', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: null },
-            { id: 'usr-doctor-fam', username: 'carlos.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p1' },
-            { id: 'usr-doctor-occ', username: 'ana.m', password: 'password123', roleId: 'doctor', specialty: 'salud ocupacional', personaId: 'p2' },
-            { id: 'usr-doctor-gomez', username: 'sofia.g', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p4' },
-            { id: 'usr-doctor-hernandez', username: 'luis.h', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p3' },
+            { id: 'usr-guerrero', username: 'carolina.g', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-cg' },
+            { id: 'usr-dicenso', username: 'angela.d', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-ad' },
+            { id: 'usr-begarano', username: 'mirna.b', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-mb' },
+            { id: 'usr-rodrigues', username: 'zulma.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-zr' },
             { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
         ];
 
