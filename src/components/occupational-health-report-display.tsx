@@ -30,14 +30,16 @@ export default function OccupationalHealthReportDisplay({ data, persona }: Occup
     if (imc >= 30) return 'Obesidad';
     return 'N/A';
   }
-
+  
+  const riskText = Array.isArray(data.occupationalRisks) ? data.occupationalRisks.join(', ') : data.occupationalRisks;
   const nutritionalStatus = getNutritionalStatus(parseFloat(data.anthropometry.imc));
-  const diagnosesText = data.diagnoses.map((d: any) => d.cie10Description).join(' y ');
+  const diagnosesText = Array.isArray(data.diagnoses) ? data.diagnoses.map((d: any) => d.cie10Description).join('; ') : data.diagnoses;
 
-  const narrative = `Se evalúa al paciente en el contexto de su puesto de trabajo en la empresa, por motivo de una evaluación médica ${data.consultationPurpose.toLowerCase()}. Durante la entrevista, el paciente describe que sus tareas consisten en ${data.jobDescription.toLowerCase()} y refiere estar expuesto a riesgos de tipo ${data.riskDetails.toLowerCase()}. Como antecedentes de importancia, el paciente reporta ${data.personalHistory.toLowerCase()}. En cuanto a su estilo de vida, comenta que su alimentación es ${data.lifestyle.diet.toLowerCase()}, realiza actividad física ${data.lifestyle.physicalActivity.toLowerCase()} y duerme unas ${data.lifestyle.sleepQuality.toLowerCase()}.
-Al examen físico, se registran signos vitales dentro de los parámetros normales y un índice de masa corporal de ${data.anthropometry.imc}, indicando ${nutritionalStatus.toLowerCase()}. ${data.physicalExamFindings}.
-Con base en los hallazgos, se establecen los siguientes diagnósticos: ${diagnosesText}.
-Considerando estos diagnósticos y las exigencias del puesto, se determina un concepto de "${data.fitnessForWork}". El plan de salud integral a seguir incluye, por un lado, recomendaciones ocupacionales como ${data.occupationalRecommendations.toLowerCase()}. Por otro lado, para su salud general, ${data.generalHealthPlan.toLowerCase()}. ${data.interconsultation ? `Finalmente, se deriva al paciente a una interconsulta con el servicio de ${data.interconsultation}` : ''} ${data.nextFollowUp ? `y se programa una cita de seguimiento en ${format(new Date(data.nextFollowUp), 'PPP', { locale: es })} para reevaluar su condición.` : ''}`.trim();
+  const narrative = `Se realiza evaluación médica ${data.consultationPurpose.toLowerCase()} al paciente ${persona.nombreCompleto}, de ${ageString || 'N/A'}, quien se desempeña como ${data.patientType.toLowerCase()}.
+El paciente aspira al puesto de ${data.jobPosition}, donde sus tareas consistirán en ${data.jobDescription.toLowerCase()}. Estará expuesto a riesgos de tipo ${riskText}, con una exposición cualitativa descrita como: ${data.riskDetails.toLowerCase()}.
+En sus antecedentes personales, el paciente refiere: ${data.personalHistory.toLowerCase()}. En cuanto a los antecedentes familiares, se reporta: ${data.familyHistory.toLowerCase()}. Su estilo de vida se caracteriza por una alimentación ${data.lifestyle.diet.toLowerCase()}, una actividad física consistente en ${data.lifestyle.physicalActivity.toLowerCase()}, y una calidad de sueño descrita como ${data.lifestyle.sleepQuality.toLowerCase()}. El consumo de tabaco se reporta como "${data.lifestyle.smoking}" y el de alcohol como "${data.lifestyle.alcohol}". En el área de salud mental, el paciente refiere: ${data.mentalHealth.toLowerCase() || 'sin particularidades'}.
+Al examen físico, se registran los siguientes signos vitales: tensión arterial de ${data.vitalSigns.ta}, frecuencia cardíaca de ${data.vitalSigns.fc}, frecuencia respiratoria de ${data.vitalSigns.fr} y temperatura de ${data.vitalSigns.temp}. Los datos antropométricos son: peso de ${data.anthropometry.weight} kg, talla de ${data.anthropometry.height} cm, con un índice de masa corporal de ${data.anthropometry.imc}, lo que indica un estado nutricional de ${nutritionalStatus.toLowerCase()}. El examen físico dirigido, con enfoque en sistema osteomuscular, agudeza visual y auditiva, revela: ${data.physicalExamFindings.toLowerCase()}.
+Con base en los hallazgos, se establece el siguiente diagnóstico: ${diagnosesText}. Se determina un concepto de aptitud laboral de "${data.fitnessForWork}". Las recomendaciones ocupacionales incluyen: ${data.occupationalRecommendations.toLowerCase()}. El plan de manejo de salud general consiste en: ${data.generalHealthPlan.toLowerCase()}.${data.interconsultation ? ` Se indica interconsulta con el servicio de ${data.interconsultation}.` : ''}${data.nextFollowUp ? ` Se programa un próximo seguimiento para el ${format(new Date(data.nextFollowUp), 'PPP', { locale: es })}.` : ''}`;
 
 
   return (
@@ -69,7 +71,7 @@ Considerando estos diagnósticos y las exigencias del puesto, se determina un co
 
         <section className="border-y border-black py-2">
             <div className="grid grid-cols-2 gap-x-4 text-sm">
-                <p><strong>Fecha:</strong> {format(new Date(), 'dd/MM/yyyy')}</p>
+                <p><strong>Fecha:</strong> {format(new Date(data.evaluationDate), 'dd/MM/yyyy')}</p>
                 <p><strong>Cédula:</strong> {persona.cedula}</p>
                 <p className="col-span-2"><strong>Nombre:</strong> {persona.nombreCompleto}</p>
                  <p><strong>Edad:</strong> {ageString || 'Calculando...'}</p>
