@@ -26,57 +26,40 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen w-full">
-      <div className="flex w-full items-stretch">
-        {/* Left Side: Image */}
-        <div className="relative hidden w-1/2 lg:block">
-            <Image 
-                src="https://placehold.co/1200x1800.png"
-                alt="Fondo de clínica moderna"
-                fill
-                className="object-cover"
-                data-ai-hint="modern clinic"
-            />
-             <div className="absolute inset-0 bg-primary/30 mix-blend-multiply"></div>
-        </div>
-
-        {/* Right Side: Form */}
-        <div className="flex w-full items-center justify-center p-8 lg:w-1/2 bg-background">
-          <div className="w-full max-w-sm">
-            <form action={formAction}>
-              <div className="text-center mb-8">
-                <div className="mb-4 flex justify-center">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                     <SaludIntegralLogo className="h-14 w-14"/>
-                  </div>
-                </div>
-                <h1 className="text-2xl font-headline">Bienvenido a MediHub</h1>
-                <p className="text-muted-foreground mt-1">Ingrese sus credenciales para acceder al sistema.</p>
+    <main className="flex min-h-screen w-full items-center justify-center bg-secondary p-4">
+      <div className="w-full max-w-sm rounded-lg bg-background p-8 shadow-lg">
+        <form action={formAction}>
+          <div className="text-center mb-8">
+            <div className="mb-4 flex justify-center">
+              <div className="p-3 bg-primary/10 rounded-full">
+                 <SaludIntegralLogo className="h-14 w-14"/>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Usuario</Label>
-                  <Input id="username" name="username" placeholder="su.usuario" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Input id="password" name="password" type="password" required />
-                </div>
-                {state.error && (
-                  <Alert variant="destructive">
-                    <AlertTitle>Error de Autenticación</AlertTitle>
-                    <AlertDescription>{state.error}</AlertDescription>
-                  </Alert>
-                )}
-              </div>
-              
-              <div className="mt-6">
-                <LoginButton />
-              </div>
-            </form>
+            </div>
+            <h1 className="text-2xl font-headline">Bienvenido a MediHub</h1>
+            <p className="text-muted-foreground mt-1">Ingrese sus credenciales para acceder al sistema.</p>
           </div>
-        </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Usuario</Label>
+              <Input id="username" name="username" placeholder="su.usuario" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input id="password" name="password" type="password" required />
+            </div>
+            {state.error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error de Autenticación</AlertTitle>
+                <AlertDescription>{state.error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+          
+          <div className="mt-6">
+            <LoginButton />
+          </div>
+        </form>
       </div>
     </main>
   );
