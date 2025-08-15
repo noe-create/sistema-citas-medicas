@@ -28,7 +28,19 @@ export default function LoginPage() {
   return (
     <main className="flex items-stretch justify-center min-h-screen w-full">
       <div className="flex w-full">
-        {/* Left Side: Form */}
+        {/* Left Side: Image */}
+        <div className="hidden lg:block w-1/2 relative">
+            <Image 
+                src="https://placehold.co/1200x1800.png"
+                alt="Fondo de clínica moderna"
+                fill
+                className="object-cover"
+                data-ai-hint="modern clinic"
+            />
+             <div className="absolute inset-0 bg-primary/30 mix-blend-multiply"></div>
+        </div>
+
+        {/* Right Side: Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
           <div className="w-full max-w-sm">
             <form action={formAction}>
@@ -64,18 +76,6 @@ export default function LoginPage() {
               </div>
             </form>
           </div>
-        </div>
-
-        {/* Right Side: Image */}
-        <div className="hidden lg:block w-1/2 relative">
-            <Image 
-                src="https://placehold.co/1200x1800.png"
-                alt="Fondo de clínica moderna"
-                fill
-                className="object-cover"
-                data-ai-hint="modern clinic"
-            />
-             <div className="absolute inset-0 bg-primary/30 mix-blend-multiply"></div>
         </div>
       </div>
     </main>
