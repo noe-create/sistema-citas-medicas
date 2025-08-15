@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -26,8 +27,16 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(login, { error: undefined, success: false });
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-secondary p-4">
-      <div className="w-full max-w-sm rounded-lg bg-background p-8 shadow-lg">
+    <main className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
+       <Image
+          src="https://placehold.co/1920x1080.png"
+          alt="Consultorio médico"
+          data-ai-hint="doctor office"
+          fill
+          className="-z-10 object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-black/50" />
+      <div className="w-full max-w-sm rounded-xl bg-background/80 p-8 shadow-2xl backdrop-blur-sm dark:bg-card/70">
         <form action={formAction}>
           <div className="text-center mb-8">
             <div className="mb-4 flex justify-center">
