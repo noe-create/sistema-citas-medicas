@@ -382,6 +382,8 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { id: 'usr-guerrero', username: 'carolina.guerrero', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-cg' },
             { id: 'usr-dicenso', username: 'angela.dicenso', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-ad' },
             { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
+            { id: 'usr-begarano', username: 'mirna.b', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-mb' },
+            { id: 'usr-rodrigues', username: 'zulma.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-zr' },
         ];
 
         const userStmt = await dbInstance.prepare('INSERT INTO users (id, username, password, roleId, specialty, personaId) VALUES (?, ?, ?, ?, ?, ?)');
