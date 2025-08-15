@@ -379,10 +379,10 @@ async function seedDb(dbInstance: Database): Promise<void> {
             { id: 'usr-super', username: 'superuser', password: 'password123', roleId: 'superuser', specialty: null, personaId: null },
             { id: 'usr-admin', username: 'admin', password: 'password123', roleId: 'administrator', specialty: null, personaId: null },
             { id: 'usr-assist', username: 'asistente', password: 'password123', roleId: 'asistencial', specialty: null, personaId: null },
-            { id: 'usr-guerrero', username: 'carolina.g', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-cg' },
-            { id: 'usr-dicenso', username: 'angela.d', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-ad' },
-            { id: 'usr-begarano', username: 'mirna.b', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-mb' },
-            { id: 'usr-rodrigues', username: 'zulma.r', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-zr' },
+            { id: 'usr-guerrero', username: 'carolina.guerrero', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-cg' },
+            { id: 'usr-dicenso', username: 'angela.dicenso', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-ad' },
+            { id: 'usr-begarano', username: 'mirna.begarano', password: 'password123', roleId: 'doctor', specialty: 'medico pediatra', personaId: 'p-mb' },
+            { id: 'usr-rodrigues', username: 'zulma.rodrigues', password: 'password123', roleId: 'doctor', specialty: 'medico familiar', personaId: 'p-zr' },
             { id: 'usr-nurse', username: 'enfermera', password: 'password123', roleId: 'enfermera', specialty: null, personaId: null },
         ];
 
